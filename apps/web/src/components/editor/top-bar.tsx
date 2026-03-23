@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { appStorage, initAppStorage } from '@/utils/app-storage'
 import { useUserStore } from '@/stores/user-store'
+import CollabPresence from './collab-presence'
 import type { ComponentType, SVGProps } from 'react'
 import {
   PanelLeft,
@@ -409,6 +410,10 @@ export default function TopBar() {
 
       {/* Right section */}
       <div className="flex items-center gap-0.5 app-region-no-drag electron-win-controls-pad">
+        <CollabPresence />
+
+        <div className="w-px h-3.5 bg-border/60 mx-1" />
+
         <AgentStatusButton />
 
         <div className="w-px h-3.5 bg-border/60 mx-1" />
