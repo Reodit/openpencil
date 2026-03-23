@@ -514,6 +514,16 @@ const de: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Dashboard',
   'editor.loadingDocument': 'Dokument wird geladen…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'KI-Bearbeitung',
+  'aiModify.placeholder': 'Beschreiben Sie die gewünschte Änderung…',
+  'aiModify.variants': 'Varianten',
+  'aiModify.apply': 'Anwenden',
+  'aiModify.compare': 'Vergleichen',
+  'aiModify.variantsTitle': 'KI-Varianten',
+  'aiModify.regenerate': 'Neu generieren',
+  'aiModify.applyVariant': 'Anwenden',
 } as const
 
 export default de

@@ -514,6 +514,16 @@ const pt: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Painel',
   'editor.loadingDocument': 'Carregando documento…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'Modificar com IA',
+  'aiModify.placeholder': 'Descreva a alteração desejada…',
+  'aiModify.variants': 'Variantes',
+  'aiModify.apply': 'Aplicar',
+  'aiModify.compare': 'Comparar',
+  'aiModify.variantsTitle': 'Variantes de IA',
+  'aiModify.regenerate': 'Regerar',
+  'aiModify.applyVariant': 'Aplicar',
 } as const
 
 export default pt

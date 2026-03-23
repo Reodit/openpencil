@@ -511,6 +511,16 @@ const id: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Dasbor',
   'editor.loadingDocument': 'Memuat dokumen…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'Modifikasi AI',
+  'aiModify.placeholder': 'Jelaskan perubahan yang Anda inginkan…',
+  'aiModify.variants': 'Varian',
+  'aiModify.apply': 'Terapkan',
+  'aiModify.compare': 'Bandingkan',
+  'aiModify.variantsTitle': 'Varian AI',
+  'aiModify.regenerate': 'Buat Ulang',
+  'aiModify.applyVariant': 'Terapkan',
 } as const
 
 export default id

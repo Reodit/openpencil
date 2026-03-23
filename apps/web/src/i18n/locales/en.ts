@@ -509,6 +509,16 @@ const en = {
   // ── Editor Nav ──
   'editor.home': 'Dashboard',
   'editor.loadingDocument': 'Loading document…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI Modify',
+  'aiModify.placeholder': 'Describe the change you want…',
+  'aiModify.variants': 'Variants',
+  'aiModify.apply': 'Apply',
+  'aiModify.compare': 'Compare',
+  'aiModify.variantsTitle': 'AI Variants',
+  'aiModify.regenerate': 'Regenerate',
+  'aiModify.applyVariant': 'Apply',
 } as const
 
 export default en

@@ -511,6 +511,16 @@ const hi: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'डैशबोर्ड',
   'editor.loadingDocument': 'दस्तावेज़ लोड हो रहा है…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI संशोधन',
+  'aiModify.placeholder': 'आप जो बदलाव चाहते हैं उसका वर्णन करें…',
+  'aiModify.variants': 'वैरिएंट',
+  'aiModify.apply': 'लागू करें',
+  'aiModify.compare': 'तुलना करें',
+  'aiModify.variantsTitle': 'AI वैरिएंट',
+  'aiModify.regenerate': 'पुनः उत्पन्न करें',
+  'aiModify.applyVariant': 'लागू करें',
 } as const
 
 export default hi

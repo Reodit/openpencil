@@ -514,6 +514,16 @@ const ru: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Панель управления',
   'editor.loadingDocument': 'Загрузка документа…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'ИИ-редактирование',
+  'aiModify.placeholder': 'Опишите желаемое изменение…',
+  'aiModify.variants': 'Варианты',
+  'aiModify.apply': 'Применить',
+  'aiModify.compare': 'Сравнить',
+  'aiModify.variantsTitle': 'ИИ-варианты',
+  'aiModify.regenerate': 'Сгенерировать заново',
+  'aiModify.applyVariant': 'Применить',
 } as const
 
 export default ru

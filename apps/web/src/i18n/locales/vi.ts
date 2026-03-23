@@ -511,6 +511,16 @@ const vi: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Bảng điều khiển',
   'editor.loadingDocument': 'Đang tải tài liệu…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'Chỉnh sửa AI',
+  'aiModify.placeholder': 'Mô tả thay đổi bạn muốn…',
+  'aiModify.variants': 'Biến thể',
+  'aiModify.apply': 'Áp dụng',
+  'aiModify.compare': 'So sánh',
+  'aiModify.variantsTitle': 'Biến thể AI',
+  'aiModify.regenerate': 'Tạo lại',
+  'aiModify.applyVariant': 'Áp dụng',
 } as const
 
 export default vi

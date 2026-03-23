@@ -517,6 +517,16 @@ const ja: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'ダッシュボード',
   'editor.loadingDocument': 'ドキュメントを読み込み中…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI 修正',
+  'aiModify.placeholder': '変更したい内容を入力…',
+  'aiModify.variants': 'バリエーション',
+  'aiModify.apply': '適用',
+  'aiModify.compare': '比較',
+  'aiModify.variantsTitle': 'AI バリエーション',
+  'aiModify.regenerate': '再生成',
+  'aiModify.applyVariant': '適用',
 } as const
 
 export default ja

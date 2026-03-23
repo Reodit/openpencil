@@ -502,6 +502,16 @@ const zhTW: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': '儀表板',
   'editor.loadingDocument': '正在載入文件…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI 修改',
+  'aiModify.placeholder': '描述你想要的變更…',
+  'aiModify.variants': '變體',
+  'aiModify.apply': '套用',
+  'aiModify.compare': '比較',
+  'aiModify.variantsTitle': 'AI 變體',
+  'aiModify.regenerate': '重新產生',
+  'aiModify.applyVariant': '套用',
 } as const
 
 export default zhTW

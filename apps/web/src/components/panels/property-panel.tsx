@@ -15,6 +15,7 @@ import TextSection from './text-section'
 import TextLayoutSection from './text-layout-section'
 import EffectsSection from './effects-section'
 import ExportSection from './export-section'
+import AiModifySection from './ai-modify-section'
 import IconSection from './icon-section'
 import ImageSection from './image-section'
 
@@ -353,6 +354,11 @@ export default function PropertyPanel({ embedded }: { embedded?: boolean } = {})
         <Separator />
         <div className="px-3 py-2">
           <ExportSection nodeId={node.id} nodeName={node.name ?? node.type} />
+        </div>
+
+        <Separator />
+        <div className="px-3 py-2">
+          <AiModifySection node={node} />
         </div>
       </div>
     </>

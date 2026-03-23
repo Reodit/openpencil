@@ -511,6 +511,16 @@ const tr: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Gösterge Paneli',
   'editor.loadingDocument': 'Belge yükleniyor…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI Düzenleme',
+  'aiModify.placeholder': 'İstediğiniz değişikliği açıklayın…',
+  'aiModify.variants': 'Varyantlar',
+  'aiModify.apply': 'Uygula',
+  'aiModify.compare': 'Karşılaştır',
+  'aiModify.variantsTitle': 'AI Varyantları',
+  'aiModify.regenerate': 'Yeniden Oluştur',
+  'aiModify.applyVariant': 'Uygula',
 } as const
 
 export default tr

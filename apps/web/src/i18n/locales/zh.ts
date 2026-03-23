@@ -502,6 +502,16 @@ const zh: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': '仪表盘',
   'editor.loadingDocument': '正在加载文档…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI 修改',
+  'aiModify.placeholder': '描述你想要的更改…',
+  'aiModify.variants': '变体',
+  'aiModify.apply': '应用',
+  'aiModify.compare': '对比',
+  'aiModify.variantsTitle': 'AI 变体',
+  'aiModify.regenerate': '重新生成',
+  'aiModify.applyVariant': '应用',
 } as const
 
 export default zh

@@ -511,6 +511,16 @@ const th: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'แดชบอร์ด',
   'editor.loadingDocument': 'กำลังโหลดเอกสาร…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI แก้ไข',
+  'aiModify.placeholder': 'อธิบายการเปลี่ยนแปลงที่คุณต้องการ…',
+  'aiModify.variants': 'รูปแบบ',
+  'aiModify.apply': 'นำไปใช้',
+  'aiModify.compare': 'เปรียบเทียบ',
+  'aiModify.variantsTitle': 'รูปแบบ AI',
+  'aiModify.regenerate': 'สร้างใหม่',
+  'aiModify.applyVariant': 'นำไปใช้',
 } as const
 
 export default th

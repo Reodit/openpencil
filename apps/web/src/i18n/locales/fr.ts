@@ -519,6 +519,16 @@ const fr: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Tableau de bord',
   'editor.loadingDocument': 'Chargement du document…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'Modification IA',
+  'aiModify.placeholder': 'Décrivez la modification souhaitée…',
+  'aiModify.variants': 'Variantes',
+  'aiModify.apply': 'Appliquer',
+  'aiModify.compare': 'Comparer',
+  'aiModify.variantsTitle': 'Variantes IA',
+  'aiModify.regenerate': 'Régénérer',
+  'aiModify.applyVariant': 'Appliquer',
 } as const
 
 export default fr

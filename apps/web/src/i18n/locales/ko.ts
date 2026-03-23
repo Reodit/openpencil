@@ -511,6 +511,16 @@ const ko: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': '대시보드',
   'editor.loadingDocument': '문서 로딩 중…',
+
+  // ── AI Modify ──
+  'aiModify.title': 'AI 수정',
+  'aiModify.placeholder': '원하는 변경을 설명하세요…',
+  'aiModify.variants': '시안 수',
+  'aiModify.apply': '바로 적용',
+  'aiModify.compare': '시안 비교',
+  'aiModify.variantsTitle': 'AI 시안 비교',
+  'aiModify.regenerate': '다시 만들기',
+  'aiModify.applyVariant': '적용',
 } as const
 
 export default ko
