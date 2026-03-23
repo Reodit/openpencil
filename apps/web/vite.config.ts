@@ -45,6 +45,9 @@ const config = defineConfig({
     host: true,
     allowedHosts: true,
   },
+  ssr: {
+    external: ['bun:sqlite'],
+  },
   assetsInclude: ['**/*.wasm'],
   plugins: [
     devtools(),

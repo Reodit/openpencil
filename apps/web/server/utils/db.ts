@@ -1,4 +1,4 @@
-// @ts-expect-error bun:sqlite is a Bun built-in, no type declarations in tsc
+// @ts-expect-error bun:sqlite is a Bun built-in
 import { Database } from 'bun:sqlite'
 import { resolve } from 'node:path'
 import { mkdirSync, existsSync } from 'node:fs'
@@ -8,9 +8,9 @@ if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true })
 
 const DB_PATH = resolve(DATA_DIR, 'openpencil.db')
 
-let _db: Database | null = null
+let _db: InstanceType<typeof Database> | null = null
 
-export function getDB(): Database {
+export function getDB() {
   if (!_db) {
     _db = new Database(DB_PATH)
     _db.run('PRAGMA journal_mode = WAL')
@@ -20,7 +20,7 @@ export function getDB(): Database {
   return _db
 }
 
-function migrate(db: Database) {
+function migrate(db: InstanceType<typeof Database>) {
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
