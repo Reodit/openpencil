@@ -5,6 +5,7 @@ export interface PeerUser {
   name: string
   color: string
   cursor: { x: number; y: number; pageId: string } | null
+  selectedIds: string[]
 }
 
 interface CollabStoreState {
@@ -19,6 +20,7 @@ interface CollabStoreState {
   addPeer: (user: { userId: string; name: string; color: string }) => void
   removePeer: (userId: string) => void
   updatePeerCursor: (userId: string, cursor: { x: number; y: number; pageId: string }) => void
+  updatePeerSelection: (userId: string, selectedIds: string[]) => void
   setLocalCursor: (cursor: { x: number; y: number; pageId: string }) => void
   reset: () => void
 }
@@ -35,14 +37,14 @@ export const useCollabStore = create<CollabStoreState>((set) => ({
   initPeers: (peers) => {
     const map = new Map<string, PeerUser>()
     for (const p of peers) {
-      map.set(p.userId, { ...p, cursor: null })
+      map.set(p.userId, { ...p, cursor: null, selectedIds: [] })
     }
     set({ peers: map })
   },
 
   addPeer: (user) => set((s) => {
     const peers = new Map(s.peers)
-    peers.set(user.userId, { ...user, cursor: null })
+    peers.set(user.userId, { ...user, cursor: null, selectedIds: [] })
     return { peers }
   }),
 
@@ -57,6 +59,15 @@ export const useCollabStore = create<CollabStoreState>((set) => ({
     const existing = peers.get(userId)
     if (existing) {
       peers.set(userId, { ...existing, cursor })
+    }
+    return { peers }
+  }),
+
+  updatePeerSelection: (userId, selectedIds) => set((s) => {
+    const peers = new Map(s.peers)
+    const existing = peers.get(userId)
+    if (existing) {
+      peers.set(userId, { ...existing, selectedIds })
     }
     return { peers }
   }),

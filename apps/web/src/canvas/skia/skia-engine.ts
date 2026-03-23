@@ -309,16 +309,28 @@ export class SkiaEngine {
       }
     }
 
-    // Collaboration cursors
+    // Collaboration: peer selections + cursors
     {
       const collabPeers = useCollabStore.getState().peers
       const activePage = useCanvasStore.getState().activePageId
       for (const [, peer] of collabPeers) {
-        if (!peer.cursor || peer.cursor.pageId !== activePage) continue
-        this.renderer.drawCollabCursor(
-          canvas, peer.cursor.x, peer.cursor.y,
-          peer.name, peer.color, this.zoom,
-        )
+        // Draw selection outlines for peer's selected nodes
+        for (const nodeId of peer.selectedIds) {
+          const rn = this.spatialIndex.get(nodeId)
+          if (rn) {
+            this.renderer.drawCollabSelection(
+              canvas, rn.absX, rn.absY, rn.absW, rn.absH,
+              peer.color, this.zoom,
+            )
+          }
+        }
+        // Draw cursor
+        if (peer.cursor && peer.cursor.pageId === activePage) {
+          this.renderer.drawCollabCursor(
+            canvas, peer.cursor.x, peer.cursor.y,
+            peer.name, peer.color, this.zoom,
+          )
+        }
       }
       if (collabPeers.size > 0) this.markDirty()
     }

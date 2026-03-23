@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { useCollabStore } from '@/stores/collab-store'
-import { startCollabCapture, type CollabOperation } from '@/stores/collab-middleware'
+import { useCanvasStore } from '@/stores/canvas-store'
+import { useDocumentStore } from '@/stores/document-store'
+import { getDocument } from '@/services/document-api'
+import { startCollabCapture, setCollabSuppressed, type CollabOperation } from '@/stores/collab-middleware'
 import { applyCollabOperations } from '@/stores/collab-apply'
+import { setHistorySuppressed } from '@/stores/history-store'
 
 const OP_FLUSH_MS = 50
 const CURSOR_INTERVAL_MS = 100
@@ -15,6 +19,7 @@ export function useCollab(docId: string | null) {
   const opBufferRef = useRef<CollabOperation[]>([])
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
+  const isReconnectRef = useRef(false)
 
   useEffect(() => {
     if (!docId) return
@@ -22,12 +27,30 @@ export function useCollab(docId: string | null) {
     let disposed = false
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
-    function connect() {
+    async function connect() {
       if (disposed) return
+
+      // On reconnect, fetch the latest document from server to sync up
+      if (isReconnectRef.current) {
+        try {
+          const { data } = await getDocument(docId!)
+          setCollabSuppressed(true)
+          setHistorySuppressed(true)
+          useDocumentStore.getState().applyExternalDocument(data)
+          setCollabSuppressed(false)
+          setHistorySuppressed(false)
+        } catch {
+          // If fetch fails, continue anyway — ops will catch up
+        }
+      }
+      isReconnectRef.current = true
 
       const es = new EventSource(`/api/collab/events?doc=${docId}`)
       eventSourceRef.current = es
-      useCollabStore.getState().setConnected(true)
+
+      es.onopen = () => {
+        useCollabStore.getState().setConnected(true)
+      }
 
       es.onmessage = (event) => {
         try {
@@ -56,6 +79,9 @@ export function useCollab(docId: string | null) {
                 y: data.y,
                 pageId: data.pageId,
               })
+              break
+            case 'selection:update':
+              store.updatePeerSelection(data.userId, data.selectedIds)
               break
           }
         } catch {
@@ -105,7 +131,7 @@ export function useCollab(docId: string | null) {
       if (json === lastCursorJson) return
       lastCursorJson = json
 
-      if (cursorThrottleTimer) return // already scheduled
+      if (cursorThrottleTimer) return
       cursorThrottleTimer = setTimeout(() => {
         cursorThrottleTimer = null
         const { localCursor, clientId } = useCollabStore.getState()
@@ -124,12 +150,31 @@ export function useCollab(docId: string | null) {
       }, CURSOR_INTERVAL_MS)
     })
 
+    // Selection broadcast — when selected nodes change
+    let lastSelectionJson = ''
+    const unsubSelection = useCanvasStore.subscribe((state) => {
+      const clientId = useCollabStore.getState().clientId
+      if (!clientId || !useCollabStore.getState().isConnected) return
+
+      const ids = state.selection.selectedIds
+      const json = ids.join(',')
+      if (json === lastSelectionJson) return
+      lastSelectionJson = json
+
+      fetch('/api/collab/selection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: docId, clientId, selectedIds: ids }),
+      }).catch(() => {})
+    })
+
     return () => {
       disposed = true
       eventSourceRef.current?.close()
       eventSourceRef.current = null
       unsub()
       unsubCursor()
+      unsubSelection()
       if (cursorThrottleTimer) clearTimeout(cursorThrottleTimer)
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current)
       if (reconnectTimer) clearTimeout(reconnectTimer)

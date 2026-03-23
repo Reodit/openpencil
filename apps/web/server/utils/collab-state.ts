@@ -114,6 +114,14 @@ export function getRoomVersion(documentId: string): number {
   return rooms.get(documentId)?.version ?? 0
 }
 
+export function broadcastToRoomRaw(
+  documentId: string,
+  payload: Record<string, unknown>,
+  excludeClientId?: string,
+): void {
+  broadcastToRoom(documentId, payload, excludeClientId)
+}
+
 function broadcastToRoom(
   documentId: string,
   payload: Record<string, unknown>,

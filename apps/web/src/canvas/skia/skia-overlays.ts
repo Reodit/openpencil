@@ -644,6 +644,22 @@ export function drawAgentPreviewFill(
   paint.delete()
 }
 
+export function drawCollabSelection(
+  ck: CanvasKit, canvas: Canvas,
+  x: number, y: number, w: number, h: number,
+  color: string, zoom: number,
+) {
+  const strokeWidth = 2 / zoom
+  const paint = new ck.Paint()
+  paint.setColor(parseColor(ck, color))
+  paint.setAntiAlias(true)
+  paint.setStyle(ck.PaintStyle.Stroke)
+  paint.setStrokeWidth(strokeWidth)
+  paint.setAlphaf(0.7)
+  canvas.drawRect(ck.LTRBRect(x, y, x + w, y + h), paint)
+  paint.delete()
+}
+
 export function drawCollabCursor(
   ck: CanvasKit, canvas: Canvas,
   x: number, y: number,

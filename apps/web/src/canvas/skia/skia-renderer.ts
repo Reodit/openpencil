@@ -14,6 +14,7 @@ import {
   drawAgentNodeBorder as _drawAgentNodeBorder,
   drawAgentPreviewFill as _drawAgentPreviewFill,
   drawArcHandles as _drawArcHandles,
+  drawCollabSelection as _drawCollabSelection,
   drawCollabCursor as _drawCollabCursor,
   type PenPreviewData,
 } from './skia-overlays'
@@ -169,6 +170,15 @@ export class SkiaRenderer extends SkiaNodeRenderer {
     zoom: number,
   ) {
     _drawArcHandles(this.ck, canvas, x, y, w, h, startAngle, sweepAngle, innerRadius, zoom)
+  }
+
+  /** Draw a colored selection border for a remote user's selected node */
+  drawCollabSelection(
+    canvas: Canvas,
+    x: number, y: number, w: number, h: number,
+    color: string, zoom: number,
+  ) {
+    _drawCollabSelection(this.ck, canvas, x, y, w, h, color, zoom)
   }
 
   /** Draw a remote user's cursor with name label */
