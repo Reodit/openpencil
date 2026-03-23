@@ -6,6 +6,9 @@ import {
   createRootRoute,
 } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { useUserStore } from '@/stores/user-store'
+import LoginScreen from '@/components/shared/login-screen'
+import { Loader2 } from 'lucide-react'
 
 import '@/i18n'
 import { detectLanguagePostHydration } from '@/i18n'
@@ -47,6 +50,26 @@ function NotFoundComponent() {
 }
 
 function RootComponent() {
+  const user = useUserStore((s) => s.user)
+  const isLoading = useUserStore((s) => s.isLoading)
+  const isHydrated = useUserStore((s) => s.isHydrated)
+
+  useEffect(() => {
+    useUserStore.getState().hydrate()
+  }, [])
+
+  if (!isHydrated || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 size={24} className="animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginScreen />
+  }
+
   return <Outlet />
 }
 
