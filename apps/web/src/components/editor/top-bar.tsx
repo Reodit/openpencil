@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { appStorage, initAppStorage } from '@/utils/app-storage'
 import { useUserStore } from '@/stores/user-store'
 import CollabPresence from './collab-presence'
@@ -144,6 +144,8 @@ export default function TopBar() {
   const layerPanelOpen = useCanvasStore((s) => s.layerPanelOpen)
   const fileName = useDocumentStore((s) => s.fileName)
   const isDirty = useDocumentStore((s) => s.isDirty)
+  // Server documents auto-save, so "edited" indicator is noise
+  const isServerDoc = !!(useSearch({ from: '/editor' }) as { doc?: string }).doc
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -401,7 +403,7 @@ export default function TopBar() {
         <span className="text-xs text-foreground truncate" suppressHydrationWarning>
           {displayName}
         </span>
-        {isDirty && (
+        {isDirty && !isServerDoc && (
           <span className="text-xs text-muted-foreground ml-1.5">
             {t('topbar.edited')}
           </span>
