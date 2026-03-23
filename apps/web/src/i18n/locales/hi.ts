@@ -472,6 +472,45 @@ const hi: TranslationKeys = {
   'variablePicker.bindToVariable': 'वेरिएबल से बाइंड करें',
   'variablePicker.unbind': 'वेरिएबल अनबाइंड करें',
   'variablePicker.noVariables': 'कोई {{type}} वेरिएबल परिभाषित नहीं है',
+
+  // ── Auth ──
+  'auth.username': 'उपयोगकर्ता नाम',
+  'auth.password': 'पासवर्ड',
+  'auth.displayName': 'प्रदर्शन नाम',
+  'auth.displayNameOptional': '(वैकल्पिक)',
+  'auth.signIn': 'साइन इन करें',
+  'auth.createAccount': 'खाता बनाएँ',
+  'auth.noAccount': 'खाता नहीं है?',
+  'auth.signUp': 'साइन अप करें',
+  'auth.alreadyHaveAccount': 'पहले से खाता है?',
+  'auth.usernamePlaceholder': 'उपयोगकर्ता नाम',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'दूसरे आपको कैसे देखें',
+  'auth.logout': 'लॉगआउट',
+
+  // ── Dashboard ──
+  'dashboard.title': 'डैशबोर्ड',
+  'dashboard.newWorkspace': 'नया वर्कस्पेस',
+  'dashboard.workspaceName': 'वर्कस्पेस का नाम…',
+  'dashboard.create': 'बनाएँ',
+  'dashboard.cancel': 'रद्द करें',
+  'dashboard.loading': 'लोड हो रहा है…',
+  'dashboard.noWorkspaces': 'अभी कोई वर्कस्पेस नहीं',
+  'dashboard.createFirst': 'अपना पहला वर्कस्पेस बनाएँ',
+  'dashboard.docs': '{{count}} दस्तावेज़',
+
+  // ── Workspace ──
+  'workspace.invite': 'आमंत्रित करें',
+  'workspace.invitePlaceholder': 'आमंत्रित करने के लिए उपयोगकर्ता नाम दर्ज करें…',
+  'workspace.send': 'भेजें',
+  'workspace.members': 'सदस्य:',
+  'workspace.noDocuments': 'अभी कोई दस्तावेज़ नहीं',
+  'workspace.createFirstDesign': 'पहला डिज़ाइन बनाएँ',
+  'workspace.newDesign': 'नया डिज़ाइन',
+
+  // ── Editor Nav ──
+  'editor.home': 'डैशबोर्ड',
+  'editor.loadingDocument': 'दस्तावेज़ लोड हो रहा है…',
 } as const
 
 export default hi

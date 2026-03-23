@@ -472,6 +472,45 @@ const th: TranslationKeys = {
   'variablePicker.bindToVariable': 'ผูกกับตัวแปร',
   'variablePicker.unbind': 'ยกเลิกการผูกตัวแปร',
   'variablePicker.noVariables': 'ยังไม่มีตัวแปร {{type}} ที่กำหนดไว้',
+
+  // ── Auth ──
+  'auth.username': 'ชื่อผู้ใช้',
+  'auth.password': 'รหัสผ่าน',
+  'auth.displayName': 'ชื่อที่แสดง',
+  'auth.displayNameOptional': '(ไม่บังคับ)',
+  'auth.signIn': 'เข้าสู่ระบบ',
+  'auth.createAccount': 'สร้างบัญชี',
+  'auth.noAccount': 'ยังไม่มีบัญชี?',
+  'auth.signUp': 'สมัครสมาชิก',
+  'auth.alreadyHaveAccount': 'มีบัญชีอยู่แล้ว?',
+  'auth.usernamePlaceholder': 'ชื่อผู้ใช้',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'ชื่อที่ผู้อื่นเห็น',
+  'auth.logout': 'ออกจากระบบ',
+
+  // ── Dashboard ──
+  'dashboard.title': 'แดชบอร์ด',
+  'dashboard.newWorkspace': 'เวิร์กสเปซใหม่',
+  'dashboard.workspaceName': 'ชื่อเวิร์กสเปซ…',
+  'dashboard.create': 'สร้าง',
+  'dashboard.cancel': 'ยกเลิก',
+  'dashboard.loading': 'กำลังโหลด…',
+  'dashboard.noWorkspaces': 'ยังไม่มีเวิร์กสเปซ',
+  'dashboard.createFirst': 'สร้างเวิร์กสเปซแรกของคุณ',
+  'dashboard.docs': '{{count}} เอกสาร',
+
+  // ── Workspace ──
+  'workspace.invite': 'เชิญ',
+  'workspace.invitePlaceholder': 'ป้อนชื่อผู้ใช้เพื่อเชิญ…',
+  'workspace.send': 'ส่ง',
+  'workspace.members': 'สมาชิก:',
+  'workspace.noDocuments': 'ยังไม่มีเอกสาร',
+  'workspace.createFirstDesign': 'สร้างดีไซน์แรก',
+  'workspace.newDesign': 'ดีไซน์ใหม่',
+
+  // ── Editor Nav ──
+  'editor.home': 'แดชบอร์ด',
+  'editor.loadingDocument': 'กำลังโหลดเอกสาร…',
 } as const
 
 export default th

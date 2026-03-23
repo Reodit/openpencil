@@ -478,6 +478,45 @@ const ja: TranslationKeys = {
   'variablePicker.bindToVariable': '変数にバインド',
   'variablePicker.unbind': 'バインドを解除',
   'variablePicker.noVariables': '{{type}} 型の変数が定義されていません',
+
+  // ── Auth ──
+  'auth.username': 'ユーザー名',
+  'auth.password': 'パスワード',
+  'auth.displayName': '表示名',
+  'auth.displayNameOptional': '（任意）',
+  'auth.signIn': 'サインイン',
+  'auth.createAccount': 'アカウントを作成',
+  'auth.noAccount': 'アカウントをお持ちでないですか？',
+  'auth.signUp': '新規登録',
+  'auth.alreadyHaveAccount': 'すでにアカウントをお持ちですか？',
+  'auth.usernamePlaceholder': 'ユーザー名',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': '他のユーザーに表示される名前',
+  'auth.logout': 'ログアウト',
+
+  // ── Dashboard ──
+  'dashboard.title': 'ダッシュボード',
+  'dashboard.newWorkspace': '新規ワークスペース',
+  'dashboard.workspaceName': 'ワークスペース名…',
+  'dashboard.create': '作成',
+  'dashboard.cancel': 'キャンセル',
+  'dashboard.loading': '読み込み中…',
+  'dashboard.noWorkspaces': 'ワークスペースはまだありません',
+  'dashboard.createFirst': '最初のワークスペースを作成しましょう',
+  'dashboard.docs': '{{count}} 件のドキュメント',
+
+  // ── Workspace ──
+  'workspace.invite': '招待',
+  'workspace.invitePlaceholder': '招待するユーザー名を入力…',
+  'workspace.send': '送信',
+  'workspace.members': 'メンバー：',
+  'workspace.noDocuments': 'ドキュメントはまだありません',
+  'workspace.createFirstDesign': '最初のデザインを作成',
+  'workspace.newDesign': '新規デザイン',
+
+  // ── Editor Nav ──
+  'editor.home': 'ダッシュボード',
+  'editor.loadingDocument': 'ドキュメントを読み込み中…',
 } as const
 
 export default ja

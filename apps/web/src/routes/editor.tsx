@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import EditorLayout from '@/components/editor/editor-layout'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { useBeforeUnload } from '@/hooks/use-before-unload'
+import { useTranslation } from 'react-i18next'
 import { useAutoSave } from '@/hooks/use-auto-save'
 import { useDocumentStore } from '@/stores/document-store'
 import { getDocument } from '@/services/document-api'
@@ -19,6 +20,7 @@ export const Route = createFileRoute('/editor')({
 })
 
 function EditorPage() {
+  const { t } = useTranslation()
   const { doc: docId } = useSearch({ from: '/editor' })
   const [loading, setLoading] = useState(!!docId)
 
@@ -48,7 +50,7 @@ function EditorPage() {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background text-muted-foreground text-sm">
-        Loading document…
+        {t('editor.loadingDocument')}
       </div>
     )
   }

@@ -470,6 +470,45 @@ const en = {
   'variablePicker.bindToVariable': 'Bind to variable',
   'variablePicker.unbind': 'Unbind variable',
   'variablePicker.noVariables': 'No {{type}} variables defined',
+
+  // ── Auth ──
+  'auth.username': 'Username',
+  'auth.password': 'Password',
+  'auth.displayName': 'Display Name',
+  'auth.displayNameOptional': '(optional)',
+  'auth.signIn': 'Sign In',
+  'auth.createAccount': 'Create Account',
+  'auth.noAccount': 'No account?',
+  'auth.signUp': 'Sign up',
+  'auth.alreadyHaveAccount': 'Already have an account?',
+  'auth.usernamePlaceholder': 'username',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'How others see you',
+  'auth.logout': 'Logout',
+
+  // ── Dashboard ──
+  'dashboard.title': 'Dashboard',
+  'dashboard.newWorkspace': 'New Workspace',
+  'dashboard.workspaceName': 'Workspace name…',
+  'dashboard.create': 'Create',
+  'dashboard.cancel': 'Cancel',
+  'dashboard.loading': 'Loading…',
+  'dashboard.noWorkspaces': 'No workspaces yet',
+  'dashboard.createFirst': 'Create your first workspace',
+  'dashboard.docs': '{{count}} docs',
+
+  // ── Workspace ──
+  'workspace.invite': 'Invite',
+  'workspace.invitePlaceholder': 'Enter username to invite…',
+  'workspace.send': 'Send',
+  'workspace.members': 'Members:',
+  'workspace.noDocuments': 'No documents yet',
+  'workspace.createFirstDesign': 'Create first design',
+  'workspace.newDesign': 'New Design',
+
+  // ── Editor Nav ──
+  'editor.home': 'Dashboard',
+  'editor.loadingDocument': 'Loading document…',
 } as const
 
 export default en

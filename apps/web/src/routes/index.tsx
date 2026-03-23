@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect, useCallback } from 'react'
 import { PenTool, Plus, Loader2, Users, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import { listWorkspaces, createWorkspace, type WorkspaceMeta } from '@/services/workspace-api'
 import { useUserStore } from '@/stores/user-store'
 
@@ -13,6 +14,7 @@ export const Route = createFileRoute('/')({
 })
 
 function DashboardPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [workspaces, setWorkspaces] = useState<WorkspaceMeta[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,7 +64,7 @@ function DashboardPage() {
               className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <Plus size={16} />
-              New Workspace
+              {t('dashboard.newWorkspace')}
             </button>
             <UserBadge />
           </div>
@@ -70,14 +72,13 @@ function DashboardPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
-        {/* Create workspace dialog */}
         {showCreate && (
           <form onSubmit={handleCreate} className="mb-6 flex items-center gap-2">
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Workspace name…"
+              placeholder={t('dashboard.workspaceName')}
               autoFocus
               className={cn(
                 'h-9 px-3 rounded-md text-sm flex-1',
@@ -91,14 +92,14 @@ function DashboardPage() {
               disabled={!newName.trim() || creating}
               className="h-9 px-4 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {creating ? <Loader2 size={14} className="animate-spin" /> : 'Create'}
+              {creating ? <Loader2 size={14} className="animate-spin" /> : t('dashboard.create')}
             </button>
             <button
               type="button"
               onClick={() => { setShowCreate(false); setNewName('') }}
               className="h-9 px-3 rounded-md text-sm text-muted-foreground hover:bg-secondary/50"
             >
-              Cancel
+              {t('dashboard.cancel')}
             </button>
           </form>
         )}
@@ -106,18 +107,18 @@ function DashboardPage() {
         {loading ? (
           <div className="flex items-center justify-center py-20 text-muted-foreground text-sm gap-2">
             <Loader2 size={16} className="animate-spin" />
-            Loading…
+            {t('dashboard.loading')}
           </div>
         ) : workspaces.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <Users size={48} className="mb-4 opacity-30" />
-            <p className="text-sm mb-4">No workspaces yet</p>
+            <p className="text-sm mb-4">{t('dashboard.noWorkspaces')}</p>
             <button
               onClick={() => setShowCreate(true)}
               className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Plus size={16} />
-              Create your first workspace
+              {t('dashboard.createFirst')}
             </button>
           </div>
         ) : (
@@ -143,7 +144,7 @@ function DashboardPage() {
                     <Users size={12} /> {ws.member_count}
                   </span>
                   <span className="flex items-center gap-1">
-                    <FolderOpen size={12} /> {ws.doc_count} docs
+                    <FolderOpen size={12} /> {t('dashboard.docs', { count: ws.doc_count })}
                   </span>
                 </div>
               </Link>
@@ -156,6 +157,7 @@ function DashboardPage() {
 }
 
 function UserBadge() {
+  const { t } = useTranslation()
   const user = useUserStore((s) => s.user)
   const logout = useUserStore((s) => s.logout)
   if (!user) return null
@@ -169,7 +171,7 @@ function UserBadge() {
       </div>
       <span className="text-xs text-muted-foreground hidden sm:inline">{user.name}</span>
       <button onClick={logout} className="text-[10px] text-muted-foreground hover:text-foreground">
-        logout
+        {t('auth.logout')}
       </button>
     </div>
   )

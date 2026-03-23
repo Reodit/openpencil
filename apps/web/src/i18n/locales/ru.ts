@@ -475,6 +475,45 @@ const ru: TranslationKeys = {
   'variablePicker.bindToVariable': 'Привязать к переменной',
   'variablePicker.unbind': 'Отвязать переменную',
   'variablePicker.noVariables': 'Нет переменных типа {{type}}',
+
+  // ── Auth ──
+  'auth.username': 'Имя пользователя',
+  'auth.password': 'Пароль',
+  'auth.displayName': 'Отображаемое имя',
+  'auth.displayNameOptional': '(необязательно)',
+  'auth.signIn': 'Войти',
+  'auth.createAccount': 'Создать аккаунт',
+  'auth.noAccount': 'Нет аккаунта?',
+  'auth.signUp': 'Зарегистрироваться',
+  'auth.alreadyHaveAccount': 'Уже есть аккаунт?',
+  'auth.usernamePlaceholder': 'имя пользователя',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'Как вас видят другие',
+  'auth.logout': 'Выйти',
+
+  // ── Dashboard ──
+  'dashboard.title': 'Панель управления',
+  'dashboard.newWorkspace': 'Новое рабочее пространство',
+  'dashboard.workspaceName': 'Название рабочего пространства…',
+  'dashboard.create': 'Создать',
+  'dashboard.cancel': 'Отмена',
+  'dashboard.loading': 'Загрузка…',
+  'dashboard.noWorkspaces': 'Рабочих пространств пока нет',
+  'dashboard.createFirst': 'Создайте своё первое рабочее пространство',
+  'dashboard.docs': '{{count}} документов',
+
+  // ── Workspace ──
+  'workspace.invite': 'Пригласить',
+  'workspace.invitePlaceholder': 'Введите имя пользователя для приглашения…',
+  'workspace.send': 'Отправить',
+  'workspace.members': 'Участники:',
+  'workspace.noDocuments': 'Документов пока нет',
+  'workspace.createFirstDesign': 'Создать первый дизайн',
+  'workspace.newDesign': 'Новый дизайн',
+
+  // ── Editor Nav ──
+  'editor.home': 'Панель управления',
+  'editor.loadingDocument': 'Загрузка документа…',
 } as const
 
 export default ru

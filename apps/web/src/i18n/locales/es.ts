@@ -482,6 +482,45 @@ const es: TranslationKeys = {
   'variablePicker.bindToVariable': 'Vincular a variable',
   'variablePicker.unbind': 'Desvincular variable',
   'variablePicker.noVariables': 'No hay variables {{type}} definidas',
+
+  // ── Auth ──
+  'auth.username': 'Nombre de usuario',
+  'auth.password': 'Contraseña',
+  'auth.displayName': 'Nombre para mostrar',
+  'auth.displayNameOptional': '(opcional)',
+  'auth.signIn': 'Iniciar sesión',
+  'auth.createAccount': 'Crear cuenta',
+  'auth.noAccount': '¿No tienes cuenta?',
+  'auth.signUp': 'Regístrate',
+  'auth.alreadyHaveAccount': '¿Ya tienes una cuenta?',
+  'auth.usernamePlaceholder': 'nombre de usuario',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'Cómo te ven los demás',
+  'auth.logout': 'Cerrar sesión',
+
+  // ── Dashboard ──
+  'dashboard.title': 'Panel',
+  'dashboard.newWorkspace': 'Nuevo espacio de trabajo',
+  'dashboard.workspaceName': 'Nombre del espacio de trabajo…',
+  'dashboard.create': 'Crear',
+  'dashboard.cancel': 'Cancelar',
+  'dashboard.loading': 'Cargando…',
+  'dashboard.noWorkspaces': 'Aún no hay espacios de trabajo',
+  'dashboard.createFirst': 'Crea tu primer espacio de trabajo',
+  'dashboard.docs': '{{count}} documentos',
+
+  // ── Workspace ──
+  'workspace.invite': 'Invitar',
+  'workspace.invitePlaceholder': 'Ingresa un nombre de usuario para invitar…',
+  'workspace.send': 'Enviar',
+  'workspace.members': 'Miembros:',
+  'workspace.noDocuments': 'Aún no hay documentos',
+  'workspace.createFirstDesign': 'Crear primer diseño',
+  'workspace.newDesign': 'Nuevo diseño',
+
+  // ── Editor Nav ──
+  'editor.home': 'Panel',
+  'editor.loadingDocument': 'Cargando documento…',
 } as const
 
 export default es

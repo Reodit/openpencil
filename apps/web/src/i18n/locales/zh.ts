@@ -463,6 +463,45 @@ const zh: TranslationKeys = {
   'variablePicker.bindToVariable': '绑定到变量',
   'variablePicker.unbind': '解除绑定',
   'variablePicker.noVariables': '未定义 {{type}} 类型的变量',
+
+  // ── Auth ──
+  'auth.username': '用户名',
+  'auth.password': '密码',
+  'auth.displayName': '显示名称',
+  'auth.displayNameOptional': '（可选）',
+  'auth.signIn': '登录',
+  'auth.createAccount': '创建账户',
+  'auth.noAccount': '没有账户？',
+  'auth.signUp': '注册',
+  'auth.alreadyHaveAccount': '已有账户？',
+  'auth.usernamePlaceholder': '用户名',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': '其他人看到的名称',
+  'auth.logout': '退出登录',
+
+  // ── Dashboard ──
+  'dashboard.title': '仪表盘',
+  'dashboard.newWorkspace': '新建工作区',
+  'dashboard.workspaceName': '工作区名称…',
+  'dashboard.create': '创建',
+  'dashboard.cancel': '取消',
+  'dashboard.loading': '加载中…',
+  'dashboard.noWorkspaces': '暂无工作区',
+  'dashboard.createFirst': '创建你的第一个工作区',
+  'dashboard.docs': '{{count}} 个文档',
+
+  // ── Workspace ──
+  'workspace.invite': '邀请',
+  'workspace.invitePlaceholder': '输入要邀请的用户名…',
+  'workspace.send': '发送',
+  'workspace.members': '成员：',
+  'workspace.noDocuments': '暂无文档',
+  'workspace.createFirstDesign': '创建第一个设计',
+  'workspace.newDesign': '新建设计',
+
+  // ── Editor Nav ──
+  'editor.home': '仪表盘',
+  'editor.loadingDocument': '正在加载文档…',
 } as const
 
 export default zh

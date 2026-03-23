@@ -472,6 +472,45 @@ const tr: TranslationKeys = {
   'variablePicker.bindToVariable': 'Değişkene bağla',
   'variablePicker.unbind': 'Değişken bağını kaldır',
   'variablePicker.noVariables': 'Tanımlanmış {{type}} değişkeni yok',
+
+  // ── Auth ──
+  'auth.username': 'Kullanıcı Adı',
+  'auth.password': 'Şifre',
+  'auth.displayName': 'Görünen Ad',
+  'auth.displayNameOptional': '(isteğe bağlı)',
+  'auth.signIn': 'Giriş Yap',
+  'auth.createAccount': 'Hesap Oluştur',
+  'auth.noAccount': 'Hesabınız yok mu?',
+  'auth.signUp': 'Kaydol',
+  'auth.alreadyHaveAccount': 'Zaten bir hesabınız var mı?',
+  'auth.usernamePlaceholder': 'kullanıcı adı',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'Diğerlerinin sizi nasıl göreceği',
+  'auth.logout': 'Çıkış Yap',
+
+  // ── Dashboard ──
+  'dashboard.title': 'Gösterge Paneli',
+  'dashboard.newWorkspace': 'Yeni Çalışma Alanı',
+  'dashboard.workspaceName': 'Çalışma alanı adı…',
+  'dashboard.create': 'Oluştur',
+  'dashboard.cancel': 'İptal',
+  'dashboard.loading': 'Yükleniyor…',
+  'dashboard.noWorkspaces': 'Henüz çalışma alanı yok',
+  'dashboard.createFirst': 'İlk çalışma alanınızı oluşturun',
+  'dashboard.docs': '{{count}} belge',
+
+  // ── Workspace ──
+  'workspace.invite': 'Davet Et',
+  'workspace.invitePlaceholder': 'Davet etmek için kullanıcı adı girin…',
+  'workspace.send': 'Gönder',
+  'workspace.members': 'Üyeler:',
+  'workspace.noDocuments': 'Henüz belge yok',
+  'workspace.createFirstDesign': 'İlk tasarımı oluştur',
+  'workspace.newDesign': 'Yeni Tasarım',
+
+  // ── Editor Nav ──
+  'editor.home': 'Gösterge Paneli',
+  'editor.loadingDocument': 'Belge yükleniyor…',
 } as const
 
 export default tr

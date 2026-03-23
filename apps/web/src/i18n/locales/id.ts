@@ -472,6 +472,45 @@ const id: TranslationKeys = {
   'variablePicker.bindToVariable': 'Ikat ke variabel',
   'variablePicker.unbind': 'Lepaskan variabel',
   'variablePicker.noVariables': 'Belum ada variabel {{type}} yang didefinisikan',
+
+  // ── Auth ──
+  'auth.username': 'Nama Pengguna',
+  'auth.password': 'Kata Sandi',
+  'auth.displayName': 'Nama Tampilan',
+  'auth.displayNameOptional': '(opsional)',
+  'auth.signIn': 'Masuk',
+  'auth.createAccount': 'Buat Akun',
+  'auth.noAccount': 'Belum punya akun?',
+  'auth.signUp': 'Daftar',
+  'auth.alreadyHaveAccount': 'Sudah punya akun?',
+  'auth.usernamePlaceholder': 'nama pengguna',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'Bagaimana orang lain melihat Anda',
+  'auth.logout': 'Keluar',
+
+  // ── Dashboard ──
+  'dashboard.title': 'Dasbor',
+  'dashboard.newWorkspace': 'Ruang Kerja Baru',
+  'dashboard.workspaceName': 'Nama ruang kerja…',
+  'dashboard.create': 'Buat',
+  'dashboard.cancel': 'Batal',
+  'dashboard.loading': 'Memuat…',
+  'dashboard.noWorkspaces': 'Belum ada ruang kerja',
+  'dashboard.createFirst': 'Buat ruang kerja pertama Anda',
+  'dashboard.docs': '{{count}} dokumen',
+
+  // ── Workspace ──
+  'workspace.invite': 'Undang',
+  'workspace.invitePlaceholder': 'Masukkan nama pengguna untuk diundang…',
+  'workspace.send': 'Kirim',
+  'workspace.members': 'Anggota:',
+  'workspace.noDocuments': 'Belum ada dokumen',
+  'workspace.createFirstDesign': 'Buat desain pertama',
+  'workspace.newDesign': 'Desain Baru',
+
+  // ── Editor Nav ──
+  'editor.home': 'Dasbor',
+  'editor.loadingDocument': 'Memuat dokumen…',
 } as const
 
 export default id

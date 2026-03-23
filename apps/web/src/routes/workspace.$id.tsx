@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate, useParams } from '@tanstack/react-r
 import { useState, useEffect, useCallback } from 'react'
 import { PenTool, Plus, Trash2, Loader2, ArrowLeft, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 import { getWorkspace, inviteMember, type WorkspaceMember } from '@/services/workspace-api'
 import { createDocument, deleteDocument, type DocumentMeta } from '@/services/document-api'
 
@@ -11,6 +12,7 @@ export const Route = createFileRoute('/workspace/$id')({
 })
 
 function WorkspacePage() {
+  const { t } = useTranslation()
   const { id: wsId } = useParams({ from: '/workspace/$id' })
   const navigate = useNavigate()
   const [wsName, setWsName] = useState('')
@@ -78,7 +80,7 @@ function WorkspacePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground text-sm gap-2">
-        <Loader2 size={16} className="animate-spin" /> Loading…
+        <Loader2 size={16} className="animate-spin" /> {t('dashboard.loading')}
       </div>
     )
   }
@@ -102,7 +104,7 @@ function WorkspacePage() {
                   onClick={() => setShowInvite(!showInvite)}
                   className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs border border-border hover:bg-secondary/50 transition-colors"
                 >
-                  <UserPlus size={14} /> Invite
+                  <UserPlus size={14} /> {t('workspace.invite')}
                 </button>
                 <button
                   onClick={handleNewDoc}
@@ -110,7 +112,7 @@ function WorkspacePage() {
                   className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                  New Design
+                  {t('workspace.newDesign')}
                 </button>
               </>
             )}
@@ -126,7 +128,7 @@ function WorkspacePage() {
               type="text"
               value={inviteUsername}
               onChange={(e) => setInviteUsername(e.target.value)}
-              placeholder="Enter username to invite…"
+              placeholder={t('workspace.invitePlaceholder')}
               autoFocus
               className={cn(
                 'h-8 px-3 rounded-md text-xs flex-1',
@@ -135,7 +137,7 @@ function WorkspacePage() {
               )}
             />
             <button type="submit" className="h-8 px-3 rounded-md bg-primary text-xs text-primary-foreground hover:bg-primary/90">
-              Send
+              {t('workspace.send')}
             </button>
             {inviteError && <span className="text-xs text-destructive">{inviteError}</span>}
           </form>
@@ -143,7 +145,7 @@ function WorkspacePage() {
 
         {/* Members */}
         <div className="flex items-center gap-2 mb-6">
-          <span className="text-xs text-muted-foreground">Members:</span>
+          <span className="text-xs text-muted-foreground">{t('workspace.members')}</span>
           {members.map((m) => (
             <div
               key={m.id}
@@ -160,14 +162,14 @@ function WorkspacePage() {
         {documents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <PenTool size={48} className="mb-4 opacity-30" />
-            <p className="text-sm mb-4">No documents yet</p>
+            <p className="text-sm mb-4">{t('workspace.noDocuments')}</p>
             {canEdit && (
               <button
                 onClick={handleNewDoc}
                 disabled={creating}
                 className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
-                <Plus size={16} /> Create first design
+                <Plus size={16} /> {t('workspace.createFirstDesign')}
               </button>
             )}
           </div>

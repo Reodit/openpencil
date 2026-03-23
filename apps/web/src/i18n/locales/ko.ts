@@ -472,6 +472,45 @@ const ko: TranslationKeys = {
   'variablePicker.bindToVariable': '변수에 바인딩',
   'variablePicker.unbind': '변수 바인딩 해제',
   'variablePicker.noVariables': '{{type}} 변수가 정의되지 않았습니다',
+
+  // ── Auth ──
+  'auth.username': '아이디',
+  'auth.password': '비밀번호',
+  'auth.displayName': '표시 이름',
+  'auth.displayNameOptional': '(선택)',
+  'auth.signIn': '로그인',
+  'auth.createAccount': '계정 만들기',
+  'auth.noAccount': '계정이 없으신가요?',
+  'auth.signUp': '회원가입',
+  'auth.alreadyHaveAccount': '이미 계정이 있으신가요?',
+  'auth.usernamePlaceholder': '아이디',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': '다른 사람에게 보이는 이름',
+  'auth.logout': '로그아웃',
+
+  // ── Dashboard ──
+  'dashboard.title': '대시보드',
+  'dashboard.newWorkspace': '새 워크스페이스',
+  'dashboard.workspaceName': '워크스페이스 이름…',
+  'dashboard.create': '만들기',
+  'dashboard.cancel': '취소',
+  'dashboard.loading': '로딩 중…',
+  'dashboard.noWorkspaces': '워크스페이스가 없습니다',
+  'dashboard.createFirst': '첫 워크스페이스를 만들어보세요',
+  'dashboard.docs': '{{count}}개 문서',
+
+  // ── Workspace ──
+  'workspace.invite': '초대',
+  'workspace.invitePlaceholder': '초대할 아이디를 입력하세요…',
+  'workspace.send': '보내기',
+  'workspace.members': '멤버:',
+  'workspace.noDocuments': '문서가 없습니다',
+  'workspace.createFirstDesign': '첫 디자인을 만들어보세요',
+  'workspace.newDesign': '새 디자인',
+
+  // ── Editor Nav ──
+  'editor.home': '대시보드',
+  'editor.loadingDocument': '문서 로딩 중…',
 } as const
 
 export default ko

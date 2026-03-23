@@ -475,6 +475,45 @@ const de: TranslationKeys = {
   'variablePicker.bindToVariable': 'An Variable binden',
   'variablePicker.unbind': 'Variable lösen',
   'variablePicker.noVariables': 'Keine {{type}}-Variablen definiert',
+
+  // ── Auth ──
+  'auth.username': 'Benutzername',
+  'auth.password': 'Passwort',
+  'auth.displayName': 'Anzeigename',
+  'auth.displayNameOptional': '(optional)',
+  'auth.signIn': 'Anmelden',
+  'auth.createAccount': 'Konto erstellen',
+  'auth.noAccount': 'Kein Konto?',
+  'auth.signUp': 'Registrieren',
+  'auth.alreadyHaveAccount': 'Bereits ein Konto?',
+  'auth.usernamePlaceholder': 'Benutzername',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'Wie andere Sie sehen',
+  'auth.logout': 'Abmelden',
+
+  // ── Dashboard ──
+  'dashboard.title': 'Dashboard',
+  'dashboard.newWorkspace': 'Neuer Arbeitsbereich',
+  'dashboard.workspaceName': 'Name des Arbeitsbereichs…',
+  'dashboard.create': 'Erstellen',
+  'dashboard.cancel': 'Abbrechen',
+  'dashboard.loading': 'Wird geladen…',
+  'dashboard.noWorkspaces': 'Noch keine Arbeitsbereiche',
+  'dashboard.createFirst': 'Erstellen Sie Ihren ersten Arbeitsbereich',
+  'dashboard.docs': '{{count}} Dokumente',
+
+  // ── Workspace ──
+  'workspace.invite': 'Einladen',
+  'workspace.invitePlaceholder': 'Benutzername zum Einladen eingeben…',
+  'workspace.send': 'Senden',
+  'workspace.members': 'Mitglieder:',
+  'workspace.noDocuments': 'Noch keine Dokumente',
+  'workspace.createFirstDesign': 'Erstes Design erstellen',
+  'workspace.newDesign': 'Neues Design',
+
+  // ── Editor Nav ──
+  'editor.home': 'Dashboard',
+  'editor.loadingDocument': 'Dokument wird geladen…',
 } as const
 
 export default de

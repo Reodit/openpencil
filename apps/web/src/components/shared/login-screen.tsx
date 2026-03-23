@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useUserStore } from '@/stores/user-store'
 import { PenTool, ArrowRight, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 type Mode = 'login' | 'register'
 
 export default function LoginScreen() {
+  const { t } = useTranslation()
   const { login, register } = useUserStore()
   const [mode, setMode] = useState<Mode>('login')
   const [username, setUsername] = useState('')
@@ -45,13 +47,13 @@ export default function LoginScreen() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Username
+              {t('auth.username')}
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="username"
+              placeholder={t('auth.usernamePlaceholder')}
               autoFocus
               maxLength={30}
               className={cn(
@@ -65,13 +67,13 @@ export default function LoginScreen() {
 
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
-              Password
+              {t('auth.password')}
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••"
+              placeholder={t('auth.passwordPlaceholder')}
               className={cn(
                 'w-full h-9 px-3 rounded-md text-sm',
                 'border border-border bg-card text-foreground',
@@ -84,13 +86,13 @@ export default function LoginScreen() {
           {mode === 'register' && (
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Display Name <span className="text-muted-foreground/50">(optional)</span>
+                {t('auth.displayName')} <span className="text-muted-foreground/50">{t('auth.displayNameOptional')}</span>
               </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="How others see you"
+                placeholder={t('auth.displayNamePlaceholder')}
                 maxLength={30}
                 className={cn(
                   'w-full h-9 px-3 rounded-md text-sm',
@@ -102,9 +104,7 @@ export default function LoginScreen() {
             </div>
           )}
 
-          {error && (
-            <p className="text-xs text-destructive">{error}</p>
-          )}
+          {error && <p className="text-xs text-destructive">{error}</p>}
 
           <button
             type="submit"
@@ -121,7 +121,7 @@ export default function LoginScreen() {
               <Loader2 size={16} className="animate-spin" />
             ) : (
               <>
-                {mode === 'login' ? 'Sign In' : 'Create Account'}
+                {mode === 'login' ? t('auth.signIn') : t('auth.createAccount')}
                 <ArrowRight size={16} />
               </>
             )}
@@ -131,22 +131,16 @@ export default function LoginScreen() {
         <p className="mt-4 text-center text-xs text-muted-foreground">
           {mode === 'login' ? (
             <>
-              No account?{' '}
-              <button
-                onClick={() => { setMode('register'); setError('') }}
-                className="text-primary hover:underline"
-              >
-                Sign up
+              {t('auth.noAccount')}{' '}
+              <button onClick={() => { setMode('register'); setError('') }} className="text-primary hover:underline">
+                {t('auth.signUp')}
               </button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
-              <button
-                onClick={() => { setMode('login'); setError('') }}
-                className="text-primary hover:underline"
-              >
-                Sign in
+              {t('auth.alreadyHaveAccount')}{' '}
+              <button onClick={() => { setMode('login'); setError('') }} className="text-primary hover:underline">
+                {t('auth.signIn')}
               </button>
             </>
           )}

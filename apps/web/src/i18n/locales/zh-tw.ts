@@ -463,6 +463,45 @@ const zhTW: TranslationKeys = {
   'variablePicker.bindToVariable': '綁定到變數',
   'variablePicker.unbind': '解除綁定',
   'variablePicker.noVariables': '未定義 {{type}} 類型的變數',
+
+  // ── Auth ──
+  'auth.username': '使用者名稱',
+  'auth.password': '密碼',
+  'auth.displayName': '顯示名稱',
+  'auth.displayNameOptional': '（選填）',
+  'auth.signIn': '登入',
+  'auth.createAccount': '建立帳戶',
+  'auth.noAccount': '還沒有帳戶？',
+  'auth.signUp': '註冊',
+  'auth.alreadyHaveAccount': '已經有帳戶了？',
+  'auth.usernamePlaceholder': '使用者名稱',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': '其他人看到的名稱',
+  'auth.logout': '登出',
+
+  // ── Dashboard ──
+  'dashboard.title': '儀表板',
+  'dashboard.newWorkspace': '新建工作區',
+  'dashboard.workspaceName': '工作區名稱…',
+  'dashboard.create': '建立',
+  'dashboard.cancel': '取消',
+  'dashboard.loading': '載入中…',
+  'dashboard.noWorkspaces': '尚無工作區',
+  'dashboard.createFirst': '建立你的第一個工作區',
+  'dashboard.docs': '{{count}} 個文件',
+
+  // ── Workspace ──
+  'workspace.invite': '邀請',
+  'workspace.invitePlaceholder': '輸入要邀請的使用者名稱…',
+  'workspace.send': '傳送',
+  'workspace.members': '成員：',
+  'workspace.noDocuments': '尚無文件',
+  'workspace.createFirstDesign': '建立第一個設計',
+  'workspace.newDesign': '新建設計',
+
+  // ── Editor Nav ──
+  'editor.home': '儀表板',
+  'editor.loadingDocument': '正在載入文件…',
 } as const
 
 export default zhTW

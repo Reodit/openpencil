@@ -472,6 +472,45 @@ const vi: TranslationKeys = {
   'variablePicker.bindToVariable': 'Gắn với biến',
   'variablePicker.unbind': 'Huỷ gắn biến',
   'variablePicker.noVariables': 'Chưa có biến {{type}} nào được định nghĩa',
+
+  // ── Auth ──
+  'auth.username': 'Tên người dùng',
+  'auth.password': 'Mật khẩu',
+  'auth.displayName': 'Tên hiển thị',
+  'auth.displayNameOptional': '(tùy chọn)',
+  'auth.signIn': 'Đăng nhập',
+  'auth.createAccount': 'Tạo tài khoản',
+  'auth.noAccount': 'Chưa có tài khoản?',
+  'auth.signUp': 'Đăng ký',
+  'auth.alreadyHaveAccount': 'Đã có tài khoản?',
+  'auth.usernamePlaceholder': 'tên người dùng',
+  'auth.passwordPlaceholder': '••••',
+  'auth.displayNamePlaceholder': 'Người khác nhìn thấy bạn như thế nào',
+  'auth.logout': 'Đăng xuất',
+
+  // ── Dashboard ──
+  'dashboard.title': 'Bảng điều khiển',
+  'dashboard.newWorkspace': 'Không gian làm việc mới',
+  'dashboard.workspaceName': 'Tên không gian làm việc…',
+  'dashboard.create': 'Tạo',
+  'dashboard.cancel': 'Huỷ',
+  'dashboard.loading': 'Đang tải…',
+  'dashboard.noWorkspaces': 'Chưa có không gian làm việc nào',
+  'dashboard.createFirst': 'Tạo không gian làm việc đầu tiên của bạn',
+  'dashboard.docs': '{{count}} tài liệu',
+
+  // ── Workspace ──
+  'workspace.invite': 'Mời',
+  'workspace.invitePlaceholder': 'Nhập tên người dùng để mời…',
+  'workspace.send': 'Gửi',
+  'workspace.members': 'Thành viên:',
+  'workspace.noDocuments': 'Chưa có tài liệu nào',
+  'workspace.createFirstDesign': 'Tạo thiết kế đầu tiên',
+  'workspace.newDesign': 'Thiết kế mới',
+
+  // ── Editor Nav ──
+  'editor.home': 'Bảng điều khiển',
+  'editor.loadingDocument': 'Đang tải tài liệu…',
 } as const
 
 export default vi

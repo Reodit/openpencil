@@ -446,6 +446,7 @@ export default function TopBar() {
 }
 
 function HomeButton() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   return (
     <Tooltip>
@@ -459,7 +460,7 @@ function HomeButton() {
           <Home size={15} strokeWidth={1.5} />
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="bottom">Dashboard</TooltipContent>
+      <TooltipContent side="bottom">{t('editor.home')}</TooltipContent>
     </Tooltip>
   )
 }
