@@ -34,6 +34,8 @@ function migrate(db: Database) {
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
       color TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))

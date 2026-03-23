@@ -3,19 +3,30 @@ import { cn } from '@/lib/utils'
 import { useUserStore } from '@/stores/user-store'
 import { PenTool, ArrowRight, Loader2 } from 'lucide-react'
 
+type Mode = 'login' | 'register'
+
 export default function LoginScreen() {
-  const login = useUserStore((s) => s.login)
-  const [name, setName] = useState('')
+  const { login, register } = useUserStore()
+  const [mode, setMode] = useState<Mode>('login')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || loading) return
+    if (!username.trim() || !password || loading) return
+    setError('')
     setLoading(true)
     try {
-      await login(name.trim())
-    } catch {
-      // retry
+      if (mode === 'login') {
+        await login(username.trim(), password)
+      } else {
+        await register(username.trim(), password, displayName.trim() || username.trim())
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -31,20 +42,20 @@ export default function LoginScreen() {
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-              Nickname
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Username
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name…"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="username"
               autoFocus
               maxLength={30}
               className={cn(
-                'w-full h-10 px-3 rounded-md text-sm',
+                'w-full h-9 px-3 rounded-md text-sm',
                 'border border-border bg-card text-foreground',
                 'placeholder:text-muted-foreground',
                 'focus:outline-none focus:ring-2 focus:ring-ring',
@@ -52,11 +63,54 @@ export default function LoginScreen() {
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••"
+              className={cn(
+                'w-full h-9 px-3 rounded-md text-sm',
+                'border border-border bg-card text-foreground',
+                'placeholder:text-muted-foreground',
+                'focus:outline-none focus:ring-2 focus:ring-ring',
+              )}
+            />
+          </div>
+
+          {mode === 'register' && (
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                Display Name <span className="text-muted-foreground/50">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="How others see you"
+                maxLength={30}
+                className={cn(
+                  'w-full h-9 px-3 rounded-md text-sm',
+                  'border border-border bg-card text-foreground',
+                  'placeholder:text-muted-foreground',
+                  'focus:outline-none focus:ring-2 focus:ring-ring',
+                )}
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-xs text-destructive">{error}</p>
+          )}
+
           <button
             type="submit"
-            disabled={!name.trim() || loading}
+            disabled={!username.trim() || !password || loading}
             className={cn(
-              'w-full h-10 rounded-md text-sm font-medium',
+              'w-full h-9 rounded-md text-sm font-medium',
               'bg-primary text-primary-foreground',
               'hover:bg-primary/90 transition-colors',
               'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -67,12 +121,36 @@ export default function LoginScreen() {
               <Loader2 size={16} className="animate-spin" />
             ) : (
               <>
-                Get Started
+                {mode === 'login' ? 'Sign In' : 'Create Account'}
                 <ArrowRight size={16} />
               </>
             )}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          {mode === 'login' ? (
+            <>
+              No account?{' '}
+              <button
+                onClick={() => { setMode('register'); setError('') }}
+                className="text-primary hover:underline"
+              >
+                Sign up
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{' '}
+              <button
+                onClick={() => { setMode('login'); setError('') }}
+                className="text-primary hover:underline"
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </p>
       </div>
     </div>
   )
