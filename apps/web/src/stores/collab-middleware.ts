@@ -94,15 +94,15 @@ function diffDocuments(prev: PenDocument, next: PenDocument): CollabOperation[] 
       ops.push({ type: 'page:rename', pageId: nextPage.id, name: nextPage.name })
     }
 
-    const prevNodes = flattenTree(prevPage.children)
-    const nextNodes = flattenTree(nextPage.children)
+    const prevNodes = flattenTreeWithParent(prevPage.children)
+    const nextNodes = flattenTreeWithParent(nextPage.children)
 
     // Find added/removed/updated nodes
-    for (const [id, node] of nextNodes) {
+    for (const [id, { node, parentId }] of nextNodes) {
       if (!prevNodes.has(id)) {
-        ops.push({ type: 'node:add', pageId: nextPage.id, node })
+        ops.push({ type: 'node:add', pageId: nextPage.id, parentId, node })
       } else {
-        const prevNode = prevNodes.get(id)!
+        const prevNode = prevNodes.get(id)!.node
         if (JSON.stringify(prevNode) !== JSON.stringify(node)) {
           // Compute shallow diff of changed properties
           const updates: Record<string, unknown> = {}
@@ -143,14 +143,20 @@ function diffDocuments(prev: PenDocument, next: PenDocument): CollabOperation[] 
   return ops
 }
 
-function flattenTree(nodes: PenNode[]): Map<string, PenNode> {
-  const map = new Map<string, PenNode>()
-  const queue = [...nodes]
+function flattenTreeWithParent(
+  nodes: PenNode[],
+  parentId: string | null = null,
+): Map<string, { node: PenNode; parentId: string | null }> {
+  const map = new Map<string, { node: PenNode; parentId: string | null }>()
+  const queue: Array<{ node: PenNode; parentId: string | null }> = nodes.map(n => ({ node: n, parentId }))
   while (queue.length > 0) {
-    const node = queue.shift()!
-    map.set(node.id, node)
-    if ('children' in node && Array.isArray((node as { children?: PenNode[] }).children)) {
-      queue.push(...(node as { children: PenNode[] }).children)
+    const entry = queue.shift()!
+    map.set(entry.node.id, entry)
+    const children = (entry.node as { children?: PenNode[] }).children
+    if (Array.isArray(children)) {
+      for (const child of children) {
+        queue.push({ node: child, parentId: entry.node.id })
+      }
     }
   }
   return map
