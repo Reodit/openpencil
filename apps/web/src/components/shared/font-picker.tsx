@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { useSystemFonts, type FontInfo } from '@/hooks/use-system-fonts'
-import { ChevronDown, Search, Loader2 } from 'lucide-react'
+import { useFontStore } from '@/stores/font-store'
+import { ChevronDown, Search, Loader2, Settings } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface FontPickerProps {
@@ -18,6 +19,7 @@ function displayName(value: string): string {
 export default function FontPicker({ value, onChange, className }: FontPickerProps) {
   const { t } = useTranslation()
   const { allFonts, loading } = useSystemFonts()
+  const { userFonts, setDialogOpen } = useFontStore()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [highlightIndex, setHighlightIndex] = useState(-1)
@@ -25,24 +27,27 @@ export default function FontPicker({ value, onChange, className }: FontPickerPro
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Filter fonts by search
-  const filtered = useMemo(() => {
-    if (!search) return allFonts
-    const q = search.toLowerCase()
-    return allFonts.filter(f => f.family.toLowerCase().includes(q))
-  }, [allFonts, search])
+  // Build user-added fonts as FontInfo
+  const addedFonts: FontInfo[] = useMemo(
+    () => userFonts.filter(f => f.isLoaded).map(f => ({ family: f.family, source: 'bundled' as const })),
+    [userFonts],
+  )
 
-  // Group into bundled and system
-  const bundled = useMemo(() => filtered.filter(f => f.source === 'bundled'), [filtered])
-  const system = useMemo(() => filtered.filter(f => f.source === 'system'), [filtered])
+  // Filter all fonts by search
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase()
+    const filterFn = (f: FontInfo) => !q || f.family.toLowerCase().includes(q)
+    return {
+      bundled: allFonts.filter(f => f.source === 'bundled' && filterFn(f)),
+      added: addedFonts.filter(filterFn),
+      system: allFonts.filter(f => f.source === 'system' && filterFn(f)),
+    }
+  }, [allFonts, addedFonts, search])
 
   // Flat list for keyboard navigation
   const flatList = useMemo(() => {
-    const items: FontInfo[] = []
-    items.push(...bundled)
-    items.push(...system)
-    return items
-  }, [bundled, system])
+    return [...filtered.bundled, ...filtered.added, ...filtered.system]
+  }, [filtered])
 
   const handleSelect = useCallback((font: FontInfo) => {
     onChange(font.family)
@@ -118,6 +123,7 @@ export default function FontPicker({ value, onChange, className }: FontPickerPro
   }, [search])
 
   const currentDisplay = displayName(value)
+  let runningIndex = 0
 
   return (
     <div ref={containerRef} className={cn('relative', className)} onKeyDown={handleKeyDown}>
@@ -173,46 +179,92 @@ export default function FontPicker({ value, onChange, className }: FontPickerPro
             )}
 
             {/* Bundled fonts group */}
-            {bundled.length > 0 && (
+            {filtered.bundled.length > 0 && (
               <>
                 <div className="px-2 py-0.5 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
                   {t('text.font.bundled')}
                 </div>
-                {bundled.map((font, i) => (
-                  <FontItem
-                    key={font.family}
-                    font={font}
-                    selected={displayName(value) === font.family}
-                    highlighted={highlightIndex === i}
-                    onSelect={handleSelect}
-                  />
-                ))}
+                {filtered.bundled.map((font) => {
+                  const idx = runningIndex++
+                  return (
+                    <FontItem
+                      key={font.family}
+                      font={font}
+                      selected={displayName(value) === font.family}
+                      highlighted={highlightIndex === idx}
+                      onSelect={handleSelect}
+                    />
+                  )
+                })}
+              </>
+            )}
+
+            {/* Added fonts group */}
+            {filtered.added.length > 0 && (
+              <>
+                <div className="px-2 py-0.5 mt-1 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('text.font.added')}
+                </div>
+                {filtered.added.map((font) => {
+                  const idx = runningIndex++
+                  return (
+                    <FontItem
+                      key={font.family}
+                      font={font}
+                      selected={displayName(value) === font.family}
+                      highlighted={highlightIndex === idx}
+                      onSelect={handleSelect}
+                    />
+                  )
+                })}
               </>
             )}
 
             {/* System fonts group */}
-            {system.length > 0 && (
+            {filtered.system.length > 0 && (
               <>
                 <div className="px-2 py-0.5 mt-1 text-[9px] font-medium text-muted-foreground uppercase tracking-wider">
                   {t('text.font.system')}
                 </div>
-                {system.map((font, i) => (
-                  <FontItem
-                    key={font.family}
-                    font={font}
-                    selected={displayName(value) === font.family}
-                    highlighted={highlightIndex === bundled.length + i}
-                    onSelect={handleSelect}
-                  />
-                ))}
+                {filtered.system.map((font) => {
+                  const idx = runningIndex++
+                  return (
+                    <FontItem
+                      key={font.family}
+                      font={font}
+                      selected={displayName(value) === font.family}
+                      highlighted={highlightIndex === idx}
+                      onSelect={handleSelect}
+                    />
+                  )
+                })}
               </>
             )}
 
-            {!loading && filtered.length === 0 && (
+            {!loading && flatList.length === 0 && (
               <div className="px-2 py-3 text-[11px] text-muted-foreground text-center">
                 {t('text.font.noResults')}
               </div>
             )}
+          </div>
+
+          {/* Manage Fonts button */}
+          <div className="border-t border-border">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                setDialogOpen(true)
+              }}
+              className={cn(
+                'w-full flex items-center gap-1.5 px-2 py-1.5 text-[11px]',
+                'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
+                'transition-colors',
+              )}
+            >
+              <Settings className="w-3 h-3" />
+              {t('text.font.manage')}
+            </button>
           </div>
         </div>
       )}

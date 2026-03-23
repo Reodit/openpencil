@@ -84,12 +84,17 @@ const BUNDLED_FONTS: Record<string, string[]> = {
     'noto-sans-sc-latin-400.woff2',
     'noto-sans-sc-latin-700.woff2',
   ],
+  'noto sans kr': [
+    'noto-sans-kr-400.woff2',
+    'noto-sans-kr-700.woff2',
+  ],
 }
 
 /** List of all bundled font family names (for UI font picker) */
 export const BUNDLED_FONT_FAMILIES = [
   'Inter',
   'Noto Sans SC',
+  'Noto Sans KR',
   'Poppins',
   'Roboto',
   'Montserrat',
@@ -164,6 +169,9 @@ export class SkiaFontManager {
     if (lower !== 'noto sans sc' && this.loadedFamilies.has('noto sans sc')) {
       chain.push('Noto Sans SC')
     }
+    if (lower !== 'noto sans kr' && this.loadedFamilies.has('noto sans kr')) {
+      chain.push('Noto Sans KR')
+    }
     if (lower !== 'inter') {
       if (this.loadedFamilies.has('inter')) chain.push('Inter')
       if (this.loadedFamilies.has('inter ext')) chain.push('Inter Ext')
@@ -177,8 +185,8 @@ export class SkiaFontManager {
    */
   hasAnyFallback(primaryFamily: string): boolean {
     const key = primaryFamily.toLowerCase()
-    if (key === 'inter' || key === 'noto sans sc') return false
-    return this.loadedFamilies.has('inter') || this.loadedFamilies.has('noto sans sc')
+    if (key === 'inter' || key === 'noto sans sc' || key === 'noto sans kr') return false
+    return this.loadedFamilies.has('inter') || this.loadedFamilies.has('noto sans sc') || this.loadedFamilies.has('noto sans kr')
   }
 
   /** Register a font from raw ArrayBuffer data */
@@ -326,6 +334,11 @@ export class SkiaFontManager {
       }
     }
     return false
+  }
+
+  /** Clear a previously failed font so it can be retried */
+  clearFailedFamily(family: string) {
+    this.failedFamilies.delete(family.toLowerCase())
   }
 
   dispose() {

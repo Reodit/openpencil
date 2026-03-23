@@ -1,5 +1,6 @@
 import type { CanvasKit, Surface } from 'canvaskit-wasm'
 import type { EllipseNode } from '@/types/pen'
+import { setFontManagerRef, useFontStore } from '@/stores/font-store'
 import { useCanvasStore } from '@/stores/canvas-store'
 import { useDocumentStore, getActivePageChildren, getAllChildren } from '@/stores/document-store'
 import { resolveNodeForCanvas, getDefaultTheme } from '@/variables/resolve-variables'
@@ -111,6 +112,10 @@ export class SkiaEngine {
     // would only contain Inter which has no CJK coverage, causing tofu.
     this.renderer.fontManager.ensureFont('Inter').then(() => this.markDirty())
     this.renderer.fontManager.ensureFont('Noto Sans SC').then(() => this.markDirty())
+    this.renderer.fontManager.ensureFont('Noto Sans KR').then(() => this.markDirty())
+    // Wire up user font store with the font manager
+    setFontManagerRef(this.renderer.fontManager)
+    useFontStore.getState().hydrate().then(() => this.markDirty())
     this.startRenderLoop()
   }
 
