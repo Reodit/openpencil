@@ -96,30 +96,41 @@ export function useCollab(docId: string | null) {
       }).catch(() => {})
     }
 
-    // Cursor broadcast
-    const cursorInterval = setInterval(() => {
-      const { localCursor, clientId } = useCollabStore.getState()
-      if (!localCursor || !clientId) return
+    // Cursor broadcast — only when cursor actually moves (throttled)
+    let lastCursorJson = ''
+    let cursorThrottleTimer: ReturnType<typeof setTimeout> | null = null
+    const unsubCursor = useCollabStore.subscribe((state) => {
+      if (!state.localCursor || !state.clientId) return
+      const json = `${state.localCursor.x},${state.localCursor.y},${state.localCursor.pageId}`
+      if (json === lastCursorJson) return
+      lastCursorJson = json
 
-      fetch('/api/collab/cursor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          documentId: docId,
-          clientId,
-          x: localCursor.x,
-          y: localCursor.y,
-          pageId: localCursor.pageId,
-        }),
-      }).catch(() => {})
-    }, CURSOR_INTERVAL_MS)
+      if (cursorThrottleTimer) return // already scheduled
+      cursorThrottleTimer = setTimeout(() => {
+        cursorThrottleTimer = null
+        const { localCursor, clientId } = useCollabStore.getState()
+        if (!localCursor || !clientId) return
+        fetch('/api/collab/cursor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            documentId: docId,
+            clientId,
+            x: localCursor.x,
+            y: localCursor.y,
+            pageId: localCursor.pageId,
+          }),
+        }).catch(() => {})
+      }, CURSOR_INTERVAL_MS)
+    })
 
     return () => {
       disposed = true
       eventSourceRef.current?.close()
       eventSourceRef.current = null
       unsub()
-      clearInterval(cursorInterval)
+      unsubCursor()
+      if (cursorThrottleTimer) clearTimeout(cursorThrottleTimer)
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current)
       if (reconnectTimer) clearTimeout(reconnectTimer)
       useCollabStore.getState().reset()
