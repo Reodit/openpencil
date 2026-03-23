@@ -338,11 +338,11 @@ async function generateGeminiCli(opts: {
     sizeHint = ` The image should be approximately ${width}x${height} pixels.`
   }
 
-  const fullPrompt = `Generate an image based on this description. Output the image directly as an inline image, not as code.\n\n${prompt}${sizeHint}`
+  const fullPrompt = `Generate an SVG image based on this description and output it as a markdown inline image using a data:image/svg+xml;base64 URL. Do not use any tools or write files. Just output the markdown image directly.\n\n${prompt}${sizeHint}`
 
   const args = [
     '--output-format', 'stream-json',
-    '-y',
+    '--sandbox',
     '-p', fullPrompt,
   ]
 
