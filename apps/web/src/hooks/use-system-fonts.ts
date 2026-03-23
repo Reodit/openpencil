@@ -8,6 +8,7 @@ export interface FontInfo {
 /** Bundled font families (always available, vector rendering) */
 const BUNDLED_FAMILIES = [
   'Inter',
+  'Noto Sans KR',
   'Poppins',
   'Roboto',
   'Montserrat',

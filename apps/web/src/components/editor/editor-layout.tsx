@@ -13,6 +13,7 @@ import ComponentBrowserPanel from '@/components/panels/component-browser-panel'
 import ExportDialog from '@/components/shared/export-dialog'
 import SaveDialog from '@/components/shared/save-dialog'
 import AgentSettingsDialog from '@/components/shared/agent-settings-dialog'
+import FontManagementDialog from '@/components/shared/font-management-dialog'
 import FigmaImportDialog from '@/components/shared/figma-import-dialog'
 import UpdateReadyBanner from './update-ready-banner'
 import { useAIStore } from '@/stores/ai-store'
@@ -178,6 +179,7 @@ export default function EditorLayout() {
         <ExportDialog open={exportOpen} onClose={closeExport} />
         <SaveDialog open={saveDialogOpen} onClose={closeSaveDialog} />
         <AgentSettingsDialog />
+        <FontManagementDialog />
         <FigmaImportDialog open={figmaImportOpen} onClose={closeFigmaImport} />
 
         {/* Drop zone overlay */}
