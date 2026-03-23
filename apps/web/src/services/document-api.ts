@@ -4,12 +4,13 @@ export interface DocumentMeta {
   id: string
   name: string
   thumbnail: string | null
+  created_by: string | null
   created_at: string
   updated_at: string
 }
 
-export async function listDocuments(): Promise<DocumentMeta[]> {
-  const res = await fetch('/api/documents')
+export async function listDocuments(workspaceId: string): Promise<DocumentMeta[]> {
+  const res = await fetch(`/api/documents?workspace=${workspaceId}`)
   if (!res.ok) throw new Error('Failed to list documents')
   const data = await res.json()
   return data.documents
@@ -20,16 +21,16 @@ export async function getDocument(id: string): Promise<{ meta: DocumentMeta; dat
   if (!res.ok) throw new Error('Failed to get document')
   const row = await res.json()
   return {
-    meta: { id: row.id, name: row.name, thumbnail: row.thumbnail, created_at: row.created_at, updated_at: row.updated_at },
+    meta: { id: row.id, name: row.name, thumbnail: row.thumbnail, created_by: row.created_by, created_at: row.created_at, updated_at: row.updated_at },
     data: row.data as PenDocument,
   }
 }
 
-export async function createDocument(name?: string, data?: PenDocument): Promise<{ id: string; name: string }> {
+export async function createDocument(workspaceId: string, name?: string, data?: PenDocument): Promise<{ id: string; name: string }> {
   const res = await fetch('/api/documents', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, data }),
+    body: JSON.stringify({ workspace_id: workspaceId, name, data }),
   })
   if (!res.ok) throw new Error('Failed to create document')
   return res.json()
