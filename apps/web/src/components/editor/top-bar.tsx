@@ -474,16 +474,16 @@ function EditorUserBadge() {
   const user = useUserStore((s) => s.user)
   if (!user) return null
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div
-          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white cursor-default"
-          style={{ backgroundColor: user.color }}
-        >
-          {user.name[0].toUpperCase()}
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">{user.name}</TooltipContent>
-    </Tooltip>
+    <div className="flex items-center gap-1.5">
+      <div
+        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+        style={{ backgroundColor: user.color }}
+      >
+        {user.name[0].toUpperCase()}
+      </div>
+      <span className="text-[11px] text-muted-foreground max-w-[80px] truncate">
+        {user.name}
+      </span>
+    </div>
   )
 }

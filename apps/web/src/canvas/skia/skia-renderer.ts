@@ -14,6 +14,7 @@ import {
   drawAgentNodeBorder as _drawAgentNodeBorder,
   drawAgentPreviewFill as _drawAgentPreviewFill,
   drawArcHandles as _drawArcHandles,
+  drawCollabCursor as _drawCollabCursor,
   type PenPreviewData,
 } from './skia-overlays'
 
@@ -176,48 +177,6 @@ export class SkiaRenderer extends SkiaNodeRenderer {
     x: number, y: number,
     name: string, color: string, zoom: number,
   ) {
-    const ck = this.ck
-    const s = 1 / zoom
-
-    // Arrow cursor path
-    const paint = new ck.Paint()
-    paint.setColor(ck.parseColorString(color))
-    paint.setAntiAlias(true)
-    paint.setStyle(ck.PaintStyle.Fill)
-
-    const path = new ck.Path()
-    path.moveTo(x, y)
-    path.lineTo(x, y + 14 * s)
-    path.lineTo(x + 4 * s, y + 11 * s)
-    path.lineTo(x + 9 * s, y + 16 * s)
-    path.lineTo(x + 11 * s, y + 14 * s)
-    path.lineTo(x + 6 * s, y + 9 * s)
-    path.lineTo(x + 10 * s, y + 9 * s)
-    path.close()
-    canvas.drawPath(path, paint)
-    path.delete()
-
-    // Name label background
-    const fontSize = 10 * s
-    const labelX = x + 12 * s
-    const labelY = y + 14 * s
-    const textWidth = name.length * 6 * s
-    const padH = 4 * s
-    const padV = 2 * s
-    const bgRect = ck.XYWHRect(labelX, labelY, textWidth + padH * 2, fontSize + padV * 2)
-    const bgRRect = ck.RRectXY(bgRect, 3 * s, 3 * s)
-    canvas.drawRRect(bgRRect, paint)
-
-    // Name label text
-    const textPaint = new ck.Paint()
-    textPaint.setColor(ck.Color(255, 255, 255, 255))
-    textPaint.setAntiAlias(true)
-
-    const font = new ck.Font(null, fontSize)
-    canvas.drawText(name, labelX + padH, labelY + fontSize + padV * 0.5, textPaint, font)
-
-    font.delete()
-    textPaint.delete()
-    paint.delete()
+    _drawCollabCursor(this.ck, canvas, x, y, name, color, zoom)
   }
 }

@@ -643,3 +643,49 @@ export function drawAgentPreviewFill(
   canvas.drawRect(ck.LTRBRect(x, y, x + w, y + h), paint)
   paint.delete()
 }
+
+export function drawCollabCursor(
+  ck: CanvasKit, canvas: Canvas,
+  x: number, y: number,
+  name: string, color: string, zoom: number,
+) {
+  const s = 1 / zoom
+
+  // Arrow cursor
+  const paint = new ck.Paint()
+  paint.setColor(parseColor(ck, color))
+  paint.setAntiAlias(true)
+  paint.setStyle(ck.PaintStyle.Fill)
+
+  const path = new ck.Path()
+  path.moveTo(x, y)
+  path.lineTo(x, y + 14 * s)
+  path.lineTo(x + 4 * s, y + 11 * s)
+  path.lineTo(x + 9 * s, y + 16 * s)
+  path.lineTo(x + 11 * s, y + 14 * s)
+  path.lineTo(x + 6 * s, y + 9 * s)
+  path.lineTo(x + 10 * s, y + 9 * s)
+  path.close()
+  canvas.drawPath(path, paint)
+  path.delete()
+
+  // Name label
+  const labelFontSize = 11
+  const padH = 6 * s
+  const padV = 3 * s
+  const textW = measureText(name, labelFontSize, '600') * s
+  const labelX = x + 12 * s
+  const labelY = y + 14 * s
+  const pillW = textW + padH * 2
+  const pillH = (labelFontSize + 6) * s
+
+  // Background pill
+  const bgRect = ck.XYWHRect(labelX, labelY, pillW, pillH)
+  const bgRRect = ck.RRectXY(bgRect, 4 * s, 4 * s)
+  canvas.drawRRect(bgRRect, paint)
+
+  // Text (rendered via Canvas 2D → CanvasKit image)
+  drawText2D(ck, canvas, name, labelX + padH, labelY + padV, '#ffffff', labelFontSize, '600')
+
+  paint.delete()
+}
