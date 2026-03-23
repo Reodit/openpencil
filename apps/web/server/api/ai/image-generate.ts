@@ -2,9 +2,9 @@ import { defineEventHandler, readBody, setResponseHeaders, createError } from 'h
 
 interface ImageGenerateBody {
   prompt: string
-  provider: 'openai' | 'custom' | 'gemini' | 'replicate'
+  provider: 'openai' | 'custom' | 'gemini' | 'gemini-cli' | 'replicate'
   model: string
-  apiKey: string
+  apiKey?: string
   baseUrl?: string
   width?: number
   height?: number
@@ -28,18 +28,23 @@ export default defineEventHandler(async (event) => {
   if (!body?.provider) {
     throw createError({ statusCode: 400, message: 'Missing required field: provider' })
   }
-  if (!body?.apiKey?.trim()) {
+  const { prompt, provider, model, apiKey, baseUrl, width, height } = body
+
+  // gemini-cli doesn't need an API key
+  if (provider !== 'gemini-cli' && !apiKey?.trim()) {
     throw createError({ statusCode: 400, message: 'Missing required field: apiKey' })
   }
 
-  const { prompt, provider, model, apiKey, baseUrl, width, height } = body
+  if (provider === 'gemini-cli') {
+    return await generateGeminiCli({ prompt, width, height })
+  }
 
   if (provider === 'openai' || provider === 'custom') {
-    return await generateOpenAI({ prompt, model, apiKey, baseUrl, width, height })
+    return await generateOpenAI({ prompt, model, apiKey: apiKey!, baseUrl, width, height })
   }
 
   if (provider === 'gemini') {
-    return await generateGemini({ prompt, model, apiKey, baseUrl, width, height })
+    return await generateGemini({ prompt, model, apiKey: apiKey!, baseUrl, width, height })
   }
 
   if (provider === 'replicate') {
@@ -307,5 +312,117 @@ async function generateReplicate(opts: {
   throw createError({
     statusCode: 502,
     message: 'Replicate prediction timed out after 120 seconds',
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Gemini CLI (no API key needed — uses local CLI authentication)
+// ---------------------------------------------------------------------------
+
+async function generateGeminiCli(opts: {
+  prompt: string
+  width?: number
+  height?: number
+}): Promise<{ url: string }> {
+  const { prompt, width, height } = opts
+  const { resolveGeminiCli } = await import('../../utils/resolve-gemini-cli')
+  const { spawn } = await import('node:child_process')
+
+  const binPath = resolveGeminiCli()
+  if (!binPath) {
+    throw createError({ statusCode: 502, message: 'Gemini CLI not found. Install it first.' })
+  }
+
+  let sizeHint = ''
+  if (width && height) {
+    sizeHint = ` The image should be approximately ${width}x${height} pixels.`
+  }
+
+  const fullPrompt = `Generate an image based on this description. Output the image directly as an inline image, not as code.\n\n${prompt}${sizeHint}`
+
+  const args = [
+    '--output-format', 'stream-json',
+    '-y',
+    '-p', fullPrompt,
+  ]
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(binPath, args, {
+      env: {
+        ...process.env,
+        PATH: process.env.PATH || '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin',
+        CLAUDECODE: '',
+      },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+    child.stdin.end()
+
+    let resultText = ''
+    let buffer = ''
+    const timeout = setTimeout(() => {
+      child.kill()
+      reject(createError({ statusCode: 502, message: 'Gemini CLI timed out after 120s' }))
+    }, 120_000)
+
+    child.stdout.on('data', (data: Buffer) => {
+      buffer += data.toString()
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed || !trimmed.startsWith('{')) continue
+        try {
+          const parsed = JSON.parse(trimmed) as Record<string, unknown>
+          if (parsed.type === 'message' && parsed.role === 'assistant') {
+            resultText += (parsed.content as string) || ''
+          }
+        } catch { /* skip */ }
+      }
+    })
+
+    child.stderr.on('data', () => { /* discard */ })
+
+    child.on('close', () => {
+      clearTimeout(timeout)
+
+      // Flush remaining buffer
+      if (buffer.trim() && buffer.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(buffer.trim()) as Record<string, unknown>
+          if (parsed.type === 'message' && parsed.role === 'assistant') {
+            resultText += (parsed.content as string) || ''
+          }
+        } catch { /* skip */ }
+      }
+
+      if (!resultText) {
+        reject(createError({ statusCode: 502, message: 'Gemini CLI returned no output' }))
+        return
+      }
+
+      // Extract image data URL from markdown: ![alt](data:image/...;base64,...)
+      const dataUrlMatch = resultText.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/)
+      if (dataUrlMatch) {
+        resolve({ url: dataUrlMatch[0] })
+        return
+      }
+
+      // Try to extract any image URL
+      const urlMatch = resultText.match(/https?:\/\/\S+\.(png|jpg|jpeg|gif|webp|svg)\S*/i)
+      if (urlMatch) {
+        resolve({ url: urlMatch[0] })
+        return
+      }
+
+      reject(createError({
+        statusCode: 502,
+        message: 'Gemini CLI did not return an image. Response: ' + resultText.slice(0, 200),
+      }))
+    })
+
+    child.on('error', (err) => {
+      clearTimeout(timeout)
+      reject(createError({ statusCode: 502, message: `Gemini CLI error: ${err.message}` }))
+    })
   })
 }
