@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { appStorage, initAppStorage } from '@/utils/app-storage'
+import { useUserStore } from '@/stores/user-store'
 import type { ComponentType, SVGProps } from 'react'
 import {
   PanelLeft,
@@ -11,6 +13,7 @@ import {
   Maximize,
   Minimize,
   Blocks,
+  Home,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import ClaudeLogo from '@/components/icons/claude-logo'
@@ -326,6 +329,10 @@ export default function TopBar() {
     <div className="h-10 bg-card border-b border-border flex items-center px-2 shrink-0 select-none app-region-drag">
       {/* Left section */}
       <div className="flex items-center gap-0.5 app-region-no-drag electron-traffic-light-pad">
+        <HomeButton />
+
+        <div className="w-px h-3.5 bg-border/60 mx-1" />
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -429,7 +436,48 @@ export default function TopBar() {
             {isFullscreen ? t('topbar.exitFullscreen') : t('topbar.fullscreen')}
           </TooltipContent>
         </Tooltip>
+
+        <div className="w-px h-3.5 bg-border/60 mx-1" />
+
+        <EditorUserBadge />
       </div>
     </div>
+  )
+}
+
+function HomeButton() {
+  const navigate = useNavigate()
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
+          onClick={() => navigate({ to: '/' })}
+        >
+          <Home size={15} strokeWidth={1.5} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">Dashboard</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function EditorUserBadge() {
+  const user = useUserStore((s) => s.user)
+  if (!user) return null
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white cursor-default"
+          style={{ backgroundColor: user.color }}
+        >
+          {user.name[0].toUpperCase()}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{user.name}</TooltipContent>
+    </Tooltip>
   )
 }
