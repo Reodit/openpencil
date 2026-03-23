@@ -41,11 +41,15 @@ const config = defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    host: true,
+    allowedHosts: true,
+  },
   assetsInclude: ['**/*.wasm'],
   plugins: [
     devtools(),
     nitro({
-      rollupConfig: { external: [/^@sentry\//, 'canvas', 'jsdom', 'cssstyle', 'canvaskit-wasm'] },
+      rollupConfig: { external: [/^@sentry\//, 'canvas', 'jsdom', 'cssstyle', 'canvaskit-wasm', /^bun:/] },
       serverDir: './server',
       output: { dir: '../../out/web' },
       ...(isElectronBuild ? { preset: 'node-server' } : {}),
