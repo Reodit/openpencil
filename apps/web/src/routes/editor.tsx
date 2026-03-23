@@ -5,6 +5,7 @@ import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { useBeforeUnload } from '@/hooks/use-before-unload'
 import { useTranslation } from 'react-i18next'
 import { useAutoSave } from '@/hooks/use-auto-save'
+import { useCollab } from '@/hooks/use-collab'
 import { useDocumentStore } from '@/stores/document-store'
 import { getDocument } from '@/services/document-api'
 
@@ -27,6 +28,7 @@ function EditorPage() {
   useKeyboardShortcuts()
   useBeforeUnload()
   useAutoSave(docId ?? null)
+  useCollab(docId ?? null)
 
   // Load document from server if doc= param is present
   useEffect(() => {

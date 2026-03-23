@@ -1,6 +1,7 @@
 import type { CanvasKit, Surface } from 'canvaskit-wasm'
 import type { EllipseNode } from '@/types/pen'
 import { setFontManagerRef, useFontStore } from '@/stores/font-store'
+import { useCollabStore } from '@/stores/collab-store'
 import { useCanvasStore } from '@/stores/canvas-store'
 import { useDocumentStore, getActivePageChildren, getAllChildren } from '@/stores/document-store'
 import { resolveNodeForCanvas, getDefaultTheme } from '@/variables/resolve-variables'
@@ -306,6 +307,20 @@ export class SkiaEngine {
           frame.color, this.zoom, now,
         )
       }
+    }
+
+    // Collaboration cursors
+    {
+      const collabPeers = useCollabStore.getState().peers
+      const activePage = useCanvasStore.getState().activePageId
+      for (const [, peer] of collabPeers) {
+        if (!peer.cursor || peer.cursor.pageId !== activePage) continue
+        this.renderer.drawCollabCursor(
+          canvas, peer.cursor.x, peer.cursor.y,
+          peer.name, peer.color, this.zoom,
+        )
+      }
+      if (collabPeers.size > 0) this.markDirty()
     }
 
     // Hover outline

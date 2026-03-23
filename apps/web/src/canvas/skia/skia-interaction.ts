@@ -1,6 +1,7 @@
 import { screenToScene } from './skia-engine'
 import type { SkiaEngine } from './skia-engine'
 import { useCanvasStore } from '@/stores/canvas-store'
+import { useCollabStore } from '@/stores/collab-store'
 import { useDocumentStore } from '@/stores/document-store'
 import { createNodeForTool, isDrawingTool } from '../canvas-node-creator'
 import { inferLayout } from '../canvas-layout-engine'
@@ -304,6 +305,15 @@ export class SkiaInteractionManager {
 
     const scene = this.getScene(e)
     if (!scene) return
+
+    // Broadcast cursor position for collaboration
+    if (useCollabStore.getState().isConnected) {
+      useCollabStore.getState().setLocalCursor({
+        x: scene.x,
+        y: scene.y,
+        pageId: useCanvasStore.getState().activePageId ?? '',
+      })
+    }
 
     if (this.penTool.onMouseMove(scene)) return
 

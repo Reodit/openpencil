@@ -10,6 +10,8 @@ function areDocumentsEqual(a: PenDocument, b: PenDocument): boolean {
 }
 
 let lastPushTime = 0
+let _suppressPush = false
+export function setHistorySuppressed(v: boolean) { _suppressPush = v }
 
 interface HistoryStoreState {
   undoStack: PenDocument[]
@@ -39,6 +41,7 @@ export const useHistoryStore = create<HistoryStoreState>(
     batchBaseState: null,
 
     pushState: (doc) => {
+      if (_suppressPush) return
       const { batchDepth } = get()
       if (batchDepth > 0) return
 
