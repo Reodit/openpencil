@@ -103,7 +103,7 @@ export async function generateAIWebsite(
     WEBSITE_SYSTEM_PROMPT,
     messages,
     model,
-    { thinkingMode: 'adaptive', effort: 'max', firstTextTimeoutMs: 120_000, hardTimeoutMs: 600_000 },
+    { thinkingMode: 'disabled', effort: 'low', firstTextTimeoutMs: 120_000, hardTimeoutMs: 600_000 },
     provider,
     abortSignal,
   )) {
