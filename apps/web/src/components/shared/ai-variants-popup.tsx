@@ -4,8 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, Check } from 'lucide-react'
 import type { PenNode } from '@/types/pen'
 import { getCanvasKit } from '@/canvas/skia/skia-init'
-import { useDocumentStore, getActivePageChildren } from '@/stores/document-store'
-import { useCanvasStore } from '@/stores/canvas-store'
 
 interface AiVariantsPopupProps {
   variants: PenNode[][]
@@ -28,22 +26,6 @@ export default function AiVariantsPopup({
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const cols = Math.min(variants.length + 1, 4)
-
-  // Get full page children for context rendering
-  const activePageId = useCanvasStore((s) => s.activePageId)
-  const pageChildren = useDocumentStore((s) => getActivePageChildren(s.document, activePageId))
-
-  // Build full page trees: original + each variant with node swapped
-  const replaceNodeInTree = (children: PenNode[], nodeId: string, replacement: PenNode): PenNode[] => {
-    return children.map((child) => {
-      if (child.id === nodeId) return replacement
-      const ch = (child as { children?: PenNode[] }).children
-      if (ch) {
-        return { ...child, children: replaceNodeInTree(ch, nodeId, replacement) } as PenNode
-      }
-      return child
-    })
-  }
 
   return (
     <div
@@ -80,7 +62,7 @@ export default function AiVariantsPopup({
             <div className="rounded-lg border-2 border-dashed border-border bg-background overflow-hidden group hover:border-primary/50 transition-colors">
               <div className="relative" style={{ paddingBottom: '75%' }}>
                 <div className="absolute inset-0">
-                  <SkiaPreviewCanvas nodes={pageChildren} />
+                  <SkiaPreviewCanvas nodes={[originalNode]} />
                 </div>
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-card/80 text-[9px] font-medium text-muted-foreground border border-border">
                   {t('aiModify.original')}
@@ -102,16 +84,12 @@ export default function AiVariantsPopup({
 
             {/* Variant cards */}
             {variants.map((variantNodes, i) => {
-              // Build full page tree with variant node swapped in
               const primaryVariant = variantNodes[0]
-              const previewTree = primaryVariant
-                ? replaceNodeInTree(pageChildren, originalNode.id, primaryVariant)
-                : pageChildren
               return (
                 <VariantCard
                   key={i}
                   index={i + 1}
-                  previewNodes={previewTree}
+                  previewNodes={primaryVariant ? [primaryVariant] : [originalNode]}
                   onApply={() => onApply(variantNodes)}
                 />
               )
