@@ -211,10 +211,15 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
           {savedSets.length > 0 && (
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+              className={cn(
+                'flex items-center gap-1.5 h-5 px-2 rounded-full text-[10px] font-medium transition-colors',
+                showHistory
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground',
+              )}
             >
               <History size={10} />
-              {savedSets.length}
+              {t('aiModify.history')} ({savedSets.length})
             </button>
           )}
         </div>

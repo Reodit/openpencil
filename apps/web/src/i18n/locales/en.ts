@@ -539,6 +539,7 @@ const en = {
   'aiModify.applyVariant': 'Apply',
   'aiModify.noModels': 'No models available — connect an agent first',
   'aiModify.viewVariants': 'View',
+  'aiModify.history': 'History',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Image Generation',

@@ -541,6 +541,7 @@ const th: TranslationKeys = {
   'aiModify.applyVariant': 'นำไปใช้',
   'aiModify.noModels': 'ไม่มีโมเดลที่ใช้ได้ — เชื่อมต่อเอเจนต์ก่อน',
   'aiModify.viewVariants': 'ดู',
+  'aiModify.history': 'ประวัติ',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'สร้างรูปภาพ',

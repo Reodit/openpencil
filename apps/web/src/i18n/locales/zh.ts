@@ -532,6 +532,7 @@ const zh: TranslationKeys = {
   'aiModify.applyVariant': '应用',
   'aiModify.noModels': '没有可用的模型 — 请先连接一个代理',
   'aiModify.viewVariants': '查看',
+  'aiModify.history': '历史记录',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '图片生成',

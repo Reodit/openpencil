@@ -544,6 +544,7 @@ const de: TranslationKeys = {
   'aiModify.applyVariant': 'Anwenden',
   'aiModify.noModels': 'Keine Modelle verfügbar — verbinden Sie zuerst einen Agenten',
   'aiModify.viewVariants': 'Ansehen',
+  'aiModify.history': 'Verlauf',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Bilderzeugung',

@@ -541,6 +541,7 @@ const ko: TranslationKeys = {
   'aiModify.applyVariant': '적용',
   'aiModify.noModels': '모델 없음 — 먼저 에이전트를 연결하세요',
   'aiModify.viewVariants': '시안 보기',
+  'aiModify.history': '이력',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '이미지 생성',

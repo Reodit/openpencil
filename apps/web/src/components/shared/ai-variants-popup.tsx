@@ -1,8 +1,8 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, Check } from 'lucide-react'
-import type { PenNode, PenDocument } from '@/types/pen'
+import type { PenNode } from '@/types/pen'
 import { getCanvasKit } from '@/canvas/skia/skia-init'
 
 interface AiVariantsPopupProps {
@@ -149,89 +149,119 @@ function VariantCard({
 }
 
 /**
- * Mini CanvasKit canvas that renders a single PenNode.
- * Uses ResizeObserver to correctly size the canvas and retry zoomToFit.
+ * Mini CanvasKit preview that renders a single PenNode to a static image.
+ * Uses OffscreenCanvas + SW surface to avoid WebGL context limits.
+ * Renders once and converts to a data URL for display.
  */
 function SkiaPreviewCanvas({ node }: { node: PenNode }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rendererRef = useRef<import('@zseven-w/pen-renderer').PenRenderer | null>(null)
+
   useEffect(() => {
-    let disposed = false
-    let resizeObserver: ResizeObserver | null = null
+    let cancelled = false
 
-    async function init() {
-      const container = containerRef.current
-      const canvasEl = canvasRef.current
-      if (!container || !canvasEl) return
-
+    async function render() {
       const ck = getCanvasKit()
-      if (!ck) return
+      if (!ck || !containerRef.current) return
 
-      const { PenRenderer } = await import('@zseven-w/pen-renderer')
-      if (disposed) return
+      const { flattenToRenderNodes, premeasureTextHeights } = await import('@zseven-w/pen-renderer')
+      const { SkiaNodeRenderer } = await import('@zseven-w/pen-renderer')
+      if (cancelled) return
 
-      // Set canvas size to match container
-      const rect = container.getBoundingClientRect()
-      const dpr = 2
-      canvasEl.width = Math.round(rect.width * dpr)
-      canvasEl.height = Math.round(rect.height * dpr)
-      canvasEl.style.width = `${rect.width}px`
-      canvasEl.style.height = `${rect.height}px`
+      const rect = containerRef.current.getBoundingClientRect()
+      const w = Math.round(rect.width * 2)
+      const h = Math.round(rect.height * 2)
+      if (w <= 0 || h <= 0) return
 
-      const doc: PenDocument = {
-        version: '0.5.0',
-        children: [node],
-      }
+      // Create offscreen surface (no WebGL)
+      const surface = ck.MakeSurface(w, h)
+      if (!surface) return
 
-      const renderer = new PenRenderer(ck, {
-        fontBasePath: '/fonts/',
-        devicePixelRatio: dpr,
-      })
-      renderer.init(canvasEl)
-      renderer.setDocument(doc)
-      rendererRef.current = renderer
+      try {
+        const canvas = surface.getCanvas()
+        const nodeRenderer = new SkiaNodeRenderer(ck, { fontBasePath: '/fonts/' })
+        nodeRenderer.init()
 
-      // Multiple zoomToFit attempts (fonts may load async)
-      const fitAttempts = [50, 200, 500, 1000]
-      for (const delay of fitAttempts) {
-        setTimeout(() => {
-          if (!disposed && rendererRef.current) {
-            rendererRef.current.zoomToFit(24)
-          }
-        }, delay)
-      }
+        // Flatten node to render nodes
+        const measured = premeasureTextHeights([node])
+        const renderNodes = flattenToRenderNodes(measured)
 
-      // Handle resize
-      resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect
-          if (width > 0 && height > 0 && rendererRef.current && canvasEl) {
-            canvasEl.width = Math.round(width * dpr)
-            canvasEl.height = Math.round(height * dpr)
-            canvasEl.style.width = `${width}px`
-            canvasEl.style.height = `${height}px`
-            rendererRef.current.resize(width, height)
-            rendererRef.current.zoomToFit(24)
-          }
+        if (renderNodes.length === 0) return
+
+        // Calculate bounds and zoom
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        for (const rn of renderNodes) {
+          minX = Math.min(minX, rn.absX)
+          minY = Math.min(minY, rn.absY)
+          maxX = Math.max(maxX, rn.absX + rn.absW)
+          maxY = Math.max(maxY, rn.absY + rn.absH)
         }
-      })
-      resizeObserver.observe(container)
+        const contentW = maxX - minX
+        const contentH = maxY - minY
+        if (contentW <= 0 || contentH <= 0) return
+
+        const pad = 20
+        const zoom = Math.min((w - pad * 2) / contentW, (h - pad * 2) / contentH, 2)
+        const panX = (w / zoom - contentW) / 2 - minX
+        const panY = (h / zoom - contentH) / 2 - minY
+
+        // Draw background
+        canvas.clear(ck.Color(26, 26, 26, 255))
+
+        // Apply viewport transform
+        canvas.save()
+        canvas.scale(zoom, zoom)
+        canvas.translate(panX, panY)
+
+        // Draw nodes
+        nodeRenderer.devicePixelRatio = 2
+        for (const rn of renderNodes) {
+          nodeRenderer.drawNode(canvas, rn)
+        }
+
+        canvas.restore()
+        surface.flush()
+
+        // Convert to image
+        const img = surface.makeImageSnapshot()
+        if (img && !cancelled) {
+          const bytes = img.encodeToBytes()
+          if (bytes) {
+            const blob = new Blob([bytes as BlobPart], { type: 'image/png' })
+            const url = URL.createObjectURL(blob)
+            setImageUrl(url)
+          }
+          img.delete()
+        }
+
+        nodeRenderer.dispose()
+      } finally {
+        surface.delete()
+      }
     }
 
-    init()
-
+    // Delay to ensure container has layout
+    const timer = setTimeout(render, 100)
     return () => {
-      disposed = true
-      resizeObserver?.disconnect()
-      rendererRef.current?.dispose()
-      rendererRef.current = null
+      cancelled = true
+      clearTimeout(timer)
     }
   }, [node])
 
+  // Cleanup blob URL
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl)
+    }
+  }, [imageUrl])
+
   return (
-    <div ref={containerRef} className="w-full h-full">
-      <canvas ref={canvasRef} className="block" />
+    <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
+      {imageUrl ? (
+        <img src={imageUrl} alt="" className="w-full h-full object-contain" />
+      ) : (
+        <div className="text-[10px] text-muted-foreground">Loading...</div>
+      )}
     </div>
   )
 }
