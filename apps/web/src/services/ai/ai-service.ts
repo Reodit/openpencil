@@ -38,6 +38,8 @@ interface StreamChatOptions {
   thinkingBudgetTokens?: number
   /** Model effort level (low is usually faster). */
   effort?: 'low' | 'medium' | 'high' | 'max'
+  /** Max turns for Agent SDK (overrides server default). */
+  maxTurns?: number
 }
 
 /**
@@ -123,6 +125,7 @@ export async function* streamChat(
         thinkingMode: options?.thinkingMode,
         thinkingBudgetTokens: options?.thinkingBudgetTokens,
         effort: options?.effort,
+        ...(options?.maxTurns != null ? { maxTurns: options.maxTurns } : {}),
       }),
       signal: fetchSignal,
     })

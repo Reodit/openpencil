@@ -35,6 +35,7 @@ interface ChatBody {
   thinkingMode?: 'adaptive' | 'disabled' | 'enabled'
   thinkingBudgetTokens?: number
   effort?: 'low' | 'medium' | 'high' | 'max'
+  maxTurns?: number
 }
 
 async function readDebugTail(path?: string, maxLines = 40): Promise<string[] | undefined> {
@@ -229,7 +230,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               options: {
                 systemPrompt: effectiveSystemPrompt,
                 ...(model ? { model } : {}),
-                maxTurns: 3,
+                maxTurns: body.maxTurns ?? 3,
                 plugins: [],
                 permissionMode: 'plan',
                 persistSession: false,
@@ -277,7 +278,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               options: {
                 systemPrompt: effectiveSystemPrompt,
                 ...(model ? { model } : {}),
-                maxTurns: 1,
+                maxTurns: body.maxTurns ?? 1,
                 includePartialMessages: true,
                 tools: [],
                 plugins: [],
