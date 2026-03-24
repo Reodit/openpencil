@@ -5,7 +5,7 @@ export { variableNameToCSS, generateCSSVariables } from './css-variables-generat
 export { generateReactCode, generateReactFromDocument } from './react-generator.js'
 
 // HTML + CSS
-export { generateHTMLCode, generateHTMLFromDocument, generateMultiPageHTML } from './html-generator.js'
+export { generateHTMLCode, generateHTMLFromDocument, generateMultiPageHTML, generateSPAWebsite } from './html-generator.js'
 
 // Vue 3
 export { generateVueCode, generateVueFromDocument } from './vue-generator.js'

@@ -9,7 +9,7 @@ import { useDocumentStore, getActivePageChildren } from '@/stores/document-store
 import { useAIStore } from '@/stores/ai-store'
 import { streamChat } from '@/services/ai/ai-service'
 import { generateReactCode } from '@/services/codegen/react-generator'
-import { generateMultiPageHTML } from '@/services/codegen/html-generator'
+import { generateSPAWebsite } from '@/services/codegen/html-generator'
 import { generateHTMLCode } from '@/services/codegen/html-generator'
 import { generateVueCode } from '@/services/codegen/vue-generator'
 import { generateSvelteCode } from '@/services/codegen/svelte-generator'
@@ -320,16 +320,14 @@ ${generatedCode}`
         }
       }
 
-      const files = generateMultiPageHTML(doc)
-      for (const [filename, content] of files) {
-        const blob = new Blob([content], { type: 'text/html;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        const a = globalThis.document.createElement('a')
-        a.href = url
-        a.download = filename
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      const html = generateSPAWebsite(doc)
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = globalThis.document.createElement('a')
+      a.href = url
+      a.download = `${doc.name ?? 'website'}.html`
+      a.click()
+      URL.revokeObjectURL(url)
     } catch (e) {
       console.error('[ExportWebsite] failed:', e)
     } finally {

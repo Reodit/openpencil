@@ -559,3 +559,159 @@ ${bodyHTML.split('\n').map((l) => `  ${l}`).join('\n')}
 </body>
 </html>`
 }
+
+/**
+ * Generate a single-page application (SPA) HTML file from a PenDocument.
+ * All top-level frames become pages in one HTML file with hash-based routing.
+ * No server required — works from file:// protocol.
+ */
+export function generateSPAWebsite(doc: PenDocument): string {
+  // Collect all top-level frames
+  const allFrames: Array<{ node: PenNode; name: string; slug: string }> = []
+  const pages = doc.pages ?? []
+
+  if (pages.length === 0) {
+    for (const node of doc.children) {
+      const name = node.name ?? node.type
+      allFrames.push({ node, name, slug: toSlug(name) })
+    }
+  } else {
+    for (const page of pages) {
+      for (const node of page.children) {
+        const name = node.name ?? page.name
+        allFrames.push({ node, name, slug: toSlug(name) })
+      }
+    }
+  }
+
+  // Deduplicate slugs
+  const slugCounts = new Map<string, number>()
+  for (const frame of allFrames) {
+    const count = slugCounts.get(frame.slug) ?? 0
+    if (count > 0) frame.slug = `${frame.slug}-${count + 1}`
+    slugCounts.set(frame.slug, count + 1)
+  }
+
+  // Collect anchor targets
+  const anchorTargetIds = new Set<string>()
+  function collectAnchors(nodes: PenNode[]) {
+    for (const node of nodes) {
+      if (node.link?.type === 'anchor') anchorTargetIds.add(node.link.nodeId)
+      const ch = (node as { children?: PenNode[] }).children
+      if (ch) collectAnchors(ch)
+    }
+  }
+  for (const { node } of allFrames) {
+    collectAnchors((node as { children?: PenNode[] }).children ?? [])
+  }
+
+  // Build frame ID map for link resolution
+  const frameSlugMap = new Map<string, string>()
+  for (const frame of allFrames) {
+    frameSlugMap.set(frame.node.id, frame.slug)
+  }
+  for (const page of pages) {
+    if (!frameSlugMap.has(page.id) && page.children[0]) {
+      frameSlugMap.set(page.id, allFrames.find(f => f.node.id === page.children[0].id)?.slug ?? '')
+    }
+  }
+
+  const varsCSS = doc.variables && Object.keys(doc.variables).length > 0
+    ? generateCSSVariables(doc)
+    : ''
+
+  // Generate each page section
+  const pageSections: string[] = []
+  const allCSS: string[] = []
+
+  for (let i = 0; i < allFrames.length; i++) {
+    const { node, slug } = allFrames[i]
+    resetClassCounter()
+    const rules: CSSRule[] = []
+
+    const frameNode = { ...node, x: 0, y: 0 } as PenNode
+    const w = 'width' in frameNode && typeof frameNode.width === 'number' ? frameNode.width : 0
+    const h = 'height' in frameNode && typeof frameNode.height === 'number' ? frameNode.height : 0
+
+    const containerClass = `page-${slug}`
+    const containerCSS: Record<string, string> = { position: 'relative' }
+    if (w > 0) containerCSS.width = `${w}px`
+    if (h > 0) containerCSS['min-height'] = `${h}px`
+    rules.push({ className: containerClass, properties: containerCSS })
+
+    let html = generateNodeHTML(frameNode, 2, rules)
+    if (anchorTargetIds.has(node.id)) html = addAnchorId(html, node)
+
+    // Convert page links to hash links
+    const children = (frameNode as { children?: PenNode[] }).children ?? []
+    function walkAndConvertLinks(nodes: PenNode[]) {
+      for (const n of nodes) {
+        if (n.link?.type === 'page') {
+          const targetSlug = frameSlugMap.get(n.link.pageId)
+          if (targetSlug) {
+            (n as any).link = { type: 'url', url: `#${targetSlug}` }
+          }
+        }
+        const ch = (n as { children?: PenNode[] }).children
+        if (ch) walkAndConvertLinks(ch)
+      }
+    }
+    walkAndConvertLinks(children)
+
+    pageSections.push(
+      `    <div class="spa-page ${containerClass}" data-page="${slug}">\n${html}\n    </div>`
+    )
+    allCSS.push(cssRulesToString(rules))
+  }
+
+  const firstSlug = allFrames[0]?.slug ?? ''
+  const combinedCSS = varsCSS
+    ? `${varsCSS}\n${allCSS.join('\n\n')}`
+    : allCSS.join('\n\n')
+
+  const title = doc.name ?? allFrames[0]?.name ?? 'Website'
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHTML(title)}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { background: #ffffff; }
+    .spa-page { display: none; }
+    .spa-page.active { display: block; }
+${combinedCSS.split('\n').map((l) => `    ${l}`).join('\n')}
+  </style>
+</head>
+<body>
+  <div id="app">
+${pageSections.join('\n')}
+  </div>
+  <script>
+    function navigate(hash) {
+      var pages = document.querySelectorAll('.spa-page');
+      var target = hash.replace('#', '') || '${firstSlug}';
+      for (var i = 0; i < pages.length; i++) {
+        pages[i].classList.toggle('active', pages[i].dataset.page === target);
+      }
+    }
+    window.addEventListener('hashchange', function() { navigate(location.hash); });
+    document.addEventListener('click', function(e) {
+      var link = e.target.closest('a[href^="#"]');
+      if (link) {
+        e.preventDefault();
+        location.hash = link.getAttribute('href');
+      }
+    });
+    navigate(location.hash);
+  </script>
+</body>
+</html>`
+}
+
+function toSlug(name: string): string {
+  return name.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'page'
+}
