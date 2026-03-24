@@ -255,6 +255,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // tool-use preamble like "I need to read the file first".
         if (hasImageAttachments) {
           const runImageQuery = async (): Promise<string> => {
+            const agentMessages: string[] = []
             const q = query({
               prompt,
               options: {
@@ -275,7 +276,16 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
 
             try {
               for await (const message of q) {
+                // Log every message from Agent SDK
+                const msgSummary = JSON.stringify({
+                  type: message.type,
+                  ...(message.type === 'result' ? { subtype: (message as any).subtype, resultLength: ((message as any).result ?? '').length, errors: (message as any).errors } : {}),
+                  ...(message.type === 'assistant' ? { contentPreview: JSON.stringify(message).slice(0, 500) } : {}),
+                }, null, 2)
+                agentMessages.push(msgSummary)
+
                 if (message.type === 'result') {
+                  logToFile('agent-sdk-messages', agentMessages.join('\n---\n')).catch(() => {})
                   const isErrorResult = 'is_error' in message && Boolean((message as { is_error?: boolean }).is_error)
                   if (message.subtype === 'success' && !isErrorResult) {
                     return message.result ?? ''
@@ -286,6 +296,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
                   throw new Error(errContent)
                 }
               }
+              logToFile('agent-sdk-messages', agentMessages.join('\n---\n') + '\n--- (stream ended without result)').catch(() => {})
               return ''
             } finally {
               q.close()
