@@ -521,6 +521,12 @@ const hi: TranslationKeys = {
   'aiModify.variantsTitle': 'AI वैरिएंट',
   'aiModify.regenerate': 'पुनः उत्पन्न करें',
   'aiModify.applyVariant': 'लागू करें',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'छवि निर्माण',
+  'settings.antigravityDesc': 'Google OAuth छवि निर्माण (API कुंजी की आवश्यकता नहीं)',
+  'settings.switchAccount': 'बदलें',
+  'settings.quotaRemaining': 'कोटा',
 } as const
 
 export default hi

@@ -521,6 +521,12 @@ const ko: TranslationKeys = {
   'aiModify.variantsTitle': 'AI 시안 비교',
   'aiModify.regenerate': '다시 만들기',
   'aiModify.applyVariant': '적용',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': '이미지 생성',
+  'settings.antigravityDesc': 'Google OAuth 이미지 생성 (API 키 불필요)',
+  'settings.switchAccount': '전환',
+  'settings.quotaRemaining': '잔여량',
 } as const
 
 export default ko

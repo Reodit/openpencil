@@ -521,6 +521,12 @@ const vi: TranslationKeys = {
   'aiModify.variantsTitle': 'Biến thể AI',
   'aiModify.regenerate': 'Tạo lại',
   'aiModify.applyVariant': 'Áp dụng',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'Tạo hình ảnh',
+  'settings.antigravityDesc': 'Tạo hình ảnh bằng Google OAuth (không cần API key)',
+  'settings.switchAccount': 'Chuyển',
+  'settings.quotaRemaining': 'Hạn mức',
 } as const
 
 export default vi

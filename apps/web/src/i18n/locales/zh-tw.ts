@@ -512,6 +512,12 @@ const zhTW: TranslationKeys = {
   'aiModify.variantsTitle': 'AI 變體',
   'aiModify.regenerate': '重新產生',
   'aiModify.applyVariant': '套用',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': '圖片生成',
+  'settings.antigravityDesc': 'Google OAuth 圖片生成（無需 API 金鑰）',
+  'settings.switchAccount': '切換',
+  'settings.quotaRemaining': '配額',
 } as const
 
 export default zhTW

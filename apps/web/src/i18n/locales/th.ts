@@ -521,6 +521,12 @@ const th: TranslationKeys = {
   'aiModify.variantsTitle': 'รูปแบบ AI',
   'aiModify.regenerate': 'สร้างใหม่',
   'aiModify.applyVariant': 'นำไปใช้',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'สร้างรูปภาพ',
+  'settings.antigravityDesc': 'สร้างรูปภาพด้วย Google OAuth (ไม่ต้องใช้ API key)',
+  'settings.switchAccount': 'สลับ',
+  'settings.quotaRemaining': 'โควต้า',
 } as const
 
 export default th

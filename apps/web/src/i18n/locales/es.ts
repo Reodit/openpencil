@@ -531,6 +531,12 @@ const es: TranslationKeys = {
   'aiModify.variantsTitle': 'Variantes de IA',
   'aiModify.regenerate': 'Regenerar',
   'aiModify.applyVariant': 'Aplicar',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'Generación de imágenes',
+  'settings.antigravityDesc': 'Generación de imágenes con Google OAuth (sin clave API)',
+  'settings.switchAccount': 'Cambiar',
+  'settings.quotaRemaining': 'Cuota',
 } as const
 
 export default es

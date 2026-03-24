@@ -521,6 +521,12 @@ const id: TranslationKeys = {
   'aiModify.variantsTitle': 'Varian AI',
   'aiModify.regenerate': 'Buat Ulang',
   'aiModify.applyVariant': 'Terapkan',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'Pembuatan Gambar',
+  'settings.antigravityDesc': 'Pembuatan gambar Google OAuth (tanpa kunci API)',
+  'settings.switchAccount': 'Ganti',
+  'settings.quotaRemaining': 'Kuota',
 } as const
 
 export default id

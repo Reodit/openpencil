@@ -527,6 +527,12 @@ const ja: TranslationKeys = {
   'aiModify.variantsTitle': 'AI バリエーション',
   'aiModify.regenerate': '再生成',
   'aiModify.applyVariant': '適用',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': '画像生成',
+  'settings.antigravityDesc': 'Google OAuth 画像生成（APIキー不要）',
+  'settings.switchAccount': '切替',
+  'settings.quotaRemaining': 'クォータ',
 } as const
 
 export default ja

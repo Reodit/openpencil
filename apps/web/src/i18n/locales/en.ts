@@ -519,6 +519,12 @@ const en = {
   'aiModify.variantsTitle': 'AI Variants',
   'aiModify.regenerate': 'Regenerate',
   'aiModify.applyVariant': 'Apply',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'Image Generation',
+  'settings.antigravityDesc': 'Google OAuth image generation (no API key)',
+  'settings.switchAccount': 'Switch',
+  'settings.quotaRemaining': 'Quota',
 } as const
 
 export default en

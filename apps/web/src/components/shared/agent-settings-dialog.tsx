@@ -337,6 +337,118 @@ function AgentsPage() {
         <ProviderCard type="copilot" />
         <ProviderCard type="gemini" />
       </div>
+
+      <h3 className="text-[15px] font-semibold text-foreground mb-4 mt-6">{t('settings.imageGen')}</h3>
+      <div className="space-y-1">
+        <AntigravityCard />
+      </div>
+    </div>
+  )
+}
+
+/* ---------- AntigravityCard ---------- */
+function AntigravityCard() {
+  const { t } = useTranslation()
+  const [status, setStatus] = useState<{
+    authenticated: boolean
+    email?: string
+    models?: string[]
+    quota?: number | null
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const checkStatus = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/antigravity/status')
+      if (res.ok) setStatus(await res.json())
+    } catch { /* */ }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { checkStatus() }, [checkStatus])
+
+  const handleLogin = useCallback(() => {
+    window.open('/api/antigravity/auth', '_blank', 'width=500,height=600')
+    // Poll for auth completion
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/antigravity/status')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.authenticated) {
+            setStatus(data)
+            clearInterval(interval)
+          }
+        }
+      } catch { /* */ }
+    }, 2000)
+    setTimeout(() => clearInterval(interval), 120000)
+  }, [])
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch('/api/antigravity/auth/logout', { method: 'POST' })
+      setStatus({ authenticated: false })
+    } catch { /* */ }
+  }, [])
+
+  const quotaPct = status?.quota != null ? `${Math.round(status.quota * 100)}%` : null
+
+  return (
+    <div className="group">
+      <div className={cn(
+        'flex items-center gap-3 px-3.5 py-2.5 rounded-lg border transition-colors',
+        status?.authenticated
+          ? 'bg-secondary/30 border-border'
+          : 'border-transparent hover:bg-secondary/20',
+      )}>
+        <div className={cn(
+          'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors text-[16px]',
+          status?.authenticated ? 'bg-foreground/8' : 'bg-secondary',
+        )}>
+          🎨
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <span className="text-[13px] font-medium text-foreground leading-tight block">Antigravity</span>
+          {status?.authenticated ? (
+            <>
+              <span className="text-[11px] text-green-500 leading-tight flex items-center gap-1 mt-0.5">
+                <Check size={10} strokeWidth={2.5} />
+                {status.email}
+              </span>
+              {status.models && status.models.length > 0 && (
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  {status.models.join(', ')} {quotaPct && `· ${t('settings.quotaRemaining')}: ${quotaPct}`}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-[11px] text-muted-foreground leading-tight mt-0.5 block">
+              {t('settings.antigravityDesc')}
+            </span>
+          )}
+        </div>
+
+        {loading ? (
+          <Loader2 size={14} className="animate-spin text-muted-foreground" />
+        ) : status?.authenticated ? (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="sm" onClick={handleLogin} className="h-7 px-2 text-[11px] text-muted-foreground">
+              {t('settings.switchAccount')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive">
+              <Unplug size={11} className="mr-1" />
+              {t('common.disconnect')}
+            </Button>
+          </div>
+        ) : (
+          <Button size="sm" onClick={handleLogin} className="h-7 px-3 text-[11px] shrink-0">
+            {t('common.connect')}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

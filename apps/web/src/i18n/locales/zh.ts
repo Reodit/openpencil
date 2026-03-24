@@ -512,6 +512,12 @@ const zh: TranslationKeys = {
   'aiModify.variantsTitle': 'AI 变体',
   'aiModify.regenerate': '重新生成',
   'aiModify.applyVariant': '应用',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': '图片生成',
+  'settings.antigravityDesc': 'Google OAuth 图片生成（无需 API 密钥）',
+  'settings.switchAccount': '切换',
+  'settings.quotaRemaining': '配额',
 } as const
 
 export default zh

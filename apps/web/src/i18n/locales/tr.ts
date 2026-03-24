@@ -521,6 +521,12 @@ const tr: TranslationKeys = {
   'aiModify.variantsTitle': 'AI Varyantları',
   'aiModify.regenerate': 'Yeniden Oluştur',
   'aiModify.applyVariant': 'Uygula',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'Görsel Oluşturma',
+  'settings.antigravityDesc': 'Google OAuth ile görsel oluşturma (API anahtarı gerektirmez)',
+  'settings.switchAccount': 'Değiştir',
+  'settings.quotaRemaining': 'Kota',
 } as const
 
 export default tr

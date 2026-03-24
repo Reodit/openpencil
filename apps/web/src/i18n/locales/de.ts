@@ -524,6 +524,12 @@ const de: TranslationKeys = {
   'aiModify.variantsTitle': 'KI-Varianten',
   'aiModify.regenerate': 'Neu generieren',
   'aiModify.applyVariant': 'Anwenden',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'Bilderzeugung',
+  'settings.antigravityDesc': 'Google OAuth Bilderzeugung (kein API-Schlüssel)',
+  'settings.switchAccount': 'Wechseln',
+  'settings.quotaRemaining': 'Kontingent',
 } as const
 
 export default de

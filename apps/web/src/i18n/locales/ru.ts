@@ -524,6 +524,12 @@ const ru: TranslationKeys = {
   'aiModify.variantsTitle': 'ИИ-варианты',
   'aiModify.regenerate': 'Сгенерировать заново',
   'aiModify.applyVariant': 'Применить',
+
+  // ── Settings (Antigravity) ──
+  'settings.imageGen': 'Генерация изображений',
+  'settings.antigravityDesc': 'Генерация изображений через Google OAuth (без API-ключа)',
+  'settings.switchAccount': 'Сменить',
+  'settings.quotaRemaining': 'Квота',
 } as const
 
 export default ru
