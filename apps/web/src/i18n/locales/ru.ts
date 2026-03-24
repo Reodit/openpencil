@@ -528,6 +528,9 @@ const ru: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Панель управления',
   'editor.loadingDocument': 'Загрузка документа…',
+  'topbar.autoLink': 'Автосвязь страниц',
+  'topbar.autoLinkDone': '{{count}} связано',
+  'topbar.autoLinkError': 'Ошибка автосвязи',
 
   // ── AI Modify ──
   'aiModify.title': 'ИИ-редактирование',

@@ -525,6 +525,9 @@ const ko: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': '대시보드',
   'editor.loadingDocument': '문서 로딩 중…',
+  'topbar.autoLink': '페이지 자동 링크',
+  'topbar.autoLinkDone': '{{count}}개 연결됨',
+  'topbar.autoLinkError': '자동 링크 실패',
 
   // ── AI Modify ──
   'aiModify.title': 'AI 수정',

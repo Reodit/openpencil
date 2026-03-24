@@ -523,6 +523,9 @@ const en = {
   // ── Editor Nav ──
   'editor.home': 'Dashboard',
   'editor.loadingDocument': 'Loading document…',
+  'topbar.autoLink': 'Auto-link pages',
+  'topbar.autoLinkDone': '{{count}} linked',
+  'topbar.autoLinkError': 'Auto-link failed',
 
   // ── AI Modify ──
   'aiModify.title': 'AI Modify',

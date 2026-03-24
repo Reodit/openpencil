@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { appStorage, initAppStorage } from '@/utils/app-storage'
 import { useUserStore } from '@/stores/user-store'
+import { useHistoryStore } from '@/stores/history-store'
+import { useAIStore } from '@/stores/ai-store'
 import CollabPresence from './collab-presence'
 import type { ComponentType, SVGProps } from 'react'
 import {
@@ -15,6 +17,8 @@ import {
   Minimize,
   Blocks,
   Home,
+  Link2,
+  Loader2 as Loader2Icon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import ClaudeLogo from '@/components/icons/claude-logo'
@@ -396,6 +400,8 @@ export default function TopBar() {
           </TooltipTrigger>
           <TooltipContent side="bottom">{t('topbar.importFigma')}</TooltipContent>
         </Tooltip>
+
+        <AutoLinkButton />
       </div>
 
       {/* Center section — file name */}
@@ -487,5 +493,72 @@ function EditorUserBadge() {
         {user.name}
       </span>
     </div>
+  )
+}
+
+function AutoLinkButton() {
+  const { t } = useTranslation()
+  const document = useDocumentStore((s) => s.document)
+  const pages = document.pages ?? []
+  const [linking, setLinking] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+
+  // Only show if 2+ pages exist
+  if (pages.length < 2) return null
+
+  const handleAutoLink = async () => {
+    setLinking(true)
+    setResult(null)
+    try {
+      const { autoLinkPages, applyLinkMappings } = await import('@/services/ai/auto-link')
+      const model = useAIStore.getState().model
+      const provider = useAIStore.getState().modelGroups.find((g) =>
+        g.models.some((m) => m.value === model),
+      )?.provider
+
+      const mappings = await autoLinkPages(document, model, provider)
+      if (mappings.length > 0) {
+        useHistoryStore.getState().pushState(document)
+        const { updatedNodes } = applyLinkMappings(pages, mappings)
+        // Force document update
+        useDocumentStore.getState().applyExternalDocument({ ...document })
+        setResult(`${updatedNodes.length} links`)
+      } else {
+        setResult('0')
+      }
+    } catch (e) {
+      console.error('[AutoLink] failed:', e)
+      setResult('error')
+    } finally {
+      setLinking(false)
+      setTimeout(() => setResult(null), 3000)
+    }
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
+          onClick={handleAutoLink}
+          disabled={linking}
+        >
+          {linking ? (
+            <Loader2Icon size={15} strokeWidth={1.5} className="animate-spin" />
+          ) : (
+            <Link2 size={15} strokeWidth={1.5} />
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        {result
+          ? result === 'error'
+            ? t('topbar.autoLinkError')
+            : t('topbar.autoLinkDone', { count: Number(result) || 0 })
+          : t('topbar.autoLink')}
+      </TooltipContent>
+    </Tooltip>
   )
 }

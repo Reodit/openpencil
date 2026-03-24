@@ -535,6 +535,9 @@ const es: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Panel',
   'editor.loadingDocument': 'Cargando documento…',
+  'topbar.autoLink': 'Vincular páginas automáticamente',
+  'topbar.autoLinkDone': '{{count}} vinculadas',
+  'topbar.autoLinkError': 'Error al vincular automáticamente',
 
   // ── AI Modify ──
   'aiModify.title': 'Modificar con IA',

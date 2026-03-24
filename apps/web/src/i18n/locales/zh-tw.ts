@@ -516,6 +516,9 @@ const zhTW: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': '儀表板',
   'editor.loadingDocument': '正在載入文件…',
+  'topbar.autoLink': '自動連結頁面',
+  'topbar.autoLinkDone': '已連結 {{count}} 個',
+  'topbar.autoLinkError': '自動連結失敗',
 
   // ── AI Modify ──
   'aiModify.title': 'AI 修改',

@@ -525,6 +525,9 @@ const vi: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Bảng điều khiển',
   'editor.loadingDocument': 'Đang tải tài liệu…',
+  'topbar.autoLink': 'Tự động liên kết trang',
+  'topbar.autoLinkDone': 'Đã liên kết {{count}}',
+  'topbar.autoLinkError': 'Tự động liên kết thất bại',
 
   // ── AI Modify ──
   'aiModify.title': 'Chỉnh sửa AI',

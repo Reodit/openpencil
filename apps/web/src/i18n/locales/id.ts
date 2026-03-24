@@ -525,6 +525,9 @@ const id: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Dasbor',
   'editor.loadingDocument': 'Memuat dokumen…',
+  'topbar.autoLink': 'Tautkan halaman otomatis',
+  'topbar.autoLinkDone': '{{count}} tertaut',
+  'topbar.autoLinkError': 'Gagal menautkan otomatis',
 
   // ── AI Modify ──
   'aiModify.title': 'Modifikasi AI',

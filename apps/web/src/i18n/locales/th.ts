@@ -525,6 +525,9 @@ const th: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'แดชบอร์ด',
   'editor.loadingDocument': 'กำลังโหลดเอกสาร…',
+  'topbar.autoLink': 'ลิงก์หน้าอัตโนมัติ',
+  'topbar.autoLinkDone': 'ลิงก์แล้ว {{count}} รายการ',
+  'topbar.autoLinkError': 'ลิงก์อัตโนมัติล้มเหลว',
 
   // ── AI Modify ──
   'aiModify.title': 'AI แก้ไข',

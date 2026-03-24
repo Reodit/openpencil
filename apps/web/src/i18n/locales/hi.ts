@@ -525,6 +525,9 @@ const hi: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'डैशबोर्ड',
   'editor.loadingDocument': 'दस्तावेज़ लोड हो रहा है…',
+  'topbar.autoLink': 'पृष्ठ स्वतः लिंक करें',
+  'topbar.autoLinkDone': '{{count}} लिंक किए गए',
+  'topbar.autoLinkError': 'स्वतः लिंक विफल',
 
   // ── AI Modify ──
   'aiModify.title': 'AI संशोधन',

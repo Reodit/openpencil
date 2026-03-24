@@ -533,6 +533,9 @@ const fr: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Tableau de bord',
   'editor.loadingDocument': 'Chargement du document…',
+  'topbar.autoLink': 'Lier les pages automatiquement',
+  'topbar.autoLinkDone': '{{count}} liées',
+  'topbar.autoLinkError': 'Échec de la liaison automatique',
 
   // ── AI Modify ──
   'aiModify.title': 'Modification IA',

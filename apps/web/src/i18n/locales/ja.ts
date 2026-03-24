@@ -531,6 +531,9 @@ const ja: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'ダッシュボード',
   'editor.loadingDocument': 'ドキュメントを読み込み中…',
+  'topbar.autoLink': 'ページを自動リンク',
+  'topbar.autoLinkDone': '{{count}}件リンク済み',
+  'topbar.autoLinkError': '自動リンクに失敗しました',
 
   // ── AI Modify ──
   'aiModify.title': 'AI 修正',

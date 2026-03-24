@@ -528,6 +528,9 @@ const de: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Dashboard',
   'editor.loadingDocument': 'Dokument wird geladen…',
+  'topbar.autoLink': 'Seiten automatisch verknüpfen',
+  'topbar.autoLinkDone': '{{count}} verknüpft',
+  'topbar.autoLinkError': 'Automatische Verknüpfung fehlgeschlagen',
 
   // ── AI Modify ──
   'aiModify.title': 'KI-Bearbeitung',

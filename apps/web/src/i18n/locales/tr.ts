@@ -525,6 +525,9 @@ const tr: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': 'Gösterge Paneli',
   'editor.loadingDocument': 'Belge yükleniyor…',
+  'topbar.autoLink': 'Sayfaları otomatik bağla',
+  'topbar.autoLinkDone': '{{count}} bağlandı',
+  'topbar.autoLinkError': 'Otomatik bağlama başarısız',
 
   // ── AI Modify ──
   'aiModify.title': 'AI Düzenleme',

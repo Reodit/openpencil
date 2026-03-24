@@ -516,6 +516,9 @@ const zh: TranslationKeys = {
   // ── Editor Nav ──
   'editor.home': '仪表盘',
   'editor.loadingDocument': '正在加载文档…',
+  'topbar.autoLink': '自动链接页面',
+  'topbar.autoLinkDone': '已链接 {{count}} 个',
+  'topbar.autoLinkError': '自动链接失败',
 
   // ── AI Modify ──
   'aiModify.title': 'AI 修改',
