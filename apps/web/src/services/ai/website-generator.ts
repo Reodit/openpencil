@@ -82,32 +82,23 @@ export async function generateAIWebsite(
   const context = buildDocumentContext(doc)
   console.log(`[WebsiteGenerator] Context size: ${context.length} chars`)
 
-  // Build messages with screenshots as attachments
-  const messages: Array<{ role: 'user' | 'assistant'; content: string; attachments?: Array<{ name: string; mediaType: string; data: string }> }> = []
+  // Build messages — embed screenshots as inline base64 references in the text
+  // (NOT as attachments, since Agent SDK image path saves to files and returns empty)
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = []
 
   let userContent: string
   if (screenshots.length > 0) {
-    userContent = `Here are screenshots of each page in the design:\n${screenshots.map((s, i) => `Page ${i + 1}: "${s.name}"`).join('\n')}\n\nNow here is the full design data:\n\n${context}`
-    messages.push({
-      role: 'user',
-      content: userContent,
-      attachments: screenshots.map((s, i) => ({
-        name: `page-${i + 1}-${s.name}.png`,
-        mediaType: 'image/png',
-        data: s.base64,
-      })),
-    })
+    const screenshotRefs = screenshots.map((s, i) =>
+      `Page ${i + 1}: "${s.name}" — screenshot: [data:image/png;base64,${s.base64}]`,
+    ).join('\n')
+    userContent = `Here are screenshots of each page in the design (as base64 data URIs):\n${screenshotRefs}\n\nNow here is the full design data:\n\n${context}`
   } else {
     userContent = context
-    messages.push({ role: 'user', content: userContent })
   }
+  messages.push({ role: 'user', content: userContent })
 
-  // Log full prompt
-  console.log('[WebsiteGenerator] === SYSTEM PROMPT ===')
-  console.log(WEBSITE_SYSTEM_PROMPT)
-  console.log('[WebsiteGenerator] === USER PROMPT ===')
-  console.log(userContent.slice(0, 2000), userContent.length > 2000 ? `... (${userContent.length} chars total)` : '')
-  console.log(`[WebsiteGenerator] Attachments: ${screenshots.length} screenshots`)
+  // Log prompt summary
+  console.log(`[WebsiteGenerator] Prompt size: ${userContent.length} chars, screenshots: ${screenshots.length}`)
 
   onProgress?.('Generating website…')
 
