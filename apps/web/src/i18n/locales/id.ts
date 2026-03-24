@@ -154,6 +154,14 @@ const id: TranslationKeys = {
   'image.highlights': 'Sorotan',
   'image.shadows': 'Bayangan',
   'image.reset': 'Atur ulang',
+  'image.search': 'Cari',
+  'image.searchButton': 'Cari Gambar',
+  'image.generate': 'Buat',
+  'image.generateButton': 'Buat Gambar',
+  'image.generatePlaceholder': 'Deskripsikan gambar yang ingin dibuat…',
+  'image.generating': 'Membuat…',
+  'image.apply': 'Terapkan',
+  'image.retry': 'Coba lagi',
 
   // ── Stroke ──
   'stroke.title': 'Garis Tepi',

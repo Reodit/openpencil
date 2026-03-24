@@ -154,6 +154,14 @@ const tr: TranslationKeys = {
   'image.highlights': 'Parlak Tonlar',
   'image.shadows': 'Gölgeler',
   'image.reset': 'Sıfırla',
+  'image.search': 'Ara',
+  'image.searchButton': 'Görüntü Ara',
+  'image.generate': 'Oluştur',
+  'image.generateButton': 'Görüntü Oluştur',
+  'image.generatePlaceholder': 'Oluşturulacak görüntüyü açıklayın…',
+  'image.generating': 'Oluşturuluyor…',
+  'image.apply': 'Uygula',
+  'image.retry': 'Tekrar Dene',
 
   // ── Stroke ──
   'stroke.title': 'Kenarlık',

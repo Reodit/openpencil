@@ -152,6 +152,14 @@ const en = {
   'image.highlights': 'Highlights',
   'image.shadows': 'Shadows',
   'image.reset': 'Reset',
+  'image.search': 'Search',
+  'image.searchButton': 'Search Images',
+  'image.generate': 'Generate',
+  'image.generateButton': 'Generate Image',
+  'image.generatePlaceholder': 'Describe the image to generate…',
+  'image.generating': 'Generating…',
+  'image.apply': 'Apply',
+  'image.retry': 'Retry',
 
   // ── Stroke ──
   'stroke.title': 'Stroke',

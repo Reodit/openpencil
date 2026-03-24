@@ -156,6 +156,14 @@ const fr: TranslationKeys = {
   'image.highlights': 'Hautes lumières',
   'image.shadows': 'Ombres',
   'image.reset': 'Réinitialiser',
+  'image.search': 'Rechercher',
+  'image.searchButton': 'Rechercher des images',
+  'image.generate': 'Générer',
+  'image.generateButton': 'Générer une image',
+  'image.generatePlaceholder': "Décrivez l'image à générer…",
+  'image.generating': 'Génération en cours…',
+  'image.apply': 'Appliquer',
+  'image.retry': 'Réessayer',
 
   // ── Stroke ──
   'stroke.title': 'Contour',

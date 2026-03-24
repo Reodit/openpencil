@@ -154,6 +154,14 @@ const th: TranslationKeys = {
   'image.highlights': 'ไฮไลท์',
   'image.shadows': 'เงา',
   'image.reset': 'รีเซ็ต',
+  'image.search': 'ค้นหา',
+  'image.searchButton': 'ค้นหารูปภาพ',
+  'image.generate': 'สร้าง',
+  'image.generateButton': 'สร้างรูปภาพ',
+  'image.generatePlaceholder': 'อธิบายรูปภาพที่ต้องการสร้าง…',
+  'image.generating': 'กำลังสร้าง…',
+  'image.apply': 'นำไปใช้',
+  'image.retry': 'ลองอีกครั้ง',
 
   // ── Stroke ──
   'stroke.title': 'เส้นขอบ',

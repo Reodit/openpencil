@@ -154,6 +154,14 @@ const hi: TranslationKeys = {
   'image.highlights': 'हाइलाइट्स',
   'image.shadows': 'छायाएँ',
   'image.reset': 'रीसेट',
+  'image.search': 'खोजें',
+  'image.searchButton': 'चित्र खोजें',
+  'image.generate': 'जनरेट करें',
+  'image.generateButton': 'चित्र जनरेट करें',
+  'image.generatePlaceholder': 'जनरेट करने के लिए चित्र का वर्णन करें…',
+  'image.generating': 'जनरेट हो रहा है…',
+  'image.apply': 'लागू करें',
+  'image.retry': 'पुनः प्रयास',
 
   // ── Stroke ──
   'stroke.title': 'स्ट्रोक',

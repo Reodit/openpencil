@@ -156,6 +156,14 @@ const es: TranslationKeys = {
   'image.highlights': 'Luces',
   'image.shadows': 'Sombras',
   'image.reset': 'Restablecer',
+  'image.search': 'Buscar',
+  'image.searchButton': 'Buscar imágenes',
+  'image.generate': 'Generar',
+  'image.generateButton': 'Generar imagen',
+  'image.generatePlaceholder': 'Describe la imagen a generar…',
+  'image.generating': 'Generando…',
+  'image.apply': 'Aplicar',
+  'image.retry': 'Reintentar',
 
   // ── Stroke ──
   'stroke.title': 'Trazo',

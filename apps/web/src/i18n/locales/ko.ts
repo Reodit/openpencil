@@ -154,6 +154,14 @@ const ko: TranslationKeys = {
   'image.highlights': '하이라이트',
   'image.shadows': '그림자',
   'image.reset': '초기화',
+  'image.search': '검색',
+  'image.searchButton': '이미지 검색',
+  'image.generate': '생성',
+  'image.generateButton': '이미지 생성',
+  'image.generatePlaceholder': '생성할 이미지를 설명하세요…',
+  'image.generating': '생성 중…',
+  'image.apply': '적용',
+  'image.retry': '다시 생성',
 
   // ── Stroke ──
   'stroke.title': '선',

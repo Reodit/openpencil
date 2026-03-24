@@ -158,6 +158,14 @@ const ja: TranslationKeys = {
   'image.highlights': 'ハイライト',
   'image.shadows': 'シャドウ',
   'image.reset': 'リセット',
+  'image.search': '検索',
+  'image.searchButton': '画像を検索',
+  'image.generate': '生成',
+  'image.generateButton': '画像を生成',
+  'image.generatePlaceholder': '生成する画像を説明してください…',
+  'image.generating': '生成中…',
+  'image.apply': '適用',
+  'image.retry': 'リトライ',
 
   // ── Stroke ──
   'stroke.title': '線',

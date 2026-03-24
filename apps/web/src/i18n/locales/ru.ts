@@ -156,6 +156,14 @@ const ru: TranslationKeys = {
   'image.highlights': 'Светлые тона',
   'image.shadows': 'Тени',
   'image.reset': 'Сбросить',
+  'image.search': 'Поиск',
+  'image.searchButton': 'Найти изображения',
+  'image.generate': 'Сгенерировать',
+  'image.generateButton': 'Сгенерировать изображение',
+  'image.generatePlaceholder': 'Опишите изображение для генерации…',
+  'image.generating': 'Генерация…',
+  'image.apply': 'Применить',
+  'image.retry': 'Повторить',
 
   // ── Stroke ──
   'stroke.title': 'Обводка',

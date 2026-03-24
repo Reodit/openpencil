@@ -156,6 +156,14 @@ const de: TranslationKeys = {
   'image.highlights': 'Lichter',
   'image.shadows': 'Schatten',
   'image.reset': 'Zurücksetzen',
+  'image.search': 'Suchen',
+  'image.searchButton': 'Bilder suchen',
+  'image.generate': 'Generieren',
+  'image.generateButton': 'Bild generieren',
+  'image.generatePlaceholder': 'Beschreiben Sie das zu generierende Bild…',
+  'image.generating': 'Wird generiert…',
+  'image.apply': 'Anwenden',
+  'image.retry': 'Erneut versuchen',
 
   // ── Stroke ──
   'stroke.title': 'Kontur',

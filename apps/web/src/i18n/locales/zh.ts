@@ -151,6 +151,14 @@ const zh: TranslationKeys = {
   'image.highlights': '高光',
   'image.shadows': '阴影',
   'image.reset': '重置',
+  'image.search': '搜索',
+  'image.searchButton': '搜索图片',
+  'image.generate': '生成',
+  'image.generateButton': '生成图片',
+  'image.generatePlaceholder': '描述要生成的图片…',
+  'image.generating': '正在生成…',
+  'image.apply': '应用',
+  'image.retry': '重试',
 
   // ── Stroke ──
   'stroke.title': '描边',

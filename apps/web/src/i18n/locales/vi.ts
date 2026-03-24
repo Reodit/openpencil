@@ -154,6 +154,14 @@ const vi: TranslationKeys = {
   'image.highlights': 'Vùng sáng',
   'image.shadows': 'Vùng tối',
   'image.reset': 'Đặt lại',
+  'image.search': 'Tìm kiếm',
+  'image.searchButton': 'Tìm hình ảnh',
+  'image.generate': 'Tạo',
+  'image.generateButton': 'Tạo hình ảnh',
+  'image.generatePlaceholder': 'Mô tả hình ảnh cần tạo…',
+  'image.generating': 'Đang tạo…',
+  'image.apply': 'Áp dụng',
+  'image.retry': 'Thử lại',
 
   // ── Stroke ──
   'stroke.title': 'Viền',
