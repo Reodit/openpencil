@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, Check } from 'lucide-react'
 import type { PenNode } from '@/types/pen'
 import { getCanvasKit } from '@/canvas/skia/skia-init'
+import { useDocumentStore, getActivePageChildren } from '@/stores/document-store'
+import { useCanvasStore } from '@/stores/canvas-store'
 
 interface AiVariantsPopupProps {
   variants: PenNode[][]
@@ -26,6 +28,21 @@ export default function AiVariantsPopup({
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const cols = Math.min(variants.length + 1, 4)
+
+  // Get full page children and build trees with variants swapped in
+  const activePageId = useCanvasStore((s) => s.activePageId)
+  const pageChildren = useDocumentStore((s) => getActivePageChildren(s.document, activePageId))
+
+  const replaceInTree = (children: PenNode[], nodeId: string, replacement: PenNode): PenNode[] => {
+    return children.map((child) => {
+      if (child.id === nodeId) return replacement
+      const ch = (child as { children?: PenNode[] }).children
+      if (ch) {
+        return { ...child, children: replaceInTree(ch, nodeId, replacement) } as PenNode
+      }
+      return child
+    })
+  }
 
   return (
     <div
@@ -62,7 +79,7 @@ export default function AiVariantsPopup({
             <div className="rounded-lg border-2 border-dashed border-border bg-background overflow-hidden group hover:border-primary/50 transition-colors">
               <div className="relative" style={{ paddingBottom: '75%' }}>
                 <div className="absolute inset-0">
-                  <SkiaPreviewCanvas nodes={[originalNode]} />
+                  <SkiaPreviewCanvas nodes={pageChildren} />
                 </div>
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-card/80 text-[9px] font-medium text-muted-foreground border border-border">
                   {t('aiModify.original')}
@@ -85,11 +102,14 @@ export default function AiVariantsPopup({
             {/* Variant cards */}
             {variants.map((variantNodes, i) => {
               const primaryVariant = variantNodes[0]
+              const variantTree = primaryVariant
+                ? replaceInTree(pageChildren, originalNode.id, primaryVariant)
+                : pageChildren
               return (
                 <VariantCard
                   key={i}
                   index={i + 1}
-                  previewNodes={primaryVariant ? [primaryVariant] : [originalNode]}
+                  previewNodes={variantTree}
                   onApply={() => onApply(variantNodes)}
                 />
               )
@@ -171,6 +191,7 @@ function SkiaPreviewCanvas({ nodes }: { nodes: PenNode[] }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<import('@zseven-w/pen-renderer').PenRenderer | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -214,6 +235,54 @@ function SkiaPreviewCanvas({ nodes }: { nodes: PenNode[] }) {
           }
         }, delay)
       }
+
+      // Wheel zoom
+      const handleWheel = (e: WheelEvent) => {
+        e.preventDefault()
+        const r = rendererRef.current
+        if (!r) return
+        const vp = r.getViewport()
+        const factor = e.deltaY < 0 ? 1.1 : 0.9
+        const newZoom = Math.max(0.05, Math.min(10, vp.zoom * factor))
+        const rect2 = canvasEl.getBoundingClientRect()
+        const mx = e.clientX - rect2.left
+        const my = e.clientY - rect2.top
+        const newPanX = mx - (mx - vp.panX) * (newZoom / vp.zoom)
+        const newPanY = my - (my - vp.panY) * (newZoom / vp.zoom)
+        r.setViewport(newZoom, newPanX, newPanY)
+      }
+      canvasEl.addEventListener('wheel', handleWheel, { passive: false })
+
+      // Drag pan
+      let dragging = false
+      let lastX = 0
+      let lastY = 0
+
+      const handleMouseDown = (e: MouseEvent) => {
+        dragging = true
+        lastX = e.clientX
+        lastY = e.clientY
+      }
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!dragging) return
+        const r = rendererRef.current
+        if (!r) return
+        r.pan(e.clientX - lastX, e.clientY - lastY)
+        lastX = e.clientX
+        lastY = e.clientY
+      }
+      const handleMouseUp = () => { dragging = false }
+
+      canvasEl.addEventListener('mousedown', handleMouseDown)
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+
+      cleanupRef.current = () => {
+        canvasEl.removeEventListener('wheel', handleWheel)
+        canvasEl.removeEventListener('mousedown', handleMouseDown)
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
+      }
     }
 
     // Delay to ensure container has layout
@@ -222,7 +291,7 @@ function SkiaPreviewCanvas({ nodes }: { nodes: PenNode[] }) {
     return () => {
       disposed = true
       clearTimeout(timer)
-      // Dispose renderer + surface to free WebGL context
+      cleanupRef.current?.()
       if (rendererRef.current) {
         rendererRef.current.dispose()
         rendererRef.current = null
@@ -232,7 +301,7 @@ function SkiaPreviewCanvas({ nodes }: { nodes: PenNode[] }) {
 
   return (
     <div ref={containerRef} className="w-full h-full bg-[#1a1a1a]">
-      <canvas ref={canvasRef} className="block w-full h-full" />
+      <canvas ref={canvasRef} className="block w-full h-full cursor-grab active:cursor-grabbing" />
     </div>
   )
 }
