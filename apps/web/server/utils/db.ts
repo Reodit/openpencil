@@ -60,4 +60,16 @@ function migrate(db: InstanceType<typeof Database>) {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ai_variants (
+      id TEXT PRIMARY KEY,
+      document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      node_id TEXT NOT NULL,
+      prompt TEXT NOT NULL,
+      model TEXT,
+      variants TEXT NOT NULL,
+      created_by TEXT REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
 }
