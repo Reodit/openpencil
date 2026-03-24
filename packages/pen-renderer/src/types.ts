@@ -37,4 +37,6 @@ export interface PenRendererOptions {
   devicePixelRatio?: number
   /** Default fonts to preload. Default: ['Inter', 'Noto Sans SC'] */
   defaultFonts?: string[]
+  /** Force software rendering (no WebGL). Useful for multiple preview canvases. */
+  softwareOnly?: boolean
 }

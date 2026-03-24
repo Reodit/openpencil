@@ -222,6 +222,7 @@ function SkiaPreviewCanvas({ nodes }: { nodes: PenNode[] }) {
       const renderer = new PenRenderer(ck, {
         fontBasePath: '/fonts/',
         devicePixelRatio: dpr,
+        softwareOnly: true,
       })
       renderer.init(canvasEl)
       renderer.setDocument(doc)

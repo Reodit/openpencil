@@ -94,7 +94,9 @@ export class PenRenderer {
     canvas.width = canvas.clientWidth * dpr
     canvas.height = canvas.clientHeight * dpr
 
-    this.surface = this.ck.MakeWebGLCanvasSurface(canvas)
+    if (!this.options.softwareOnly) {
+      this.surface = this.ck.MakeWebGLCanvasSurface(canvas)
+    }
     if (!this.surface) this.surface = this.ck.MakeSWCanvasSurface(canvas)
     if (!this.surface) { console.error('PenRenderer: Failed to create surface'); return }
 
