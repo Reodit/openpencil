@@ -525,6 +525,11 @@ const zhTW: TranslationKeys = {
   'aiModify.confirm': '確認',
   'aiModify.addVariant': '新增',
   'aiModify.variantOf': '變體 {{current}}/{{total}}',
+  'aiModify.noResults': '無法產生變體。請嘗試不同的提示詞。',
+  'aiModify.variantsTitle': 'AI 變體',
+  'aiModify.original': '原始',
+  'aiModify.regenerate': '重新產生',
+  'aiModify.applyVariant': '套用',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '圖片生成',

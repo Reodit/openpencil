@@ -534,6 +534,11 @@ const hi: TranslationKeys = {
   'aiModify.confirm': 'पुष्टि करें',
   'aiModify.addVariant': 'नया',
   'aiModify.variantOf': 'वैरिएंट {{current}}/{{total}}',
+  'aiModify.noResults': 'कोई वैरिएंट जनरेट नहीं हो सका। कोई अलग प्रॉम्प्ट आज़माएँ।',
+  'aiModify.variantsTitle': 'AI वैरिएंट',
+  'aiModify.original': 'मूल',
+  'aiModify.regenerate': 'पुनः जनरेट करें',
+  'aiModify.applyVariant': 'लागू करें',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'छवि निर्माण',

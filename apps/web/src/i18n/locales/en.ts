@@ -532,6 +532,11 @@ const en = {
   'aiModify.confirm': 'Confirm',
   'aiModify.addVariant': 'New',
   'aiModify.variantOf': 'Variant {{current}}/{{total}}',
+  'aiModify.noResults': 'No variants could be generated. Try a different prompt.',
+  'aiModify.variantsTitle': 'AI Variants',
+  'aiModify.original': 'Original',
+  'aiModify.regenerate': 'Regenerate',
+  'aiModify.applyVariant': 'Apply',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Image Generation',

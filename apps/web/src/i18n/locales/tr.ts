@@ -534,6 +534,11 @@ const tr: TranslationKeys = {
   'aiModify.confirm': 'Onayla',
   'aiModify.addVariant': 'Yeni',
   'aiModify.variantOf': 'Varyant {{current}}/{{total}}',
+  'aiModify.noResults': 'Hiçbir varyant oluşturulamadı. Farklı bir prompt deneyin.',
+  'aiModify.variantsTitle': 'AI Varyantları',
+  'aiModify.original': 'Orijinal',
+  'aiModify.regenerate': 'Yeniden oluştur',
+  'aiModify.applyVariant': 'Uygula',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Görsel Oluşturma',

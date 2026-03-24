@@ -537,6 +537,11 @@ const pt: TranslationKeys = {
   'aiModify.confirm': 'Confirmar',
   'aiModify.addVariant': 'Novo',
   'aiModify.variantOf': 'Variante {{current}}/{{total}}',
+  'aiModify.noResults': 'Nenhuma variante pôde ser gerada. Tente um prompt diferente.',
+  'aiModify.variantsTitle': 'Variantes de IA',
+  'aiModify.original': 'Original',
+  'aiModify.regenerate': 'Regenerar',
+  'aiModify.applyVariant': 'Aplicar',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Geração de Imagens',

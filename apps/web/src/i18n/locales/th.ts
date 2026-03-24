@@ -534,6 +534,11 @@ const th: TranslationKeys = {
   'aiModify.confirm': 'ยืนยัน',
   'aiModify.addVariant': 'ใหม่',
   'aiModify.variantOf': 'รูปแบบ {{current}}/{{total}}',
+  'aiModify.noResults': 'ไม่สามารถสร้างรูปแบบได้ ลองใช้พรอมต์อื่น',
+  'aiModify.variantsTitle': 'รูปแบบ AI',
+  'aiModify.original': 'ต้นฉบับ',
+  'aiModify.regenerate': 'สร้างใหม่',
+  'aiModify.applyVariant': 'นำไปใช้',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'สร้างรูปภาพ',

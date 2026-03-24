@@ -534,6 +534,11 @@ const id: TranslationKeys = {
   'aiModify.confirm': 'Konfirmasi',
   'aiModify.addVariant': 'Baru',
   'aiModify.variantOf': 'Varian {{current}}/{{total}}',
+  'aiModify.noResults': 'Tidak ada varian yang dapat dihasilkan. Coba prompt yang berbeda.',
+  'aiModify.variantsTitle': 'Varian AI',
+  'aiModify.original': 'Asli',
+  'aiModify.regenerate': 'Regenerasi',
+  'aiModify.applyVariant': 'Terapkan',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Pembuatan Gambar',

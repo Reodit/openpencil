@@ -537,6 +537,11 @@ const ru: TranslationKeys = {
   'aiModify.confirm': 'Подтвердить',
   'aiModify.addVariant': 'Новый',
   'aiModify.variantOf': 'Вариант {{current}}/{{total}}',
+  'aiModify.noResults': 'Не удалось сгенерировать варианты. Попробуйте другой промпт.',
+  'aiModify.variantsTitle': 'ИИ-варианты',
+  'aiModify.original': 'Оригинал',
+  'aiModify.regenerate': 'Сгенерировать заново',
+  'aiModify.applyVariant': 'Применить',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Генерация изображений',

@@ -534,6 +534,11 @@ const ko: TranslationKeys = {
   'aiModify.confirm': '확정',
   'aiModify.addVariant': '시안 추가',
   'aiModify.variantOf': '시안 {{current}}/{{total}}',
+  'aiModify.noResults': '시안을 생성하지 못했습니다. 다른 프롬프트를 시도해보세요.',
+  'aiModify.variantsTitle': 'AI 시안 비교',
+  'aiModify.original': '원본',
+  'aiModify.regenerate': '다시 만들기',
+  'aiModify.applyVariant': '적용',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '이미지 생성',

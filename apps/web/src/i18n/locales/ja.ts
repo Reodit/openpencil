@@ -540,6 +540,11 @@ const ja: TranslationKeys = {
   'aiModify.confirm': '確定',
   'aiModify.addVariant': '新規',
   'aiModify.variantOf': 'バリエーション {{current}}/{{total}}',
+  'aiModify.noResults': 'バリエーションを生成できませんでした。別のプロンプトをお試しください。',
+  'aiModify.variantsTitle': 'AIバリエーション',
+  'aiModify.original': 'オリジナル',
+  'aiModify.regenerate': '再生成',
+  'aiModify.applyVariant': '適用',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '画像生成',

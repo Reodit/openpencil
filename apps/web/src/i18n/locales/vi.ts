@@ -534,6 +534,11 @@ const vi: TranslationKeys = {
   'aiModify.confirm': 'Xác nhận',
   'aiModify.addVariant': 'Mới',
   'aiModify.variantOf': 'Biến thể {{current}}/{{total}}',
+  'aiModify.noResults': 'Không thể tạo biến thể nào. Hãy thử một prompt khác.',
+  'aiModify.variantsTitle': 'Biến thể AI',
+  'aiModify.original': 'Bản gốc',
+  'aiModify.regenerate': 'Tạo lại',
+  'aiModify.applyVariant': 'Áp dụng',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Tạo hình ảnh',
