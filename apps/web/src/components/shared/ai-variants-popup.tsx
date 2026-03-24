@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, Check } from 'lucide-react'
 import type { PenNode } from '@/types/pen'
 import { getCanvasKit } from '@/canvas/skia/skia-init'
+import { useDocumentStore, getActivePageChildren } from '@/stores/document-store'
+import { useCanvasStore } from '@/stores/canvas-store'
 
 interface AiVariantsPopupProps {
   variants: PenNode[][]
@@ -26,6 +28,22 @@ export default function AiVariantsPopup({
   const backdropRef = useRef<HTMLDivElement>(null)
 
   const cols = Math.min(variants.length + 1, 4)
+
+  // Get full page children for context rendering
+  const activePageId = useCanvasStore((s) => s.activePageId)
+  const pageChildren = useDocumentStore((s) => getActivePageChildren(s.document, activePageId))
+
+  // Build full page trees: original + each variant with node swapped
+  const replaceNodeInTree = (children: PenNode[], nodeId: string, replacement: PenNode): PenNode[] => {
+    return children.map((child) => {
+      if (child.id === nodeId) return replacement
+      const ch = (child as { children?: PenNode[] }).children
+      if (ch) {
+        return { ...child, children: replaceNodeInTree(ch, nodeId, replacement) } as PenNode
+      }
+      return child
+    })
+  }
 
   return (
     <div
@@ -62,7 +80,7 @@ export default function AiVariantsPopup({
             <div className="rounded-lg border-2 border-dashed border-border bg-background overflow-hidden group hover:border-primary/50 transition-colors">
               <div className="relative" style={{ paddingBottom: '75%' }}>
                 <div className="absolute inset-0">
-                  <SkiaPreviewCanvas node={originalNode} />
+                  <SkiaPreviewCanvas nodes={pageChildren} />
                 </div>
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-card/80 text-[9px] font-medium text-muted-foreground border border-border">
                   {t('aiModify.original')}
@@ -83,14 +101,21 @@ export default function AiVariantsPopup({
             </div>
 
             {/* Variant cards */}
-            {variants.map((nodes, i) => (
-              <VariantCard
-                key={i}
-                index={i + 1}
-                nodes={nodes}
-                onApply={() => onApply(nodes)}
-              />
-            ))}
+            {variants.map((variantNodes, i) => {
+              // Build full page tree with variant node swapped in
+              const primaryVariant = variantNodes[0]
+              const previewTree = primaryVariant
+                ? replaceNodeInTree(pageChildren, originalNode.id, primaryVariant)
+                : pageChildren
+              return (
+                <VariantCard
+                  key={i}
+                  index={i + 1}
+                  previewNodes={previewTree}
+                  onApply={() => onApply(variantNodes)}
+                />
+              )
+            })}
           </div>
         </div>
 
@@ -120,22 +145,21 @@ export default function AiVariantsPopup({
 
 function VariantCard({
   index,
-  nodes,
+  previewNodes,
   onApply,
 }: {
   index: number
-  nodes: PenNode[]
+  previewNodes: PenNode[]
   onApply: () => void
 }) {
   const { t } = useTranslation()
-  const primaryNode = nodes[0]
 
   return (
     <div className="rounded-lg border border-border bg-background overflow-hidden group hover:border-primary/50 transition-colors">
       <div className="relative" style={{ paddingBottom: '75%' }}>
         <div className="absolute inset-0">
-          {primaryNode ? (
-            <SkiaPreviewCanvas node={primaryNode} />
+          {previewNodes.length > 0 ? (
+            <SkiaPreviewCanvas nodes={previewNodes} />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Empty</div>
           )}
@@ -165,7 +189,7 @@ function VariantCard({
  * Uses OffscreenCanvas + SW surface to avoid WebGL context limits.
  * Renders once and converts to a data URL for display.
  */
-function SkiaPreviewCanvas({ node }: { node: PenNode }) {
+function SkiaPreviewCanvas({ nodes }: { nodes: PenNode[] }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -194,8 +218,8 @@ function SkiaPreviewCanvas({ node }: { node: PenNode }) {
         const nodeRenderer = new SkiaNodeRenderer(ck, { fontBasePath: '/fonts/' })
         nodeRenderer.init()
 
-        // Flatten node to render nodes
-        const measured = premeasureTextHeights([node])
+        // Flatten full page tree to render nodes
+        const measured = premeasureTextHeights(nodes)
         const renderNodes = flattenToRenderNodes(measured)
 
         if (renderNodes.length === 0) return
@@ -258,7 +282,7 @@ function SkiaPreviewCanvas({ node }: { node: PenNode }) {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [node])
+  }, [nodes])
 
   // Cleanup blob URL
   useEffect(() => {
