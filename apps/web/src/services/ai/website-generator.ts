@@ -68,14 +68,22 @@ export async function generateAIWebsite(
     data: btoa(unescape(encodeURIComponent(staticHTML))),
   })
 
-  const userMessage = `Here is a static HTML website generated from a design tool. It has ${screenshots.length} page(s) of content but NO navigation links or interactivity.
+  // Build page info for the prompt
+  const pageInfo = buildPageInfo(doc)
+
+  const userMessage = `Here is a static HTML website generated from a design tool. It uses SPA hash routing with these pages:
+
+${pageInfo}
+
+The HTML has NO navigation links or interactivity yet. The SPA routing JS is already in place (hash-based show/hide).
 
 Read the HTML file and screenshots, then enhance it:
-- Add anchor ids to all major sections
-- Connect all nav items and CTA buttons to the correct sections
-- Add hover effects to buttons and links
-- Convert SPA routing to single long-scroll page if there are multiple pages
-- Ensure smooth scrolling
+- Add id attributes to major sections within each page (hero, about, services, portfolio, contact, footer, etc.)
+- Connect nav items to the correct page hash (e.g. href="#page-2") or section anchors within the same page
+- Connect CTA buttons to relevant pages or sections by semantic meaning
+- Add hover effects to buttons (opacity/color shift) and links
+- Keep the SPA hash routing — do NOT convert to long-scroll
+- If a button says something like "View Portfolio" and there's a portfolio page/section, link it
 
 Output the complete enhanced HTML.`
 
@@ -111,6 +119,43 @@ Output the complete enhanced HTML.`
 
   onProgress?.('Done!')
   return html
+}
+
+/** Build page/section info so AI knows the SPA structure */
+function buildPageInfo(doc: PenDocument): string {
+  const pages = doc.pages ?? []
+  const allFrames: Array<{ name: string; node: PenNode }> = []
+
+  if (pages.length === 0) {
+    for (const node of doc.children) {
+      allFrames.push({ name: node.name ?? node.type, node })
+    }
+  } else {
+    for (const page of pages) {
+      for (const node of page.children) {
+        allFrames.push({ name: node.name ?? page.name, node })
+      }
+    }
+  }
+
+  const lines: string[] = []
+  const slugCounts = new Map<string, number>()
+
+  for (let i = 0; i < allFrames.length; i++) {
+    const { name, node } = allFrames[i]
+    let slug = name.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'page'
+    const count = slugCounts.get(slug) ?? 0
+    if (count > 0) slug = `${slug}-${count + 1}`
+    slugCounts.set(slug, count + 1)
+
+    const children = (node as { children?: PenNode[] }).children ?? []
+    const sections = children.map((ch) => ch.name ?? ch.type).join(', ')
+
+    lines.push(`Page ${i + 1}: data-page="${slug}" (hash: #${slug})`)
+    lines.push(`  Sections: ${sections}`)
+  }
+
+  return lines.join('\n')
 }
 
 async function capturePageScreenshots(doc: PenDocument): Promise<Array<{ name: string; base64: string }>> {
