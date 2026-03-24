@@ -20,3 +20,4 @@ dist/
 dist-ssr/
 electron-dist/
 dist-electron/
+.openpencil-logs/

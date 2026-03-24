@@ -1,7 +1,21 @@
 import { defineEventHandler, readBody, setResponseHeaders } from 'h3'
-import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises'
+import { readFile, writeFile, mkdtemp, rm, mkdir, appendFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+
+const LOG_DIR = join(process.cwd(), '.openpencil-logs')
+
+async function logToFile(label: string, data: string) {
+  try {
+    await mkdir(LOG_DIR, { recursive: true })
+    const ts = new Date().toISOString().replace(/[:.]/g, '-')
+    const path = join(LOG_DIR, `${ts}_${label}.txt`)
+    await writeFile(path, data, 'utf-8')
+    console.log(`[ChatLog] Saved ${label} → ${path}`)
+  } catch (e) {
+    console.warn('[ChatLog] Failed to save log:', e)
+  }
+}
 import { resolveClaudeCli } from '../../utils/resolve-claude-cli'
 import { runCodexExec } from '../../utils/codex-client'
 import {
@@ -98,6 +112,22 @@ export default defineEventHandler(async (event) => {
     setResponseHeaders(event, { 'Content-Type': 'application/json' })
     return { error: 'Missing or unsupported provider. Provider fallback is disabled.' }
   }
+
+  // Log request (strip base64 image data for readability)
+  const logBody = {
+    provider: body.provider,
+    model: body.model,
+    maxTurns: body.maxTurns,
+    effort: body.effort,
+    thinkingMode: body.thinkingMode,
+    systemPrompt: body.system,
+    messages: body.messages.map((m) => ({
+      role: m.role,
+      content: m.content.slice(0, 5000) + (m.content.length > 5000 ? `... (${m.content.length} chars)` : ''),
+      attachments: m.attachments?.map((a) => ({ name: a.name, mediaType: a.mediaType, dataLength: a.data.length })),
+    })),
+  }
+  logToFile('chat-request', JSON.stringify(logBody, null, 2)).catch(() => {})
 
   setResponseHeaders(event, {
     'Content-Type': 'text/event-stream',
@@ -264,6 +294,9 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
 
           const resultText = await runImageQuery()
 
+          // Log response
+          logToFile('chat-response', resultText || '(empty response)').catch(() => {})
+
           clearInterval(pingTimer)
           if (resultText) {
             controller.enqueue(
@@ -336,6 +369,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         const tail = await readDebugTail(debugFile)
         const hintedContent = buildClaudeExitHint(rawContent, tail)
         const content = hintedContent ?? rawContent
+        logToFile('chat-error', content + (tail ? '\n\n--- DEBUG TAIL ---\n' + tail.join('\n') : '')).catch(() => {})
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ type: 'error', content })}\n\n`),
         )
