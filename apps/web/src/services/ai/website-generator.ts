@@ -85,10 +85,12 @@ export async function generateAIWebsite(
   // Build messages with screenshots as attachments
   const messages: Array<{ role: 'user' | 'assistant'; content: string; attachments?: Array<{ name: string; mediaType: string; data: string }> }> = []
 
+  let userContent: string
   if (screenshots.length > 0) {
+    userContent = `Here are screenshots of each page in the design:\n${screenshots.map((s, i) => `Page ${i + 1}: "${s.name}"`).join('\n')}\n\nNow here is the full design data:\n\n${context}`
     messages.push({
       role: 'user',
-      content: `Here are screenshots of each page in the design:\n${screenshots.map((s, i) => `Page ${i + 1}: "${s.name}"`).join('\n')}\n\nNow here is the full design data:\n\n${context}`,
+      content: userContent,
       attachments: screenshots.map((s, i) => ({
         name: `page-${i + 1}-${s.name}.png`,
         mediaType: 'image/png',
@@ -96,8 +98,16 @@ export async function generateAIWebsite(
       })),
     })
   } else {
-    messages.push({ role: 'user', content: context })
+    userContent = context
+    messages.push({ role: 'user', content: userContent })
   }
+
+  // Log full prompt
+  console.log('[WebsiteGenerator] === SYSTEM PROMPT ===')
+  console.log(WEBSITE_SYSTEM_PROMPT)
+  console.log('[WebsiteGenerator] === USER PROMPT ===')
+  console.log(userContent.slice(0, 2000), userContent.length > 2000 ? `... (${userContent.length} chars total)` : '')
+  console.log(`[WebsiteGenerator] Attachments: ${screenshots.length} screenshots`)
 
   onProgress?.('Generating website…')
 
@@ -106,21 +116,29 @@ export async function generateAIWebsite(
     WEBSITE_SYSTEM_PROMPT,
     messages,
     model,
-    { thinkingMode: 'disabled', effort: 'low', maxTurns: 20, firstTextTimeoutMs: 120_000, hardTimeoutMs: 600_000 },
+    { thinkingMode: 'enabled', effort: 'medium', maxTurns: 20, firstTextTimeoutMs: 120_000, hardTimeoutMs: 600_000 },
     provider,
     abortSignal,
   )) {
     if (chunk.type === 'text') {
       fullResponse += chunk.content
     } else if (chunk.type === 'error') {
+      console.error('[WebsiteGenerator] Stream error chunk:', chunk.content)
       throw new Error(chunk.content)
     }
   }
 
+  // Log full response
+  console.log('[WebsiteGenerator] === AI RESPONSE ===')
+  console.log(`[WebsiteGenerator] Response length: ${fullResponse.length}`)
+  console.log(fullResponse.slice(0, 3000), fullResponse.length > 3000 ? `\n... (${fullResponse.length} chars total)` : '')
+
   // Extract HTML from response (strip markdown fences if present)
   const html = extractHTML(fullResponse)
   if (!html) {
-    throw new Error('AI did not return valid HTML')
+    console.error('[WebsiteGenerator] === FULL RESPONSE (parse failed) ===')
+    console.error(fullResponse)
+    throw new Error(`AI did not return valid HTML. Response starts with: "${fullResponse.slice(0, 300)}"`)
   }
 
   onProgress?.('Done!')
