@@ -162,6 +162,12 @@ const hi: TranslationKeys = {
   'image.generating': 'जनरेट हो रहा है…',
   'image.apply': 'लागू करें',
   'image.retry': 'पुनः प्रयास',
+  'image.loadMore': 'और लोड करें',
+  'image.searching': 'खोज रहा है…',
+  'image.noResults': 'कोई परिणाम नहीं मिला',
+  'image.searchPrompt': 'छवियाँ खोजें',
+  'image.searchPlaceholder': 'छवियाँ खोजें…',
+  'image.sourceAttribution': '{{source}} से छवियाँ। मुक्त लाइसेंस प्राप्त।',
 
   // ── Stroke ──
   'stroke.title': 'स्ट्रोक',

@@ -162,6 +162,12 @@ const tr: TranslationKeys = {
   'image.generating': 'Oluşturuluyor…',
   'image.apply': 'Uygula',
   'image.retry': 'Tekrar Dene',
+  'image.loadMore': 'Daha fazla yükle',
+  'image.searching': 'Aranıyor…',
+  'image.noResults': 'Sonuç bulunamadı',
+  'image.searchPrompt': 'Görsel ara',
+  'image.searchPlaceholder': 'Görsel ara…',
+  'image.sourceAttribution': '{{source}} kaynaklı görseller. Özgür lisanslı.',
 
   // ── Stroke ──
   'stroke.title': 'Kenarlık',

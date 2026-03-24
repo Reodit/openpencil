@@ -164,6 +164,12 @@ const pt: TranslationKeys = {
   'image.generating': 'Gerando…',
   'image.apply': 'Aplicar',
   'image.retry': 'Tentar novamente',
+  'image.loadMore': 'Carregar mais',
+  'image.searching': 'Pesquisando…',
+  'image.noResults': 'Nenhum resultado encontrado',
+  'image.searchPrompt': 'Pesquisar imagens',
+  'image.searchPlaceholder': 'Pesquisar imagens…',
+  'image.sourceAttribution': 'Imagens de {{source}}. Licença livre.',
 
   // ── Stroke ──
   'stroke.title': 'Contorno',

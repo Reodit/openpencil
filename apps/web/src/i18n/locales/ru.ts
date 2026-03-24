@@ -164,6 +164,12 @@ const ru: TranslationKeys = {
   'image.generating': 'Генерация…',
   'image.apply': 'Применить',
   'image.retry': 'Повторить',
+  'image.loadMore': 'Загрузить ещё',
+  'image.searching': 'Поиск…',
+  'image.noResults': 'Ничего не найдено',
+  'image.searchPrompt': 'Поиск изображений',
+  'image.searchPlaceholder': 'Поиск изображений…',
+  'image.sourceAttribution': 'Изображения из {{source}}. Свободная лицензия.',
 
   // ── Stroke ──
   'stroke.title': 'Обводка',

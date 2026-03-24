@@ -162,6 +162,12 @@ const ko: TranslationKeys = {
   'image.generating': '생성 중…',
   'image.apply': '적용',
   'image.retry': '다시 생성',
+  'image.loadMore': '더 보기',
+  'image.searching': '검색 중…',
+  'image.noResults': '검색 결과가 없습니다',
+  'image.searchPrompt': '이미지를 검색하세요',
+  'image.searchPlaceholder': '이미지 검색…',
+  'image.sourceAttribution': '{{source}}에서 제공. 자유 이용 라이선스.',
 
   // ── Stroke ──
   'stroke.title': '선',

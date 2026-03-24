@@ -159,6 +159,12 @@ const zh: TranslationKeys = {
   'image.generating': '正在生成…',
   'image.apply': '应用',
   'image.retry': '重试',
+  'image.loadMore': '加载更多',
+  'image.searching': '搜索中…',
+  'image.noResults': '未找到结果',
+  'image.searchPrompt': '搜索图片',
+  'image.searchPlaceholder': '搜索图片…',
+  'image.sourceAttribution': '图片来自 {{source}}。免费授权。',
 
   // ── Stroke ──
   'stroke.title': '描边',

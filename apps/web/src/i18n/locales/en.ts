@@ -160,6 +160,12 @@ const en = {
   'image.generating': 'Generating…',
   'image.apply': 'Apply',
   'image.retry': 'Retry',
+  'image.loadMore': 'Load more',
+  'image.searching': 'Searching…',
+  'image.noResults': 'No results found',
+  'image.searchPrompt': 'Search for images',
+  'image.searchPlaceholder': 'Search images…',
+  'image.sourceAttribution': 'Images from {{source}}. Freely licensed.',
 
   // ── Stroke ──
   'stroke.title': 'Stroke',

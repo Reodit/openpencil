@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react'
-import { Search, Loader2, Image as ImageIcon } from 'lucide-react'
+import { Search, Loader2, Image as ImageIcon, ChevronDown } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAgentSettingsStore } from '@/stores/agent-settings-store'
+import { useTranslation } from 'react-i18next'
 import type { ImageSearchResult, ImageSearchResponse } from '@/types/image-service'
 
 interface ImageSearchPopoverProps {
@@ -11,25 +12,34 @@ interface ImageSearchPopoverProps {
 }
 
 export default function ImageSearchPopover({ initialQuery, onSelect, children }: ImageSearchPopoverProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState(initialQuery)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [results, setResults] = useState<ImageSearchResult[]>([])
   const [source, setSource] = useState<'openverse' | 'wikimedia' | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const lastQueryRef = useRef('')
 
   const openverseOAuth = useAgentSettingsStore((s) => s.openverseOAuth)
 
-  const handleSearch = useCallback(async () => {
-    const trimmed = query.trim()
-    if (!trimmed || loading) return
+  const fetchImages = useCallback(async (searchQuery: string, pageNum: number, append: boolean) => {
+    const trimmed = searchQuery.trim()
+    if (!trimmed) return
 
-    setLoading(true)
-    setHasSearched(true)
+    if (append) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+      setHasSearched(true)
+    }
 
     try {
-      const body: Record<string, unknown> = { query: trimmed, count: 5 }
+      const body: Record<string, unknown> = { query: trimmed, count: 12, page: pageNum }
       if (openverseOAuth) {
         body.openverseClientId = openverseOAuth.clientId
         body.openverseClientSecret = openverseOAuth.clientSecret
@@ -43,25 +53,48 @@ export default function ImageSearchPopover({ initialQuery, onSelect, children }:
 
       if (res.ok) {
         const data = (await res.json()) as ImageSearchResponse
-        setResults(data.results ?? [])
+        const newResults = data.results ?? []
+        if (append) {
+          setResults((prev) => [...prev, ...newResults])
+        } else {
+          setResults(newResults)
+        }
         setSource(data.source ?? null)
+        setHasMore(newResults.length >= 12)
+        setPage(pageNum)
+        lastQueryRef.current = trimmed
       } else {
+        if (!append) {
+          setResults([])
+          setSource(null)
+        }
+        setHasMore(false)
+      }
+    } catch {
+      if (!append) {
         setResults([])
         setSource(null)
       }
-    } catch {
-      setResults([])
-      setSource(null)
+      setHasMore(false)
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
-  }, [query, loading, openverseOAuth])
+  }, [openverseOAuth])
+
+  const handleSearch = useCallback(() => {
+    fetchImages(query, 1, false)
+  }, [query, fetchImages])
+
+  const handleLoadMore = useCallback(() => {
+    fetchImages(lastQueryRef.current, page + 1, true)
+  }, [page, fetchImages])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
         e.preventDefault()
-        void handleSearch()
+        handleSearch()
       }
     },
     [handleSearch],
@@ -78,10 +111,11 @@ export default function ImageSearchPopover({ initialQuery, onSelect, children }:
   const handleOpenChange = useCallback((next: boolean) => {
     setOpen(next)
     if (next) {
-      // Reset search state when re-opening
       setHasSearched(false)
       setResults([])
       setSource(null)
+      setPage(1)
+      setHasMore(false)
     }
   }, [])
 
@@ -103,12 +137,12 @@ export default function ImageSearchPopover({ initialQuery, onSelect, children }:
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search images..."
+            placeholder={t('image.searchPlaceholder')}
             className="flex-1 h-7 px-2 text-xs rounded border border-border bg-background text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
           />
           <button
             type="button"
-            onClick={() => void handleSearch()}
+            onClick={handleSearch}
             disabled={loading || !query.trim()}
             className="h-7 w-7 flex items-center justify-center rounded border border-border bg-background hover:bg-accent/50 text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
           >
@@ -120,49 +154,66 @@ export default function ImageSearchPopover({ initialQuery, onSelect, children }:
           </button>
         </div>
 
-        {/* Results / empty state */}
+        {/* Results */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Searching...</span>
+            <span className="text-xs text-muted-foreground">{t('image.searching')}</span>
           </div>
         ) : results.length > 0 ? (
-          <div className="grid grid-cols-3 gap-1.5">
-            {results.map((result) => (
+          <div>
+            <div className="grid grid-cols-3 gap-1.5 max-h-[280px] overflow-y-auto">
+              {results.map((result) => (
+                <button
+                  key={result.id}
+                  type="button"
+                  onClick={() => handleSelect(result.thumbUrl)}
+                  className="aspect-square w-full overflow-hidden rounded border border-border hover:border-primary transition-colors cursor-pointer"
+                  title={result.attribution ?? result.license}
+                >
+                  <img
+                    src={result.thumbUrl}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </button>
+              ))}
+            </div>
+
+            {/* Load more */}
+            {hasMore && (
               <button
-                key={result.id}
                 type="button"
-                onClick={() => handleSelect(result.thumbUrl)}
-                className="aspect-square w-full overflow-hidden rounded border border-border hover:border-primary transition-colors cursor-pointer"
-                title={result.attribution ?? result.license}
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="w-full mt-2 h-7 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded transition-colors disabled:opacity-50"
               >
-                <img
-                  src={result.thumbUrl}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
+                {loadingMore ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
+                )}
+                {t('image.loadMore')}
               </button>
-            ))}
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
             <ImageIcon className="w-6 h-6 text-muted-foreground opacity-50" />
             <span className="text-xs text-muted-foreground">
-              {hasSearched ? 'No results found' : 'Search for images'}
+              {hasSearched ? t('image.noResults') : t('image.searchPrompt')}
             </span>
           </div>
         )}
 
-        {/* Footer: license + source */}
+        {/* Footer */}
         {results.length > 0 && source && (
           <div className="mt-2 pt-2 border-t border-border">
             <p className="text-[10px] text-muted-foreground leading-snug">
-              Images from{' '}
-              <span className="font-medium">
-                {source === 'openverse' ? 'Openverse' : 'Wikimedia Commons'}
-              </span>
-              . Freely licensed — verify license before use.
+              {t('image.sourceAttribution', {
+                source: source === 'openverse' ? 'Openverse' : 'Wikimedia Commons',
+              })}
             </p>
           </div>
         )}

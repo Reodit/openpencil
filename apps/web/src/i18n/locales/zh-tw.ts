@@ -159,6 +159,12 @@ const zhTW: TranslationKeys = {
   'image.generating': '正在生成…',
   'image.apply': '套用',
   'image.retry': '重試',
+  'image.loadMore': '載入更多',
+  'image.searching': '搜尋中…',
+  'image.noResults': '找不到結果',
+  'image.searchPrompt': '搜尋圖片',
+  'image.searchPlaceholder': '搜尋圖片…',
+  'image.sourceAttribution': '圖片來自 {{source}}。自由授權。',
 
   // ── Stroke ──
   'stroke.title': '描邊',

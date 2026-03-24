@@ -162,6 +162,12 @@ const th: TranslationKeys = {
   'image.generating': 'กำลังสร้าง…',
   'image.apply': 'นำไปใช้',
   'image.retry': 'ลองอีกครั้ง',
+  'image.loadMore': 'โหลดเพิ่มเติม',
+  'image.searching': 'กำลังค้นหา…',
+  'image.noResults': 'ไม่พบผลลัพธ์',
+  'image.searchPrompt': 'ค้นหารูปภาพ',
+  'image.searchPlaceholder': 'ค้นหารูปภาพ…',
+  'image.sourceAttribution': 'รูปภาพจาก {{source}} ใช้งานได้อย่างเสรี',
 
   // ── Stroke ──
   'stroke.title': 'เส้นขอบ',

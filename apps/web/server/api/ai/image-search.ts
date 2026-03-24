@@ -160,10 +160,12 @@ async function fetchFromOpenverse(
   aspectRatio: string | undefined,
   clientId: string | undefined,
   clientSecret: string | undefined,
+  page: number = 1,
 ): Promise<ImageSearchResult[] | null> {
   const url = new URL('https://api.openverse.org/v1/images/')
   url.searchParams.set('q', query)
   url.searchParams.set('page_size', String(count))
+  url.searchParams.set('page', String(page))
   if (aspectRatio) {
     url.searchParams.set('aspect_ratio', aspectRatio)
   }
@@ -233,6 +235,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event) as {
     query?: string
     count?: number
+    page?: number
     aspectRatio?: string
     openverseClientId?: string
     openverseClientSecret?: string
@@ -247,6 +250,7 @@ export default defineEventHandler(async (event) => {
   const query = simplifySearchQuery(rawQuery)
 
   const count = Math.min(Math.max(Number(body?.count ?? 10), 1), 50)
+  const page = Math.max(Number(body?.page ?? 1), 1)
   const aspectRatio = body?.aspectRatio
   const clientId = body?.openverseClientId
   const clientSecret = body?.openverseClientSecret
@@ -258,6 +262,7 @@ export default defineEventHandler(async (event) => {
     aspectRatio,
     clientId,
     clientSecret,
+    page,
   )
 
   if (openverseResults !== null) {

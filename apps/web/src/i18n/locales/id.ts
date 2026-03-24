@@ -162,6 +162,12 @@ const id: TranslationKeys = {
   'image.generating': 'Membuat…',
   'image.apply': 'Terapkan',
   'image.retry': 'Coba lagi',
+  'image.loadMore': 'Muat lebih banyak',
+  'image.searching': 'Mencari…',
+  'image.noResults': 'Tidak ada hasil ditemukan',
+  'image.searchPrompt': 'Cari gambar',
+  'image.searchPlaceholder': 'Cari gambar…',
+  'image.sourceAttribution': 'Gambar dari {{source}}. Berlisensi bebas.',
 
   // ── Stroke ──
   'stroke.title': 'Garis Tepi',

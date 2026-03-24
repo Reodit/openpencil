@@ -164,6 +164,12 @@ const es: TranslationKeys = {
   'image.generating': 'Generando…',
   'image.apply': 'Aplicar',
   'image.retry': 'Reintentar',
+  'image.loadMore': 'Cargar más',
+  'image.searching': 'Buscando…',
+  'image.noResults': 'No se encontraron resultados',
+  'image.searchPrompt': 'Buscar imágenes',
+  'image.searchPlaceholder': 'Buscar imágenes…',
+  'image.sourceAttribution': 'Imágenes de {{source}}. Con licencia libre.',
 
   // ── Stroke ──
   'stroke.title': 'Trazo',

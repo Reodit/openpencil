@@ -162,6 +162,12 @@ const vi: TranslationKeys = {
   'image.generating': 'Đang tạo…',
   'image.apply': 'Áp dụng',
   'image.retry': 'Thử lại',
+  'image.loadMore': 'Tải thêm',
+  'image.searching': 'Đang tìm kiếm…',
+  'image.noResults': 'Không tìm thấy kết quả',
+  'image.searchPrompt': 'Tìm kiếm hình ảnh',
+  'image.searchPlaceholder': 'Tìm kiếm hình ảnh…',
+  'image.sourceAttribution': 'Hình ảnh từ {{source}}. Được cấp phép tự do.',
 
   // ── Stroke ──
   'stroke.title': 'Viền',

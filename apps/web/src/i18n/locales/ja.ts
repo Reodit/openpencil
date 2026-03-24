@@ -166,6 +166,12 @@ const ja: TranslationKeys = {
   'image.generating': '生成中…',
   'image.apply': '適用',
   'image.retry': 'リトライ',
+  'image.loadMore': 'もっと読み込む',
+  'image.searching': '検索中…',
+  'image.noResults': '結果が見つかりません',
+  'image.searchPrompt': '画像を検索',
+  'image.searchPlaceholder': '画像を検索…',
+  'image.sourceAttribution': '{{source}}の画像。フリーライセンス。',
 
   // ── Stroke ──
   'stroke.title': '線',

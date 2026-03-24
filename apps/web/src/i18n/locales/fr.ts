@@ -164,6 +164,12 @@ const fr: TranslationKeys = {
   'image.generating': 'Génération en cours…',
   'image.apply': 'Appliquer',
   'image.retry': 'Réessayer',
+  'image.loadMore': 'Charger plus',
+  'image.searching': 'Recherche en cours…',
+  'image.noResults': 'Aucun résultat trouvé',
+  'image.searchPrompt': 'Rechercher des images',
+  'image.searchPlaceholder': 'Rechercher des images…',
+  'image.sourceAttribution': 'Images provenant de {{source}}. Sous licence libre.',
 
   // ── Stroke ──
   'stroke.title': 'Contour',
