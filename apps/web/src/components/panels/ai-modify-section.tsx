@@ -103,7 +103,7 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
       .catch(() => {})
   }, [node.id])
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async (previousVariants?: PenNode[][]) => {
     if (!prompt.trim() || loading) return
     setLoading(true)
     setError('')
@@ -114,7 +114,16 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
       )?.provider
 
       const contextJson = JSON.stringify(node, null, 2)
-      const userMessage = `INPUT NODE:\n${contextJson}\n\nINSTRUCTION:\n${prompt.trim()}`
+      let userMessage = `INPUT NODE:\n${contextJson}\n\nINSTRUCTION:\n${prompt.trim()}`
+
+      // If regenerating, include previous variants to avoid repetition
+      if (previousVariants && previousVariants.length > 0) {
+        const prevSummary = previousVariants.map((v, i) =>
+          `Rejected Variant ${i + 1}:\n${JSON.stringify(v[0], null, 2)}`
+        ).join('\n\n')
+        userMessage += `\n\nPREVIOUSLY REJECTED VARIANTS (do NOT repeat these — generate completely different designs):\n${prevSummary}`
+      }
+
       const systemPrompt = buildVariantsSystemPrompt(VARIANT_COUNT)
 
       let fullResponse = ''
@@ -188,10 +197,11 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
   }, [])
 
   const handleRegenerate = useCallback(() => {
+    const rejected = variants ? [...variants] : []
     setShowPopup(false)
     setVariants(null)
-    handleGenerate()
-  }, [handleGenerate])
+    handleGenerate(rejected)
+  }, [handleGenerate, variants])
 
   const handleOpenSaved = useCallback((saved: SavedVariantSet) => {
     setVariants(saved.variants)
@@ -290,7 +300,7 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
 
         <div className="flex gap-1.5">
           <button
-            onClick={handleGenerate}
+            onClick={() => handleGenerate()}
             disabled={!prompt.trim() || loading || allModels.length === 0}
             className={cn(
               'flex-1 h-7 rounded-md text-[11px] font-medium',
