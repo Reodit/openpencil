@@ -540,6 +540,7 @@ const hi: TranslationKeys = {
   'aiModify.regenerate': 'पुनः जनरेट करें',
   'aiModify.applyVariant': 'लागू करें',
   'aiModify.noModels': 'कोई मॉडल उपलब्ध नहीं — पहले एक एजेंट कनेक्ट करें',
+  'aiModify.viewVariants': 'देखें',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'छवि निर्माण',

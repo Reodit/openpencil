@@ -67,6 +67,7 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [variants, setVariants] = useState<PenNode[][] | null>(null)
+  const [showPopup, setShowPopup] = useState(false)
 
   const modelGroups = useAIStore((s) => s.modelGroups)
   const defaultModel = useAIStore((s) => s.model)
@@ -110,6 +111,7 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
       const parsed = parseVariantBlocks(fullResponse)
       if (parsed.length > 0) {
         setVariants(parsed)
+        setShowPopup(true)
       } else {
         setError(t('aiModify.noResults'))
       }
@@ -129,10 +131,11 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
         useDocumentStore.getState().updateNode(n.id, n)
       }
     }
-    setVariants(null)
+    setShowPopup(false)
   }, [])
 
   const handleRegenerate = useCallback(() => {
+    setShowPopup(false)
     setVariants(null)
     handleGenerate()
   }, [handleGenerate])
@@ -188,34 +191,50 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
 
         {error && <p className="text-[10px] text-destructive">{error}</p>}
 
-        <button
-          onClick={handleGenerate}
-          disabled={!prompt.trim() || loading || allModels.length === 0}
-          className={cn(
-            'w-full h-7 rounded-md text-[11px] font-medium',
-            'bg-primary text-primary-foreground',
-            'hover:bg-primary/90 transition-colors',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            'flex items-center justify-center gap-1',
+        <div className="flex gap-1.5">
+          <button
+            onClick={handleGenerate}
+            disabled={!prompt.trim() || loading || allModels.length === 0}
+            className={cn(
+              'flex-1 h-7 rounded-md text-[11px] font-medium',
+              'bg-primary text-primary-foreground',
+              'hover:bg-primary/90 transition-colors',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'flex items-center justify-center gap-1',
+            )}
+          >
+            {loading ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Sparkles size={12} />
+            )}
+            {loading ? t('aiModify.generating') : t('aiModify.generate')}
+          </button>
+
+          {variants && !showPopup && (
+            <button
+              onClick={() => setShowPopup(true)}
+              className={cn(
+                'h-7 px-2 rounded-md text-[11px] font-medium',
+                'border border-border text-foreground',
+                'hover:bg-secondary/50 transition-colors',
+                'flex items-center justify-center gap-1',
+              )}
+            >
+              {t('aiModify.viewVariants')}
+            </button>
           )}
-        >
-          {loading ? (
-            <Loader2 size={12} className="animate-spin" />
-          ) : (
-            <Sparkles size={12} />
-          )}
-          {loading ? t('aiModify.generating') : t('aiModify.generate')}
-        </button>
+        </div>
       </div>
 
-      {variants && (
+      {variants && showPopup && (
         <AiVariantsPopup
           variants={variants}
           prompt={prompt}
           originalNode={node}
           onApply={handleApplyVariant}
           onRegenerate={handleRegenerate}
-          onClose={() => setVariants(null)}
+          onClose={() => setShowPopup(false)}
         />
       )}
     </>

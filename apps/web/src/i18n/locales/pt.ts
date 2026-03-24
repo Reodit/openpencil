@@ -543,6 +543,7 @@ const pt: TranslationKeys = {
   'aiModify.regenerate': 'Regenerar',
   'aiModify.applyVariant': 'Aplicar',
   'aiModify.noModels': 'Nenhum modelo disponível — conecte um agente primeiro',
+  'aiModify.viewVariants': 'Ver',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Geração de Imagens',

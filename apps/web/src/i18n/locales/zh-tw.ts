@@ -531,6 +531,7 @@ const zhTW: TranslationKeys = {
   'aiModify.regenerate': '重新產生',
   'aiModify.applyVariant': '套用',
   'aiModify.noModels': '沒有可用的模型 — 請先連接一個代理',
+  'aiModify.viewVariants': '檢視',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '圖片生成',

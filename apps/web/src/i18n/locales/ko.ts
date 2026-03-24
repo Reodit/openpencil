@@ -540,6 +540,7 @@ const ko: TranslationKeys = {
   'aiModify.regenerate': '다시 만들기',
   'aiModify.applyVariant': '적용',
   'aiModify.noModels': '모델 없음 — 먼저 에이전트를 연결하세요',
+  'aiModify.viewVariants': '시안 보기',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '이미지 생성',
