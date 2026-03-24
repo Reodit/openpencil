@@ -1,7 +1,9 @@
 import type { PenDocument, PenNode, PenPage } from '@/types/pen'
 import { streamChat } from './ai-service'
 
-const AUTO_LINK_SYSTEM_PROMPT = `You are a Design Link Mapper. You receive a design document with multiple pages and their node trees. Your job is to automatically detect interactive elements (buttons, navigation items, menu items, cards, links, tabs) and map them to the correct target page.
+const AUTO_LINK_SYSTEM_PROMPT = `You are a Design Link Mapper. You receive a design document with pages and their node trees. Your job is to detect interactive elements and map them to:
+1. Target PAGES (cross-page navigation)
+2. Target ANCHORS (same-page scroll to a section)
 
 INPUT:
 - List of pages with their IDs and names
@@ -11,24 +13,36 @@ OUTPUT:
 A JSON array of link mappings:
 \`\`\`json
 [
-  { "nodeId": "node-id-here", "pageId": "target-page-id" },
+  { "nodeId": "source-node-id", "type": "page", "targetId": "target-page-id" },
+  { "nodeId": "source-node-id", "type": "anchor", "targetId": "target-section-node-id" },
   ...
 ]
 \`\`\`
 
-RULES:
-- Only link interactive elements: buttons, nav items, menu items, tabs, cards with navigation intent
-- Match by name similarity: a button named "Home" should link to a page named "Home"
-- Match by role: nodes with role "button", "nav-item", "tab", "link", "menu-item"
-- Match by content: text nodes inside buttons that match page names
-- Do NOT link decorative elements, images (unless they are clearly clickable), or layout containers
+RULES FOR PAGE LINKS:
+- Match buttons/nav items to pages by name similarity
+- A button "Home" → page named "Home"
 - Do NOT link elements to their own page
+
+RULES FOR ANCHOR LINKS (same-page scroll):
+- Navigation items that match a section/frame NAME on the SAME page → anchor link
+- Example: nav item "Menu" on page "Home" → frame "Menu Section" on page "Home" → anchor
+- Example: nav item "Contact" → frame "Contact" on same page → anchor
+- Only anchor to top-level frames or named sections, not small child elements
+- Match by name similarity between the interactive element text and the section name
+
+GENERAL RULES:
+- Only link interactive elements: buttons, nav items, menu items, tabs, cards, links
+- Match by role: "button", "nav-item", "tab", "link", "menu-item"
+- Match by content: text inside buttons that match page/section names
+- Do NOT link decorative elements or layout containers
 - If no clear match exists, skip that element
 - Return ONLY the JSON array, no explanations`
 
 interface LinkMapping {
   nodeId: string
-  pageId: string
+  type: 'page' | 'anchor'
+  targetId: string
 }
 
 /**
@@ -72,7 +86,7 @@ export async function autoLinkPages(
 
   try {
     const mappings = JSON.parse(jsonMatch[0]) as LinkMapping[]
-    return mappings.filter((m) => m.nodeId && m.pageId)
+    return mappings.filter((m) => m.nodeId && m.targetId && m.type)
   } catch {
     return []
   }
@@ -84,21 +98,22 @@ export async function autoLinkPages(
 export function applyLinkMappings(
   pages: PenPage[],
   mappings: LinkMapping[],
-): { updatedNodes: Array<{ nodeId: string; pageId: string; pageName: string }> } {
+): { updatedCount: number } {
   const pageMap = new Map(pages.map((p) => [p.id, p.name]))
-  const mappingMap = new Map(mappings.map((m) => [m.nodeId, m.pageId]))
-  const updated: Array<{ nodeId: string; pageId: string; pageName: string }> = []
+  const mappingMap = new Map(mappings.map((m) => [m.nodeId, m]))
+  let updatedCount = 0
 
   function walkAndLink(nodes: PenNode[]) {
     for (const node of nodes) {
-      const targetPageId = mappingMap.get(node.id)
-      if (targetPageId && pageMap.has(targetPageId)) {
-        node.link = { type: 'page', pageId: targetPageId }
-        updated.push({
-          nodeId: node.id,
-          pageId: targetPageId,
-          pageName: pageMap.get(targetPageId) ?? '',
-        })
+      const mapping = mappingMap.get(node.id)
+      if (mapping) {
+        if (mapping.type === 'page' && pageMap.has(mapping.targetId)) {
+          node.link = { type: 'page', pageId: mapping.targetId }
+          updatedCount++
+        } else if (mapping.type === 'anchor') {
+          node.link = { type: 'anchor', nodeId: mapping.targetId }
+          updatedCount++
+        }
       }
       const children = (node as { children?: PenNode[] }).children
       if (children) walkAndLink(children)
@@ -109,7 +124,7 @@ export function applyLinkMappings(
     walkAndLink(page.children)
   }
 
-  return { updatedNodes: updated }
+  return { updatedCount }
 }
 
 /** Simplify node tree for AI context (reduce token usage) */

@@ -345,15 +345,27 @@ function generateNodeHTML(
 /** Wrap HTML output in <a> tag if node has a link property */
 function wrapWithLink(html: string, node: PenNode, pad: string, pageNames?: Map<string, string>): string {
   if (!node.link) return html
+  const aStyle = 'style="text-decoration:none;color:inherit;display:contents;"'
   if (node.link.type === 'url') {
-    return `${pad}<a href="${escapeHTML(node.link.url)}" style="text-decoration:none;color:inherit;display:contents;">\n${html}\n${pad}</a>`
+    return `${pad}<a href="${escapeHTML(node.link.url)}" ${aStyle}>\n${html}\n${pad}</a>`
   }
   if (node.link.type === 'page' && pageNames) {
     const pageName = pageNames.get(node.link.pageId)
     const href = pageName ? `${pageName.replace(/\s+/g, '-').toLowerCase()}.html` : '#'
-    return `${pad}<a href="${escapeHTML(href)}" style="text-decoration:none;color:inherit;display:contents;">\n${html}\n${pad}</a>`
+    return `${pad}<a href="${escapeHTML(href)}" ${aStyle}>\n${html}\n${pad}</a>`
+  }
+  if (node.link.type === 'anchor') {
+    const anchorId = node.link.nodeId.replace(/[^a-zA-Z0-9-_]/g, '')
+    return `${pad}<a href="#${anchorId}" ${aStyle}>\n${html}\n${pad}</a>`
   }
   return html
+}
+
+/** Add id attribute to a node's HTML if it's an anchor target */
+function addAnchorId(html: string, node: PenNode): string {
+  if (!node.id) return html
+  // Add id to the first tag in the HTML
+  return html.replace(/<(\w+)(\s)/, `<$1 id="${node.id.replace(/[^a-zA-Z0-9-_]/g, '')}"$2`)
 }
 
 function cssRulesToString(rules: CSSRule[]): string {
@@ -430,7 +442,6 @@ export function generateHTMLFromDocument(doc: PenDocument, activePageId?: string
 export function generateMultiPageHTML(doc: PenDocument): Map<string, string> {
   const pages = doc.pages ?? []
   if (pages.length === 0) {
-    // Single page fallback
     const { html, css } = generateHTMLCode(doc.children)
     const fullHTML = buildFullHTML('Design', html, css)
     return new Map([['index.html', fullHTML]])
@@ -441,6 +452,17 @@ export function generateMultiPageHTML(doc: PenDocument): Map<string, string> {
   for (const page of pages) {
     pageNames.set(page.id, page.name)
   }
+
+  // Collect anchor target node IDs (nodes that other nodes link to via anchor)
+  const anchorTargetIds = new Set<string>()
+  function collectAnchors(nodes: PenNode[]) {
+    for (const node of nodes) {
+      if (node.link?.type === 'anchor') anchorTargetIds.add(node.link.nodeId)
+      const ch = (node as { children?: PenNode[] }).children
+      if (ch) collectAnchors(ch)
+    }
+  }
+  for (const page of pages) collectAnchors(page.children)
 
   const varsCSS = doc.variables && Object.keys(doc.variables).length > 0
     ? generateCSSVariables(doc)
@@ -471,7 +493,8 @@ export function generateMultiPageHTML(doc: PenDocument): Map<string, string> {
 
     const childrenHTML = page.children
       .map((n) => {
-        const html = generateNodeHTML(n, 1, rules)
+        let html = generateNodeHTML(n, 1, rules)
+        if (anchorTargetIds.has(n.id)) html = addAnchorId(html, n)
         return wrapWithLink(html, n, indent(1), pageNames)
       })
       .join('\n')
@@ -500,6 +523,7 @@ function buildFullHTML(title: string, bodyHTML: string, css: string): string {
   <title>${escapeHTML(title)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
 ${css.split('\n').map((l) => `    ${l}`).join('\n')}
   </style>
 </head>

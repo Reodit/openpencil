@@ -59,8 +59,8 @@ export interface PenNodeBase {
   flipX?: boolean
   flipY?: boolean
   theme?: Record<string, string>
-  /** Link target — page ID for internal navigation, or URL for external */
-  link?: { type: 'page'; pageId: string } | { type: 'url'; url: string }
+  /** Link target — page, anchor (same-page scroll), or external URL */
+  link?: { type: 'page'; pageId: string } | { type: 'anchor'; nodeId: string } | { type: 'url'; url: string }
 }
 
 // --- Container (shared layout props) ---

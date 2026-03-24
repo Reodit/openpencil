@@ -519,10 +519,10 @@ function AutoLinkButton() {
       const mappings = await autoLinkPages(document, model, provider)
       if (mappings.length > 0) {
         useHistoryStore.getState().pushState(document)
-        const { updatedNodes } = applyLinkMappings(pages, mappings)
+        const { updatedCount } = applyLinkMappings(pages, mappings)
         // Force document update
         useDocumentStore.getState().applyExternalDocument({ ...document })
-        setResult(`${updatedNodes.length} links`)
+        setResult(`${updatedCount} links`)
       } else {
         setResult('0')
       }
