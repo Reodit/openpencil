@@ -545,6 +545,11 @@ const hi: TranslationKeys = {
   'settings.antigravityDesc': 'Google OAuth छवि निर्माण (API कुंजी की आवश्यकता नहीं)',
   'settings.switchAccount': 'बदलें',
   'settings.quotaRemaining': 'कोटा',
+  'settings.localApi': 'स्थानीय इमेज API',
+  'settings.localApiDesc': 'स्थानीय इमेज जनरेशन सर्वर से कनेक्ट करें',
+  'settings.localApiConnected': 'कनेक्टेड',
+  'settings.localApiError': 'कनेक्शन विफल',
+  'settings.localApiTest': 'परीक्षण',
 } as const
 
 export default hi

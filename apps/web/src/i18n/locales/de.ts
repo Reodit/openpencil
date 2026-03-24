@@ -548,6 +548,11 @@ const de: TranslationKeys = {
   'settings.antigravityDesc': 'Google OAuth Bilderzeugung (kein API-Schlüssel)',
   'settings.switchAccount': 'Wechseln',
   'settings.quotaRemaining': 'Kontingent',
+  'settings.localApi': 'Lokale Bild-API',
+  'settings.localApiDesc': 'Verbindung zu einem lokalen Bildgenerierungsserver herstellen',
+  'settings.localApiConnected': 'Verbunden',
+  'settings.localApiError': 'Verbindung fehlgeschlagen',
+  'settings.localApiTest': 'Testen',
 } as const
 
 export default de

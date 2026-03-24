@@ -545,6 +545,11 @@ const vi: TranslationKeys = {
   'settings.antigravityDesc': 'Tạo hình ảnh bằng Google OAuth (không cần API key)',
   'settings.switchAccount': 'Chuyển',
   'settings.quotaRemaining': 'Hạn mức',
+  'settings.localApi': 'API hình ảnh cục bộ',
+  'settings.localApiDesc': 'Kết nối đến máy chủ tạo hình ảnh cục bộ',
+  'settings.localApiConnected': 'Đã kết nối',
+  'settings.localApiError': 'Kết nối thất bại',
+  'settings.localApiTest': 'Kiểm tra',
 } as const
 
 export default vi

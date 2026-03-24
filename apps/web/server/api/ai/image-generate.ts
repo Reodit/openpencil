@@ -3,7 +3,7 @@ import { generateImage, isAuthenticated } from '../../utils/antigravity'
 
 interface ImageGenerateBody {
   prompt: string
-  provider: 'openai' | 'custom' | 'gemini' | 'gemini-cli' | 'replicate'
+  provider: 'openai' | 'custom' | 'gemini' | 'gemini-cli' | 'replicate' | 'local'
   model: string
   apiKey?: string
   baseUrl?: string
@@ -31,9 +31,13 @@ export default defineEventHandler(async (event) => {
   }
   const { prompt, provider, model, apiKey, baseUrl, width, height } = body
 
-  // gemini-cli doesn't need an API key
-  if (provider !== 'gemini-cli' && !apiKey?.trim()) {
+  // gemini-cli and local don't need an API key
+  if (provider !== 'gemini-cli' && provider !== 'local' && !apiKey?.trim()) {
     throw createError({ statusCode: 400, message: 'Missing required field: apiKey' })
+  }
+
+  if (provider === 'local') {
+    return await generateLocal({ prompt, baseUrl, width, height })
   }
 
   if (provider === 'gemini-cli') {
@@ -361,4 +365,54 @@ async function generateGeminiCli(opts: {
     const msg = err instanceof Error ? err.message : String(err)
     throw createError({ statusCode: 502, message: `Image generation failed: ${msg}` })
   }
+}
+
+// ---------------------------------------------------------------------------
+// Local API (e.g. FLUX.2-dev, Stable Diffusion — any server with /generate)
+// ---------------------------------------------------------------------------
+
+async function generateLocal(opts: {
+  prompt: string
+  baseUrl?: string
+  width?: number
+  height?: number
+}): Promise<{ url: string }> {
+  const { prompt, baseUrl, width, height } = opts
+
+  if (!baseUrl?.trim()) {
+    throw createError({ statusCode: 400, message: 'Local API requires a base URL' })
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/generate`
+
+  let res: Response
+  try {
+    res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        width: width || 1024,
+        height: height || 1024,
+        num_inference_steps: 28,
+        guidance_scale: 3.5,
+        seed: -1,
+      }),
+      signal: AbortSignal.timeout(300_000),
+    })
+  } catch (err) {
+    throw createError({ statusCode: 502, message: `Local API request failed: ${String(err)}` })
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw createError({ statusCode: 502, message: `Local API returned ${res.status}: ${text.slice(0, 200)}` })
+  }
+
+  const data = (await res.json()) as { image_base64?: string; seed?: number; generation_time?: number }
+  if (!data.image_base64) {
+    throw createError({ statusCode: 502, message: 'Local API response missing image_base64' })
+  }
+
+  return { url: `data:image/png;base64,${data.image_base64}` }
 }

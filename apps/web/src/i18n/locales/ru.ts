@@ -548,6 +548,11 @@ const ru: TranslationKeys = {
   'settings.antigravityDesc': 'Генерация изображений через Google OAuth (без API-ключа)',
   'settings.switchAccount': 'Сменить',
   'settings.quotaRemaining': 'Квота',
+  'settings.localApi': 'Локальный API изображений',
+  'settings.localApiDesc': 'Подключиться к локальному серверу генерации изображений',
+  'settings.localApiConnected': 'Подключено',
+  'settings.localApiError': 'Ошибка подключения',
+  'settings.localApiTest': 'Тест',
 } as const
 
 export default ru

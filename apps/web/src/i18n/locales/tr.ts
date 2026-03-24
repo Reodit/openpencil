@@ -545,6 +545,11 @@ const tr: TranslationKeys = {
   'settings.antigravityDesc': 'Google OAuth ile görsel oluşturma (API anahtarı gerektirmez)',
   'settings.switchAccount': 'Değiştir',
   'settings.quotaRemaining': 'Kota',
+  'settings.localApi': 'Yerel Görsel API',
+  'settings.localApiDesc': 'Yerel bir görsel oluşturma sunucusuna bağlan',
+  'settings.localApiConnected': 'Bağlandı',
+  'settings.localApiError': 'Bağlantı başarısız',
+  'settings.localApiTest': 'Test',
 } as const
 
 export default tr

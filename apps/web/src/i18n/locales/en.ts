@@ -543,6 +543,11 @@ const en = {
   'settings.antigravityDesc': 'Google OAuth image generation (no API key)',
   'settings.switchAccount': 'Switch',
   'settings.quotaRemaining': 'Quota',
+  'settings.localApi': 'Local Image API',
+  'settings.localApiDesc': 'Connect to a local image generation server',
+  'settings.localApiConnected': 'Connected',
+  'settings.localApiError': 'Connection failed',
+  'settings.localApiTest': 'Test',
 } as const
 
 export default en

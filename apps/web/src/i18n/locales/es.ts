@@ -555,6 +555,11 @@ const es: TranslationKeys = {
   'settings.antigravityDesc': 'Generación de imágenes con Google OAuth (sin clave API)',
   'settings.switchAccount': 'Cambiar',
   'settings.quotaRemaining': 'Cuota',
+  'settings.localApi': 'API de imagen local',
+  'settings.localApiDesc': 'Conectar a un servidor local de generación de imágenes',
+  'settings.localApiConnected': 'Conectado',
+  'settings.localApiError': 'Conexión fallida',
+  'settings.localApiTest': 'Probar',
 } as const
 
 export default es

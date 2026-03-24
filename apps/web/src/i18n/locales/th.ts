@@ -545,6 +545,11 @@ const th: TranslationKeys = {
   'settings.antigravityDesc': 'สร้างรูปภาพด้วย Google OAuth (ไม่ต้องใช้ API key)',
   'settings.switchAccount': 'สลับ',
   'settings.quotaRemaining': 'โควต้า',
+  'settings.localApi': 'API รูปภาพในเครื่อง',
+  'settings.localApiDesc': 'เชื่อมต่อกับเซิร์ฟเวอร์สร้างรูปภาพในเครื่อง',
+  'settings.localApiConnected': 'เชื่อมต่อแล้ว',
+  'settings.localApiError': 'การเชื่อมต่อล้มเหลว',
+  'settings.localApiTest': 'ทดสอบ',
 } as const
 
 export default th

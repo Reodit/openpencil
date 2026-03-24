@@ -536,6 +536,11 @@ const zh: TranslationKeys = {
   'settings.antigravityDesc': 'Google OAuth 图片生成（无需 API 密钥）',
   'settings.switchAccount': '切换',
   'settings.quotaRemaining': '配额',
+  'settings.localApi': '本地图片 API',
+  'settings.localApiDesc': '连接到本地图片生成服务器',
+  'settings.localApiConnected': '已连接',
+  'settings.localApiError': '连接失败',
+  'settings.localApiTest': '测试',
 } as const
 
 export default zh

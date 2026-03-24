@@ -132,13 +132,17 @@ function ImageGenerateInline({
     setPreviewUrl(null)
 
     try {
-      // Try Antigravity first (no API key needed)
+      // Use local API if configured, otherwise Antigravity
+      const localApiUrl = localStorage.getItem('openpencil-local-image-api-url') || ''
+      const provider = localApiUrl ? 'local' : 'gemini-cli'
+
       const res = await fetch('/api/ai/image-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: prompt.trim(),
-          provider: 'gemini-cli',
+          provider,
+          ...(provider === 'local' ? { baseUrl: localApiUrl } : {}),
           ...(width && height ? { width, height } : {}),
         }),
       })

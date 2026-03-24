@@ -341,6 +341,7 @@ function AgentsPage() {
       <h3 className="text-[15px] font-semibold text-foreground mb-4 mt-6">{t('settings.imageGen')}</h3>
       <div className="space-y-1">
         <AntigravityCard />
+        <LocalImageApiCard />
       </div>
     </div>
   )
@@ -448,6 +449,94 @@ function AntigravityCard() {
             {t('common.connect')}
           </Button>
         )}
+      </div>
+    </div>
+  )
+}
+
+/* ---------- LocalImageApiCard ---------- */
+function LocalImageApiCard() {
+  const { t } = useTranslation()
+  const [url, setUrl] = useState(() => {
+    try { return localStorage.getItem('openpencil-local-image-api-url') || '' } catch { return '' }
+  })
+  const [testing, setTesting] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle')
+
+  const handleSave = useCallback((value: string) => {
+    setUrl(value)
+    try { localStorage.setItem('openpencil-local-image-api-url', value) } catch { /* */ }
+    setStatus('idle')
+  }, [])
+
+  const handleTest = useCallback(async () => {
+    if (!url.trim()) return
+    setTesting(true)
+    setStatus('idle')
+    try {
+      const res = await fetch(`${url.replace(/\/$/, '')}/health`)
+      setStatus(res.ok ? 'ok' : 'error')
+    } catch {
+      setStatus('error')
+    }
+    setTesting(false)
+  }, [url])
+
+  return (
+    <div className="group">
+      <div className={cn(
+        'flex items-center gap-3 px-3.5 py-2.5 rounded-lg border transition-colors',
+        status === 'ok'
+          ? 'bg-secondary/30 border-border'
+          : 'border-transparent hover:bg-secondary/20',
+      )}>
+        <div className={cn(
+          'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors text-[16px]',
+          status === 'ok' ? 'bg-foreground/8' : 'bg-secondary',
+        )}>
+          🖥
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <span className="text-[13px] font-medium text-foreground leading-tight block">{t('settings.localApi')}</span>
+          {status === 'ok' ? (
+            <span className="text-[11px] text-green-500 leading-tight flex items-center gap-1 mt-0.5">
+              <Check size={10} strokeWidth={2.5} />
+              {t('settings.localApiConnected')}
+            </span>
+          ) : status === 'error' ? (
+            <span className="text-[11px] text-destructive leading-tight mt-0.5 block">
+              {t('settings.localApiError')}
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground leading-tight mt-0.5 block">
+              {t('settings.localApiDesc')}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="px-3.5 mt-2 flex gap-1.5">
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => handleSave(e.target.value)}
+          placeholder="http://localhost:8000"
+          className={cn(
+            'flex-1 h-7 px-2 text-xs rounded border border-border bg-secondary',
+            'text-foreground placeholder:text-muted-foreground',
+            'focus:outline-none focus:border-ring transition-colors',
+          )}
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleTest}
+          disabled={!url.trim() || testing}
+          className="h-7 px-2 text-[11px]"
+        >
+          {testing ? <Loader2 size={11} className="animate-spin" /> : t('settings.localApiTest')}
+        </Button>
       </div>
     </div>
   )

@@ -536,6 +536,11 @@ const zhTW: TranslationKeys = {
   'settings.antigravityDesc': 'Google OAuth 圖片生成（無需 API 金鑰）',
   'settings.switchAccount': '切換',
   'settings.quotaRemaining': '配額',
+  'settings.localApi': '本機圖片 API',
+  'settings.localApiDesc': '連接到本機圖片生成伺服器',
+  'settings.localApiConnected': '已連接',
+  'settings.localApiError': '連接失敗',
+  'settings.localApiTest': '測試',
 } as const
 
 export default zhTW

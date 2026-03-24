@@ -551,6 +551,11 @@ const ja: TranslationKeys = {
   'settings.antigravityDesc': 'Google OAuth 画像生成（APIキー不要）',
   'settings.switchAccount': '切替',
   'settings.quotaRemaining': 'クォータ',
+  'settings.localApi': 'ローカル画像API',
+  'settings.localApiDesc': 'ローカル画像生成サーバーに接続',
+  'settings.localApiConnected': '接続済み',
+  'settings.localApiError': '接続に失敗しました',
+  'settings.localApiTest': 'テスト',
 } as const
 
 export default ja

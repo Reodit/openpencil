@@ -545,6 +545,11 @@ const id: TranslationKeys = {
   'settings.antigravityDesc': 'Pembuatan gambar Google OAuth (tanpa kunci API)',
   'settings.switchAccount': 'Ganti',
   'settings.quotaRemaining': 'Kuota',
+  'settings.localApi': 'API Gambar Lokal',
+  'settings.localApiDesc': 'Hubungkan ke server pembuatan gambar lokal',
+  'settings.localApiConnected': 'Terhubung',
+  'settings.localApiError': 'Koneksi gagal',
+  'settings.localApiTest': 'Uji',
 } as const
 
 export default id

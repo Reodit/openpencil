@@ -545,6 +545,11 @@ const ko: TranslationKeys = {
   'settings.antigravityDesc': 'Google OAuth 이미지 생성 (API 키 불필요)',
   'settings.switchAccount': '전환',
   'settings.quotaRemaining': '잔여량',
+  'settings.localApi': '로컬 이미지 API',
+  'settings.localApiDesc': '로컬 이미지 생성 서버에 연결',
+  'settings.localApiConnected': '연결됨',
+  'settings.localApiError': '연결 실패',
+  'settings.localApiTest': '테스트',
 } as const
 
 export default ko
