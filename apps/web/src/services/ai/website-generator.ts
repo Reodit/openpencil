@@ -24,13 +24,20 @@ LAYOUT:
 - Respect gap, padding, justifyContent, alignItems from container nodes.
 - Use proper sizing: width/height from nodes, fill_container → flex:1, fit_content → auto.
 
+ANCHOR LINKS (CRITICAL — must implement):
+- Every major section frame (e.g. "Hero Area", "Services Section", "Portfolio Section", "About Section", "Contact Section", "Footer Section") MUST get an id attribute derived from its name (e.g. id="hero", id="services", id="portfolio", id="about", id="contact", id="footer").
+- Nav bar text items (e.g. "Home", "About", "Portfolio", "Services", "Contact") MUST be wrapped in <a href="#section-id"> linking to the matching section.
+- "Home" links to the top of the page (#) or the hero section.
+- Match nav text to section names: "About" → #about, "Services" → #services, "Portfolio" → #portfolio, "Contact" → #contact, etc.
+- CTA buttons like "View Portfolio" → #portfolio, "Get Started" → #contact, "Our Process" → #services, etc. Match by semantic meaning.
+- Use scroll-behavior: smooth on html element.
+- If a node has a "link" property, use it exactly: type "page" → hash link, type "anchor" → #id scroll, type "url" → external link.
+
 MULTI-PAGE (SPA):
 - If there are multiple top-level frames, each one is a separate "page" in the SPA.
 - Use hash-based routing (#page-name) for navigation.
 - Show the first page by default.
 - Navigation elements should link to the correct page using hash links.
-- Detect buttons/nav items that match page names and auto-link them.
-- For same-page sections, use anchor links with smooth scroll.
 
 RESPONSIVE:
 - Keep the design pixel-perfect at the design width.
@@ -40,7 +47,7 @@ RESPONSIVE:
 INTERACTIVE ELEMENTS:
 - Buttons should have hover effects (subtle opacity or color change).
 - Links should be clickable with proper cursor.
-- If a node has a "link" property, use it: type "page" → hash link, type "anchor" → #id scroll, type "url" → external link.
+- All nav items and CTA buttons MUST be clickable anchor links as described above.
 
 HTML QUALITY:
 - Use semantic HTML (nav, header, main, section, footer, h1-h6, p, button, a).
@@ -108,7 +115,7 @@ export async function generateAIWebsite(
     WEBSITE_SYSTEM_PROMPT,
     messages,
     model,
-    { thinkingMode: 'enabled', effort: 'medium', maxTurns: 20, firstTextTimeoutMs: 120_000, hardTimeoutMs: 600_000 },
+    { thinkingMode: 'enabled', effort: 'medium', maxTurns: screenshots.length + 1, firstTextTimeoutMs: 180_000, hardTimeoutMs: 600_000 },
     provider,
     abortSignal,
   )) {
