@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { useDocumentStore } from '@/stores/document-store'
 import { useAIStore } from '@/stores/ai-store'
-import { useDesignMdStore } from '@/stores/design-md-store'
 import { useHistoryStore } from '@/stores/history-store'
-import { generateDesignModification } from '@/services/ai/design-generator'
+import { streamChat } from '@/services/ai/ai-service'
+import { DESIGN_STREAM_TIMEOUTS } from '@/services/ai/ai-runtime-config'
 import { Sparkles, Loader2, ChevronDown } from 'lucide-react'
 import type { PenNode } from '@/types/pen'
 import AiVariantsPopup from '@/components/shared/ai-variants-popup'
@@ -16,6 +16,51 @@ interface AiModifySectionProps {
   node: PenNode
 }
 
+/**
+ * Build a system prompt specifically for generating multiple design variants.
+ * Unlike the standard modifier prompt, this explicitly instructs the AI
+ * to return N variants as separate JSON blocks.
+ */
+function buildVariantsSystemPrompt(count: number): string {
+  return `You are a Design Variant Generator. You receive a PenNode JSON and a modification instruction. Your job is to generate exactly ${count} DIFFERENT design variations of the same node.
+
+RULES:
+- Each variant MUST keep the same node ID as the input.
+- Each variant should be a distinctly different interpretation of the instruction.
+- Vary colors, sizes, styles, fonts, spacing, corner radius, opacity, etc.
+- Return ONLY valid PenNode JSON — no explanations between blocks.
+- Do NOT change the node "type" or "id".
+
+PenNode properties you can modify:
+- fill: [{type:"solid", color:"#hex"}] — background color
+- stroke: {color, width, style} — border
+- cornerRadius: number or [tl,tr,br,bl] — rounded corners
+- width, height: number — dimensions
+- opacity: 0-1 — transparency
+- fontSize, fontWeight, fontFamily, lineHeight, letterSpacing — text styling
+- content: string — text content
+- padding: number or [v,h] or [t,r,b,l] — inner spacing
+- gap: number — child spacing
+- layout: "none"|"vertical"|"horizontal" — auto layout
+- effects: [{type:"shadow", offsetX, offsetY, blur, spread, color}] — shadows
+
+RESPONSE FORMAT:
+Return exactly ${count} JSON code blocks, each containing a single variant as a JSON array.
+Label each with "Variant N:".
+
+Variant 1:
+\`\`\`json
+[{...modified node...}]
+\`\`\`
+
+Variant 2:
+\`\`\`json
+[{...modified node...}]
+\`\`\`
+
+... and so on for all ${count} variants.`
+}
+
 export default function AiModifySection({ node }: AiModifySectionProps) {
   const { t } = useTranslation()
   const [prompt, setPrompt] = useState('')
@@ -23,17 +68,13 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
   const [error, setError] = useState('')
   const [variants, setVariants] = useState<PenNode[][] | null>(null)
 
-  // Model selection — default to AI store's current model
   const modelGroups = useAIStore((s) => s.modelGroups)
   const defaultModel = useAIStore((s) => s.model)
   const [selectedModel, setSelectedModel] = useState('')
-
-  // Effective model: selected or default
   const model = selectedModel || defaultModel
 
-  // Build flat list of available models
   const allModels = modelGroups.flatMap((g) =>
-    g.models.map((m) => ({ value: m.value, label: `${m.displayName}`, provider: g.provider }))
+    g.models.map((m) => ({ value: m.value, label: m.displayName, provider: g.provider }))
   )
 
   const handleGenerate = useCallback(async () => {
@@ -42,31 +83,42 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
     setError('')
 
     try {
-      const { document: doc } = useDocumentStore.getState()
       const provider = modelGroups.find((g) =>
         g.models.some((m) => m.value === model),
       )?.provider
 
-      const variantPrompt = `${prompt.trim()}\n\nIMPORTANT: Generate exactly ${VARIANT_COUNT} different design variations. Return them as a JSON array of arrays: [[variant1_nodes...], [variant2_nodes...], ...]. Each variant should be a distinctly different interpretation while following the same instruction. Keep all node IDs the same as the input.`
+      const contextJson = JSON.stringify(node, null, 2)
+      const userMessage = `INPUT NODE:\n${contextJson}\n\nINSTRUCTION:\n${prompt.trim()}`
 
-      const { nodes, rawResponse } = await generateDesignModification(
-        [node], variantPrompt, {
-          variables: doc.variables,
-          themes: doc.themes,
-          designMd: useDesignMdStore.getState().designMd,
-          model,
-          provider,
-        },
-      )
+      const systemPrompt = buildVariantsSystemPrompt(VARIANT_COUNT)
 
-      const parsed = parseVariants(rawResponse, nodes, VARIANT_COUNT)
-      setVariants(parsed)
+      let fullResponse = ''
+      for await (const chunk of streamChat(
+        systemPrompt,
+        [{ role: 'user', content: userMessage }],
+        model,
+        DESIGN_STREAM_TIMEOUTS,
+        provider,
+      )) {
+        if (chunk.type === 'text') {
+          fullResponse += chunk.content
+        } else if (chunk.type === 'error') {
+          throw new Error(chunk.content)
+        }
+      }
+
+      const parsed = parseVariantBlocks(fullResponse)
+      if (parsed.length > 0) {
+        setVariants(parsed)
+      } else {
+        setError(t('aiModify.noResults'))
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }
-  }, [node, prompt, loading, model, modelGroups])
+  }, [node, prompt, loading, model, modelGroups, t])
 
   const handleApplyVariant = useCallback((variantNodes: PenNode[]) => {
     const { document: doc } = useDocumentStore.getState()
@@ -170,31 +222,23 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
   )
 }
 
-function parseVariants(rawResponse: string, fallbackNodes: PenNode[], targetCount: number): PenNode[][] {
-  try {
-    const jsonMatch = rawResponse.match(/\[\s*\[[\s\S]*?\]\s*\]/)
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as PenNode[][]
-      if (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0])) {
-        return parsed.slice(0, targetCount)
-      }
-    }
-  } catch { /* fall through */ }
+/**
+ * Parse multiple ```json blocks from AI response.
+ * Each block is expected to contain a single variant as [PenNode, ...].
+ */
+function parseVariantBlocks(response: string): PenNode[][] {
+  const variants: PenNode[][] = []
+  const regex = /```json\s*([\s\S]*?)```/g
+  let match: RegExpExecArray | null
 
-  const jsonBlocks = rawResponse.match(/```json\s*([\s\S]*?)```/g)
-  if (jsonBlocks && jsonBlocks.length > 1) {
-    const variants: PenNode[][] = []
-    for (const block of jsonBlocks) {
-      try {
-        const json = block.replace(/```json\s*/, '').replace(/```/, '').trim()
-        const parsed = JSON.parse(json)
-        if (Array.isArray(parsed)) {
-          variants.push(parsed)
-        }
-      } catch { /* skip */ }
-    }
-    if (variants.length > 0) return variants.slice(0, targetCount)
+  while ((match = regex.exec(response)) !== null) {
+    try {
+      const parsed = JSON.parse(match[1].trim())
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        variants.push(parsed)
+      }
+    } catch { /* skip malformed */ }
   }
 
-  return [fallbackNodes]
+  return variants
 }
