@@ -69,15 +69,18 @@ export async function generateAIWebsite(
   onProgress?: (status: string) => void,
   abortSignal?: AbortSignal,
 ): Promise<string> {
+  console.log('[WebsiteGenerator] Starting…')
   onProgress?.('Capturing screenshots…')
 
   // Capture screenshots of each top-level frame
   const screenshots = await capturePageScreenshots(doc)
+  console.log(`[WebsiteGenerator] Screenshots captured: ${screenshots.length}`)
 
   onProgress?.('Preparing design data…')
 
   // Build the document context
   const context = buildDocumentContext(doc)
+  console.log(`[WebsiteGenerator] Context size: ${context.length} chars`)
 
   // Build messages with screenshots as attachments
   const messages: Array<{ role: 'user' | 'assistant'; content: string; attachments?: Array<{ name: string; mediaType: string; data: string }> }> = []
