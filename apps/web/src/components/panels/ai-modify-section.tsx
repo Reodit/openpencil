@@ -6,7 +6,7 @@ import { useAIStore } from '@/stores/ai-store'
 import { useDesignMdStore } from '@/stores/design-md-store'
 import { useHistoryStore } from '@/stores/history-store'
 import { generateDesignModification } from '@/services/ai/design-generator'
-import { Sparkles, Loader2 } from 'lucide-react'
+import { Sparkles, Loader2, ChevronDown } from 'lucide-react'
 import type { PenNode } from '@/types/pen'
 import AiVariantsPopup from '@/components/shared/ai-variants-popup'
 
@@ -23,19 +23,30 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
   const [error, setError] = useState('')
   const [variants, setVariants] = useState<PenNode[][] | null>(null)
 
+  // Model selection — default to AI store's current model
+  const modelGroups = useAIStore((s) => s.modelGroups)
+  const defaultModel = useAIStore((s) => s.model)
+  const [selectedModel, setSelectedModel] = useState('')
+
+  // Effective model: selected or default
+  const model = selectedModel || defaultModel
+
+  // Build flat list of available models
+  const allModels = modelGroups.flatMap((g) =>
+    g.models.map((m) => ({ value: m.value, label: `${m.displayName}`, provider: g.provider }))
+  )
+
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim() || loading) return
     setLoading(true)
     setError('')
 
     try {
-      const model = useAIStore.getState().model
       const { document: doc } = useDocumentStore.getState()
-      const provider = useAIStore.getState().modelGroups.find((g) =>
+      const provider = modelGroups.find((g) =>
         g.models.some((m) => m.value === model),
       )?.provider
 
-      // Ask AI for N variants in a single call
       const variantPrompt = `${prompt.trim()}\n\nIMPORTANT: Generate exactly ${VARIANT_COUNT} different design variations. Return them as a JSON array of arrays: [[variant1_nodes...], [variant2_nodes...], ...]. Each variant should be a distinctly different interpretation while following the same instruction. Keep all node IDs the same as the input.`
 
       const { nodes, rawResponse } = await generateDesignModification(
@@ -48,7 +59,6 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
         },
       )
 
-      // Try to parse multiple variants from response
       const parsed = parseVariants(rawResponse, nodes, VARIANT_COUNT)
       setVariants(parsed)
     } catch (e) {
@@ -56,7 +66,7 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
     } finally {
       setLoading(false)
     }
-  }, [node, prompt, loading])
+  }, [node, prompt, loading, model, modelGroups])
 
   const handleApplyVariant = useCallback((variantNodes: PenNode[]) => {
     const { document: doc } = useDocumentStore.getState()
@@ -83,6 +93,34 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
           {t('aiModify.title')}
         </div>
 
+        {/* Model selector */}
+        <div className="relative">
+          <select
+            value={model}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className={cn(
+              'w-full h-6 px-2 pr-6 rounded text-[10px] appearance-none cursor-pointer',
+              'border border-border bg-secondary text-foreground',
+              'focus:outline-none focus:ring-1 focus:ring-ring',
+            )}
+          >
+            {allModels.length === 0 && (
+              <option value="">{t('aiModify.noModels')}</option>
+            )}
+            {modelGroups.map((group) => (
+              <optgroup key={group.provider} label={group.providerName}>
+                {group.models.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.displayName}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+        </div>
+
+        {/* Prompt */}
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -100,7 +138,7 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
 
         <button
           onClick={handleGenerate}
-          disabled={!prompt.trim() || loading}
+          disabled={!prompt.trim() || loading || allModels.length === 0}
           className={cn(
             'w-full h-7 rounded-md text-[11px] font-medium',
             'bg-primary text-primary-foreground',
@@ -132,14 +170,7 @@ export default function AiModifySection({ node }: AiModifySectionProps) {
   )
 }
 
-/**
- * Parse AI response to extract multiple variants.
- * The AI might return:
- * 1. A nested array [[nodes...], [nodes...]] — ideal
- * 2. A flat array [nodes...] — treat as single variant, duplicate with variations
- */
 function parseVariants(rawResponse: string, fallbackNodes: PenNode[], targetCount: number): PenNode[][] {
-  // Try to find nested JSON arrays in the response
   try {
     const jsonMatch = rawResponse.match(/\[\s*\[[\s\S]*?\]\s*\]/)
     if (jsonMatch) {
@@ -150,7 +181,6 @@ function parseVariants(rawResponse: string, fallbackNodes: PenNode[], targetCoun
     }
   } catch { /* fall through */ }
 
-  // Try to find multiple ```json blocks
   const jsonBlocks = rawResponse.match(/```json\s*([\s\S]*?)```/g)
   if (jsonBlocks && jsonBlocks.length > 1) {
     const variants: PenNode[][] = []
@@ -166,6 +196,5 @@ function parseVariants(rawResponse: string, fallbackNodes: PenNode[], targetCoun
     if (variants.length > 0) return variants.slice(0, targetCount)
   }
 
-  // Fallback: use the single result as the only variant
   return [fallbackNodes]
 }

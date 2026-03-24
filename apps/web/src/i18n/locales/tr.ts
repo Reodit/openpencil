@@ -539,6 +539,7 @@ const tr: TranslationKeys = {
   'aiModify.original': 'Orijinal',
   'aiModify.regenerate': 'Yeniden oluştur',
   'aiModify.applyVariant': 'Uygula',
+  'aiModify.noModels': 'Kullanılabilir model yok — önce bir ajan bağlayın',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Görsel Oluşturma',

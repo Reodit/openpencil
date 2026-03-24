@@ -530,6 +530,7 @@ const zh: TranslationKeys = {
   'aiModify.original': '原始',
   'aiModify.regenerate': '重新生成',
   'aiModify.applyVariant': '应用',
+  'aiModify.noModels': '没有可用的模型 — 请先连接一个代理',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '图片生成',

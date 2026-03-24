@@ -539,6 +539,7 @@ const id: TranslationKeys = {
   'aiModify.original': 'Asli',
   'aiModify.regenerate': 'Regenerasi',
   'aiModify.applyVariant': 'Terapkan',
+  'aiModify.noModels': 'Tidak ada model tersedia — hubungkan agen terlebih dahulu',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Pembuatan Gambar',

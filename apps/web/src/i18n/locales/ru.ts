@@ -542,6 +542,7 @@ const ru: TranslationKeys = {
   'aiModify.original': 'Оригинал',
   'aiModify.regenerate': 'Сгенерировать заново',
   'aiModify.applyVariant': 'Применить',
+  'aiModify.noModels': 'Нет доступных моделей — сначала подключите агента',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Генерация изображений',

@@ -539,6 +539,7 @@ const vi: TranslationKeys = {
   'aiModify.original': 'Bản gốc',
   'aiModify.regenerate': 'Tạo lại',
   'aiModify.applyVariant': 'Áp dụng',
+  'aiModify.noModels': 'Không có mô hình khả dụng — hãy kết nối một agent trước',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Tạo hình ảnh',
