@@ -364,6 +364,7 @@ const vi: TranslationKeys = {
   'code.copied': 'Đã sao chép!',
   'code.download': 'Tải xuống tệp mã',
   'code.exportWebsite': 'Xuất dưới dạng trang web',
+  'code.exportingWebsite': 'Đang liên kết và xuất…',
   'code.closeCodePanel': 'Đóng bảng mã',
   'code.genCssVars': 'Đang tạo CSS variables cho toàn bộ tài liệu',
   'code.genSelected':

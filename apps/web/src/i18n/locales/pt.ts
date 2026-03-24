@@ -366,6 +366,7 @@ const pt: TranslationKeys = {
   'code.copied': 'Copiado!',
   'code.download': 'Baixar arquivo de código',
   'code.exportWebsite': 'Exportar como site',
+  'code.exportingWebsite': 'Vinculando e exportando…',
   'code.closeCodePanel': 'Fechar painel de código',
   'code.genCssVars': 'Gerando variáveis CSS para o documento inteiro',
   'code.genSelected':

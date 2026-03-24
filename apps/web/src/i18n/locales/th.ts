@@ -364,6 +364,7 @@ const th: TranslationKeys = {
   'code.copied': 'คัดลอกแล้ว!',
   'code.download': 'ดาวน์โหลดไฟล์โค้ด',
   'code.exportWebsite': 'ส่งออกเป็นเว็บไซต์',
+  'code.exportingWebsite': 'กำลังเชื่อมโยงและส่งออก…',
   'code.closeCodePanel': 'ปิดแผงโค้ด',
   'code.genCssVars': 'กำลังสร้าง CSS Variables สำหรับเอกสารทั้งหมด',
   'code.genSelected':

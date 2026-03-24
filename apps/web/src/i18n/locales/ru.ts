@@ -366,6 +366,7 @@ const ru: TranslationKeys = {
   'code.copied': 'Скопировано!',
   'code.download': 'Скачать файл с кодом',
   'code.exportWebsite': 'Экспортировать как веб-сайт',
+  'code.exportingWebsite': 'Связывание и экспорт…',
   'code.closeCodePanel': 'Закрыть панель кода',
   'code.genCssVars': 'Генерация CSS-переменных для всего документа',
   'code.genSelected':

@@ -289,20 +289,38 @@ ${generatedCode}`
     })
   }, [activeTab])
 
-  const handleExportWebsite = useCallback(() => {
-    const files = generateMultiPageHTML(document)
-    if (files.size === 1) {
-      // Single file — download directly
-      const [filename, content] = files.entries().next().value!
-      const blob = new Blob([content], { type: 'text/html;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = globalThis.document.createElement('a')
-      a.href = url
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(url)
-    } else {
-      // Multiple files — download each (ZIP would be better but keeping it simple)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportWebsite = useCallback(async () => {
+    setExporting(true)
+    try {
+      let doc = useDocumentStore.getState().document
+      const pages = doc.pages ?? []
+
+      // Auto-link if pages exist and no links found
+      if (pages.length >= 2) {
+        const hasAnyLink = pages.some((p) =>
+          JSON.stringify(p.children).includes('"link":{')
+        )
+        if (!hasAnyLink) {
+          const { autoLinkPages, applyLinkMappings } = await import('@/services/ai/auto-link')
+          const aiModel = useAIStore.getState().model
+          const provider = useAIStore.getState().modelGroups.find((g) =>
+            g.models.some((m) => m.value === aiModel),
+          )?.provider
+
+          if (aiModel && provider) {
+            const mappings = await autoLinkPages(doc, aiModel, provider)
+            if (mappings.length > 0) {
+              applyLinkMappings(pages, mappings)
+              useDocumentStore.getState().applyExternalDocument({ ...doc })
+              doc = useDocumentStore.getState().document
+            }
+          }
+        }
+      }
+
+      const files = generateMultiPageHTML(doc)
       for (const [filename, content] of files) {
         const blob = new Blob([content], { type: 'text/html;charset=utf-8' })
         const url = URL.createObjectURL(blob)
@@ -312,8 +330,12 @@ ${generatedCode}`
         a.click()
         URL.revokeObjectURL(url)
       }
+    } catch (e) {
+      console.error('[ExportWebsite] failed:', e)
+    } finally {
+      setExporting(false)
     }
-  }, [document])
+  }, [])
 
   // Clear enhanced code when nodes change
   useEffect(() => {
@@ -478,9 +500,10 @@ ${generatedCode}`
           size="sm"
           className="w-full text-xs h-7"
           onClick={handleExportWebsite}
+          disabled={exporting}
         >
-          <Download size={12} className="mr-1" />
-          {t('code.exportWebsite')}
+          {exporting ? <Loader2 size={12} className="animate-spin mr-1" /> : <Download size={12} className="mr-1" />}
+          {exporting ? t('code.exportingWebsite') : t('code.exportWebsite')}
         </Button>
       </div>
 

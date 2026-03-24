@@ -368,6 +368,7 @@ const fr: TranslationKeys = {
   'code.copied': 'Copié !',
   'code.download': 'Télécharger le fichier de code',
   'code.exportWebsite': 'Exporter en tant que site web',
+  'code.exportingWebsite': 'Liaison et exportation…',
   'code.closeCodePanel': 'Fermer le panneau de code',
   'code.genCssVars':
     'Génération des variables CSS pour l\u2019ensemble du document',

@@ -358,6 +358,7 @@ const zh: TranslationKeys = {
   'code.copied': '已复制！',
   'code.download': '下载代码文件',
   'code.exportWebsite': '导出为网站',
+  'code.exportingWebsite': '正在链接并导出…',
   'code.closeCodePanel': '关闭代码面板',
   'code.genCssVars': '正在为整个文档生成 CSS 变量',
   'code.genSelected': '正在为 {{count}} 个选中元素生成代码',

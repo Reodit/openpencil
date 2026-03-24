@@ -364,6 +364,7 @@ const id: TranslationKeys = {
   'code.copied': 'Tersalin!',
   'code.download': 'Unduh file kode',
   'code.exportWebsite': 'Ekspor sebagai situs web',
+  'code.exportingWebsite': 'Menautkan & Mengekspor…',
   'code.closeCodePanel': 'Tutup panel kode',
   'code.genCssVars': 'Membuat CSS variables untuk seluruh dokumen',
   'code.genSelected':

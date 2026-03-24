@@ -364,6 +364,7 @@ const ko: TranslationKeys = {
   'code.copied': '복사됨!',
   'code.download': '코드 파일 다운로드',
   'code.exportWebsite': '웹사이트로 내보내기',
+  'code.exportingWebsite': '링크 연결 및 내보내기 중…',
   'code.closeCodePanel': '코드 패널 닫기',
   'code.genCssVars': '전체 문서의 CSS 변수를 생성 중',
   'code.genSelected':

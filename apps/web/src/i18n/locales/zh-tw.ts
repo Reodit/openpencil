@@ -358,6 +358,7 @@ const zhTW: TranslationKeys = {
   'code.copied': '已複製！',
   'code.download': '下載程式碼檔案',
   'code.exportWebsite': '匯出為網站',
+  'code.exportingWebsite': '正在連結並匯出…',
   'code.closeCodePanel': '關閉程式碼面板',
   'code.genCssVars': '正在為整份文件產生 CSS 變數',
   'code.genSelected': '正在為 {{count}} 個選取元素產生程式碼',
