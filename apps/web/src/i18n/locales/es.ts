@@ -552,6 +552,7 @@ const es: TranslationKeys = {
   'aiModify.noModels': 'No hay modelos disponibles — conecte un agente primero',
   'aiModify.viewVariants': 'Ver',
   'aiModify.history': 'Historial',
+  'aiModify.restoreOriginal': 'Restaurar',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Generación de imágenes',

@@ -542,6 +542,7 @@ const hi: TranslationKeys = {
   'aiModify.noModels': 'कोई मॉडल उपलब्ध नहीं — पहले एक एजेंट कनेक्ट करें',
   'aiModify.viewVariants': 'देखें',
   'aiModify.history': 'इतिहास',
+  'aiModify.restoreOriginal': 'पुनर्स्थापित करें',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'छवि निर्माण',

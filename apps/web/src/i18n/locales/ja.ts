@@ -548,6 +548,7 @@ const ja: TranslationKeys = {
   'aiModify.noModels': '利用可能なモデルがありません — まずエージェントを接続してください',
   'aiModify.viewVariants': '表示',
   'aiModify.history': '履歴',
+  'aiModify.restoreOriginal': '元に戻す',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '画像生成',

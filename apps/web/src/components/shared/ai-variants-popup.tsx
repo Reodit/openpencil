@@ -59,7 +59,7 @@ export default function AiVariantsPopup({
             style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
           >
             {/* Original */}
-            <div className="rounded-lg border-2 border-dashed border-border bg-background overflow-hidden">
+            <div className="rounded-lg border-2 border-dashed border-border bg-background overflow-hidden group hover:border-primary/50 transition-colors">
               <div className="relative" style={{ paddingBottom: '75%' }}>
                 <div className="absolute inset-0">
                   <SkiaPreviewCanvas node={originalNode} />
@@ -67,6 +67,18 @@ export default function AiVariantsPopup({
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-card/80 text-[9px] font-medium text-muted-foreground border border-border">
                   {t('aiModify.original')}
                 </div>
+              </div>
+              <div className="p-2 flex items-center justify-end">
+                <button
+                  onClick={() => onApply([originalNode])}
+                  className={cn(
+                    'inline-flex items-center gap-1 h-6 px-2.5 rounded text-[10px] font-medium',
+                    'border border-border text-foreground hover:bg-secondary/50 transition-colors',
+                  )}
+                >
+                  <Check size={10} />
+                  {t('aiModify.restoreOriginal')}
+                </button>
               </div>
             </div>
 
