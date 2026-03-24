@@ -1,9 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, Check } from 'lucide-react'
-import type { PenNode } from '@/types/pen'
-import NodePreviewSvg from '@/components/panels/node-preview-svg'
+import type { PenNode, PenDocument } from '@/types/pen'
+import { getCanvasKit } from '@/canvas/skia/skia-init'
 
 interface AiVariantsPopupProps {
   variants: PenNode[][]
@@ -25,8 +25,7 @@ export default function AiVariantsPopup({
   const { t } = useTranslation()
   const backdropRef = useRef<HTMLDivElement>(null)
 
-  // Calculate grid columns based on variant count
-  const cols = variants.length <= 3 ? variants.length : variants.length <= 6 ? 3 : 4
+  const cols = variants.length <= 3 ? variants.length + 1 : Math.min(variants.length + 1, 4)
 
   return (
     <div
@@ -34,7 +33,7 @@ export default function AiVariantsPopup({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={(e) => { if (e.target === backdropRef.current) onClose() }}
     >
-      <div className="w-[800px] max-w-[90vw] max-h-[85vh] rounded-lg border border-border bg-card shadow-2xl flex flex-col">
+      <div className="w-[850px] max-w-[90vw] max-h-[85vh] rounded-lg border border-border bg-card shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <h2 className="text-sm font-semibold text-foreground">
@@ -61,8 +60,8 @@ export default function AiVariantsPopup({
           >
             {/* Original */}
             <div className="rounded-lg border-2 border-dashed border-border bg-background overflow-hidden">
-              <div className="aspect-[4/3] flex items-center justify-center p-3 relative bg-muted/30">
-                <NodePreviewSvg node={originalNode} maxWidth={200} maxHeight={140} />
+              <div className="aspect-[4/3] relative bg-muted/30">
+                <SkiaPreviewCanvas node={originalNode} />
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-card/80 text-[9px] font-medium text-muted-foreground border border-border">
                   {t('aiModify.original')}
                 </div>
@@ -119,11 +118,11 @@ function VariantCard({
 
   return (
     <div className="rounded-lg border border-border bg-background overflow-hidden group hover:border-primary/50 transition-colors">
-      <div className="aspect-[4/3] flex items-center justify-center p-3 relative bg-muted/10">
+      <div className="aspect-[4/3] relative bg-muted/10">
         {primaryNode ? (
-          <NodePreviewSvg node={primaryNode} maxWidth={200} maxHeight={140} />
+          <SkiaPreviewCanvas node={primaryNode} />
         ) : (
-          <span className="text-xs text-muted-foreground">Empty</span>
+          <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Empty</div>
         )}
         <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
           {index}
@@ -142,5 +141,61 @@ function VariantCard({
         </button>
       </div>
     </div>
+  )
+}
+
+/**
+ * Mini CanvasKit canvas that renders a single PenNode using
+ * the standalone PenRenderer from pen-renderer package.
+ */
+function SkiaPreviewCanvas({ node }: { node: PenNode }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const rendererRef = useRef<import('@zseven-w/pen-renderer').PenRenderer | null>(null)
+
+  const initRenderer = useCallback(async () => {
+    const canvasEl = canvasRef.current
+    if (!canvasEl) return
+
+    const ck = getCanvasKit()
+    if (!ck) return
+
+    // Lazy import to avoid circular deps
+    const { PenRenderer } = await import('@zseven-w/pen-renderer')
+
+    // Build a minimal document containing just this node
+    const doc: PenDocument = {
+      version: '0.5.0',
+      children: [node],
+    }
+
+    const renderer = new PenRenderer(ck, {
+      fontBasePath: '/fonts/',
+      devicePixelRatio: 2,
+    })
+    renderer.init(canvasEl)
+    renderer.setDocument(doc)
+
+    // Wait a frame for fonts to load, then zoom to fit
+    requestAnimationFrame(() => {
+      renderer.zoomToFit(16)
+    })
+
+    rendererRef.current = renderer
+  }, [node])
+
+  useEffect(() => {
+    initRenderer()
+    return () => {
+      rendererRef.current?.dispose()
+      rendererRef.current = null
+    }
+  }, [initRenderer])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="w-full h-full"
+      style={{ display: 'block' }}
+    />
   )
 }
