@@ -520,12 +520,11 @@ const zhTW: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'AI 修改',
   'aiModify.placeholder': '描述你想要的變更…',
-  'aiModify.variants': '變體',
-  'aiModify.apply': '套用',
-  'aiModify.compare': '比較',
-  'aiModify.variantsTitle': 'AI 變體',
-  'aiModify.regenerate': '重新產生',
-  'aiModify.applyVariant': '套用',
+  'aiModify.generate': '修改',
+  'aiModify.generating': '生成中…',
+  'aiModify.confirm': '確認',
+  'aiModify.addVariant': '新增',
+  'aiModify.variantOf': '變體 {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '圖片生成',

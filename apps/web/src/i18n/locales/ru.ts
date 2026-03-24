@@ -532,12 +532,11 @@ const ru: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'ИИ-редактирование',
   'aiModify.placeholder': 'Опишите желаемое изменение…',
-  'aiModify.variants': 'Варианты',
-  'aiModify.apply': 'Применить',
-  'aiModify.compare': 'Сравнить',
-  'aiModify.variantsTitle': 'ИИ-варианты',
-  'aiModify.regenerate': 'Сгенерировать заново',
-  'aiModify.applyVariant': 'Применить',
+  'aiModify.generate': 'Изменить',
+  'aiModify.generating': 'Генерация…',
+  'aiModify.confirm': 'Подтвердить',
+  'aiModify.addVariant': 'Новый',
+  'aiModify.variantOf': 'Вариант {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Генерация изображений',

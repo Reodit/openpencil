@@ -520,12 +520,11 @@ const zh: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'AI 修改',
   'aiModify.placeholder': '描述你想要的更改…',
-  'aiModify.variants': '变体',
-  'aiModify.apply': '应用',
-  'aiModify.compare': '对比',
-  'aiModify.variantsTitle': 'AI 变体',
-  'aiModify.regenerate': '重新生成',
-  'aiModify.applyVariant': '应用',
+  'aiModify.generate': '修改',
+  'aiModify.generating': '生成中…',
+  'aiModify.confirm': '确认',
+  'aiModify.addVariant': '新建',
+  'aiModify.variantOf': '变体 {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '图片生成',

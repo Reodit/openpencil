@@ -529,12 +529,11 @@ const th: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'AI แก้ไข',
   'aiModify.placeholder': 'อธิบายการเปลี่ยนแปลงที่คุณต้องการ…',
-  'aiModify.variants': 'รูปแบบ',
-  'aiModify.apply': 'นำไปใช้',
-  'aiModify.compare': 'เปรียบเทียบ',
-  'aiModify.variantsTitle': 'รูปแบบ AI',
-  'aiModify.regenerate': 'สร้างใหม่',
-  'aiModify.applyVariant': 'นำไปใช้',
+  'aiModify.generate': 'แก้ไข',
+  'aiModify.generating': 'กำลังสร้าง…',
+  'aiModify.confirm': 'ยืนยัน',
+  'aiModify.addVariant': 'ใหม่',
+  'aiModify.variantOf': 'รูปแบบ {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'สร้างรูปภาพ',

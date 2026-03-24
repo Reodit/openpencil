@@ -535,12 +535,11 @@ const ja: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'AI 修正',
   'aiModify.placeholder': '変更したい内容を入力…',
-  'aiModify.variants': 'バリエーション',
-  'aiModify.apply': '適用',
-  'aiModify.compare': '比較',
-  'aiModify.variantsTitle': 'AI バリエーション',
-  'aiModify.regenerate': '再生成',
-  'aiModify.applyVariant': '適用',
+  'aiModify.generate': '修正',
+  'aiModify.generating': '生成中…',
+  'aiModify.confirm': '確定',
+  'aiModify.addVariant': '新規',
+  'aiModify.variantOf': 'バリエーション {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '画像生成',

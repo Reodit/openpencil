@@ -529,12 +529,11 @@ const ko: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'AI 수정',
   'aiModify.placeholder': '원하는 변경을 설명하세요…',
-  'aiModify.variants': '시안 수',
-  'aiModify.apply': '바로 적용',
-  'aiModify.compare': '시안 비교',
-  'aiModify.variantsTitle': 'AI 시안 비교',
-  'aiModify.regenerate': '다시 만들기',
-  'aiModify.applyVariant': '적용',
+  'aiModify.generate': '수정하기',
+  'aiModify.generating': '생성 중…',
+  'aiModify.confirm': '확정',
+  'aiModify.addVariant': '시안 추가',
+  'aiModify.variantOf': '시안 {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': '이미지 생성',

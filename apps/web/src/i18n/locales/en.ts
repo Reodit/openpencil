@@ -527,12 +527,11 @@ const en = {
   // ── AI Modify ──
   'aiModify.title': 'AI Modify',
   'aiModify.placeholder': 'Describe the change you want…',
-  'aiModify.variants': 'Variants',
-  'aiModify.apply': 'Apply',
-  'aiModify.compare': 'Compare',
-  'aiModify.variantsTitle': 'AI Variants',
-  'aiModify.regenerate': 'Regenerate',
-  'aiModify.applyVariant': 'Apply',
+  'aiModify.generate': 'Modify',
+  'aiModify.generating': 'Generating…',
+  'aiModify.confirm': 'Confirm',
+  'aiModify.addVariant': 'New',
+  'aiModify.variantOf': 'Variant {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Image Generation',

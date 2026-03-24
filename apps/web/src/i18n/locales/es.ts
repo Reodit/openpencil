@@ -539,12 +539,11 @@ const es: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'Modificar con IA',
   'aiModify.placeholder': 'Describe el cambio que deseas…',
-  'aiModify.variants': 'Variantes',
-  'aiModify.apply': 'Aplicar',
-  'aiModify.compare': 'Comparar',
-  'aiModify.variantsTitle': 'Variantes de IA',
-  'aiModify.regenerate': 'Regenerar',
-  'aiModify.applyVariant': 'Aplicar',
+  'aiModify.generate': 'Modificar',
+  'aiModify.generating': 'Generando…',
+  'aiModify.confirm': 'Confirmar',
+  'aiModify.addVariant': 'Nuevo',
+  'aiModify.variantOf': 'Variante {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Generación de imágenes',

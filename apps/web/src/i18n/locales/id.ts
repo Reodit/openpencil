@@ -529,12 +529,11 @@ const id: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'Modifikasi AI',
   'aiModify.placeholder': 'Jelaskan perubahan yang Anda inginkan…',
-  'aiModify.variants': 'Varian',
-  'aiModify.apply': 'Terapkan',
-  'aiModify.compare': 'Bandingkan',
-  'aiModify.variantsTitle': 'Varian AI',
-  'aiModify.regenerate': 'Buat Ulang',
-  'aiModify.applyVariant': 'Terapkan',
+  'aiModify.generate': 'Modifikasi',
+  'aiModify.generating': 'Menghasilkan…',
+  'aiModify.confirm': 'Konfirmasi',
+  'aiModify.addVariant': 'Baru',
+  'aiModify.variantOf': 'Varian {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Pembuatan Gambar',

@@ -529,12 +529,11 @@ const tr: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'AI Düzenleme',
   'aiModify.placeholder': 'İstediğiniz değişikliği açıklayın…',
-  'aiModify.variants': 'Varyantlar',
-  'aiModify.apply': 'Uygula',
-  'aiModify.compare': 'Karşılaştır',
-  'aiModify.variantsTitle': 'AI Varyantları',
-  'aiModify.regenerate': 'Yeniden Oluştur',
-  'aiModify.applyVariant': 'Uygula',
+  'aiModify.generate': 'Düzenle',
+  'aiModify.generating': 'Oluşturuluyor…',
+  'aiModify.confirm': 'Onayla',
+  'aiModify.addVariant': 'Yeni',
+  'aiModify.variantOf': 'Varyant {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'Görsel Oluşturma',

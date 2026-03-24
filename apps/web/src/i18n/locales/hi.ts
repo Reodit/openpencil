@@ -529,12 +529,11 @@ const hi: TranslationKeys = {
   // ── AI Modify ──
   'aiModify.title': 'AI संशोधन',
   'aiModify.placeholder': 'आप जो बदलाव चाहते हैं उसका वर्णन करें…',
-  'aiModify.variants': 'वैरिएंट',
-  'aiModify.apply': 'लागू करें',
-  'aiModify.compare': 'तुलना करें',
-  'aiModify.variantsTitle': 'AI वैरिएंट',
-  'aiModify.regenerate': 'पुनः उत्पन्न करें',
-  'aiModify.applyVariant': 'लागू करें',
+  'aiModify.generate': 'संशोधित करें',
+  'aiModify.generating': 'उत्पन्न हो रहा है…',
+  'aiModify.confirm': 'पुष्टि करें',
+  'aiModify.addVariant': 'नया',
+  'aiModify.variantOf': 'वैरिएंट {{current}}/{{total}}',
 
   // ── Settings (Antigravity) ──
   'settings.imageGen': 'छवि निर्माण',
