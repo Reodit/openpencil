@@ -30,9 +30,17 @@ export const SENSITIVE_LOG_PATTERN = /ANTHROPIC_API_KEY=|Authorization:\s*Bearer
 /** Allowed media types for image attachments */
 export const ALLOWED_MEDIA_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
 
-/** Resolve file extension from media type, falling back to 'png' for disallowed types */
+/** Allowed text/data types for non-image attachments */
+export const ALLOWED_TEXT_TYPES = new Set(['text/plain', 'application/json', 'text/html', 'text/csv'])
+
+/** Resolve file extension from media type */
 export function resolveMediaExtension(mediaType: string): string {
-  return ALLOWED_MEDIA_TYPES.has(mediaType) ? mediaType.split('/')[1] : 'png'
+  if (ALLOWED_MEDIA_TYPES.has(mediaType)) return mediaType.split('/')[1]
+  if (mediaType === 'text/plain') return 'txt'
+  if (mediaType === 'application/json') return 'json'
+  if (mediaType === 'text/html') return 'html'
+  if (mediaType === 'text/csv') return 'csv'
+  return 'png'
 }
 
 interface ChatAttachmentWire {
@@ -223,17 +231,27 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user')
         let prompt = lastUserMsg?.content ?? ''
 
-        // If the last user message has image attachments, save to temp files
-        // inside the project directory so Claude Code has read permission.
+        // Save attachments (images + text files) to temp files
         const attachments = getLastUserAttachments(body)
-        const hasImageAttachments = attachments.length > 0
-        if (hasImageAttachments) {
+        const imageAttachments = attachments.filter((a) => ALLOWED_MEDIA_TYPES.has(a.mediaType))
+        const textAttachments = attachments.filter((a) => ALLOWED_TEXT_TYPES.has(a.mediaType))
+        const hasAttachments = attachments.length > 0
+
+        if (hasAttachments) {
           const saved = await saveAttachmentsToTempFiles(attachments, true)
           attachTempDir = saved.tempDir
-          const imageRefs = saved.files.map((f) =>
-            `First, use the Read tool to read the image file at "${f}". Then analyze it and respond to the user.`,
-          ).join('\n')
-          prompt = imageRefs + '\n\n' + (prompt || 'Describe what you see in the image.')
+
+          const refs: string[] = []
+          let fileIdx = 0
+          for (const att of attachments) {
+            const filePath = saved.files[fileIdx++]
+            if (ALLOWED_MEDIA_TYPES.has(att.mediaType)) {
+              refs.push(`Use the Read tool to view the image at "${filePath}" (${att.name}).`)
+            } else {
+              refs.push(`Use the Read tool to read the file at "${filePath}" (${att.name}).`)
+            }
+          }
+          prompt = refs.join('\n') + '\n\n' + prompt
         }
 
         // Remove CLAUDECODE env to allow running from within a CC terminal
@@ -245,7 +263,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
 
         // When images are attached, strip the "NEVER use tools" restriction from
         // the system prompt so Claude Code will use its Read tool to view images.
-        const effectiveSystemPrompt = hasImageAttachments
+        const effectiveSystemPrompt = hasAttachments
           ? stripNoToolsRestriction(body.system)
           : body.system
 
@@ -256,11 +274,11 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
             options: {
               systemPrompt: effectiveSystemPrompt,
               ...(model ? { model } : {}),
-              maxTurns: body.maxTurns ?? (hasImageAttachments ? 3 : 1),
+              maxTurns: body.maxTurns ?? (hasAttachments ? 3 : 1),
               includePartialMessages: true,
-              tools: hasImageAttachments ? ['Read'] : [],
+              tools: hasAttachments ? ['Read'] : [],
               plugins: [],
-              permissionMode: hasImageAttachments ? 'default' : 'plan',
+              permissionMode: hasAttachments ? 'default' : 'plan',
               persistSession: false,
               ...(body.effort ? { effort: body.effort } : {}),
               ...(thinking ? { thinking } : {}),

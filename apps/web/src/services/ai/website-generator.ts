@@ -2,72 +2,57 @@ import type { PenDocument, PenNode } from '@/types/pen'
 import { streamChat } from './ai-service'
 import { getCanvasKit } from '@/canvas/skia/skia-init'
 
-const WEBSITE_SYSTEM_PROMPT = `You are an expert web developer. You receive a design document (JSON) containing pages with UI elements (frames, text, images, buttons, navigation, etc.) and you produce a COMPLETE, working single-page HTML website.
+const WEBSITE_AGENT_PROMPT = `You are an expert web developer agent. You will be given design files and screenshots to read. Your job is to generate a COMPLETE, working single-file HTML website.
+
+WORKFLOW:
+1. First, read ALL the provided files (screenshots and design data files for each page).
+2. Analyze the design: understand the layout, sections, navigation, colors, fonts, content.
+3. Identify anchor links: which nav items should link to which sections.
+4. Generate the complete HTML.
 
 OUTPUT REQUIREMENTS:
-- Return ONLY a complete HTML document (<!DOCTYPE html> to </html>). Nothing else.
-- No markdown fences, no explanations, no comments outside the code.
-- The HTML must work when opened directly in a browser (file:// protocol).
+- Output ONLY a complete HTML document (<!DOCTYPE html> to </html>).
+- No markdown fences, no explanations, no preamble, no comments outside the code.
 - Everything in ONE file: HTML + CSS (in <style>) + JS (in <script>).
+- Must work when opened directly in a browser (file:// protocol).
+
+ANCHOR LINKS (CRITICAL):
+- Every major section (hero, services, portfolio, about, contact, footer, etc.) MUST have an id attribute.
+- Nav text items MUST be <a href="#section-id"> linking to the matching section.
+- CTA buttons should link to relevant sections by semantic meaning.
+- Use scroll-behavior: smooth on html.
 
 DESIGN FIDELITY:
-- Match the design exactly: colors, fonts, sizes, spacing, layout, border radius.
-- Use the exact text content from the nodes.
-- Use the exact colors from fill/stroke properties.
-- Respect font families, font sizes, font weights, line heights.
-- Match corner radius, shadows, and opacity values.
-- Images: use the src from image nodes (data URLs or external URLs).
+- Match colors, fonts, sizes, spacing, border radius exactly from the design data.
+- Use exact text content from nodes.
+- Respect layout properties: horizontal → flex-row, vertical → flex-col.
+- Respect gap, padding, justifyContent, alignItems.
+- fill_container → flex:1, fit_content → auto.
 
-LAYOUT:
-- Use modern CSS: flexbox, grid. NOT absolute positioning.
-- Respect the node's layout property (horizontal → flex-row, vertical → flex-col).
-- Respect gap, padding, justifyContent, alignItems from container nodes.
-- Use proper sizing: width/height from nodes, fill_container → flex:1, fit_content → auto.
-
-ANCHOR LINKS (CRITICAL — must implement):
-- Every major section frame (e.g. "Hero Area", "Services Section", "Portfolio Section", "About Section", "Contact Section", "Footer Section") MUST get an id attribute derived from its name (e.g. id="hero", id="services", id="portfolio", id="about", id="contact", id="footer").
-- Nav bar text items (e.g. "Home", "About", "Portfolio", "Services", "Contact") MUST be wrapped in <a href="#section-id"> linking to the matching section.
-- "Home" links to the top of the page (#) or the hero section.
-- Match nav text to section names: "About" → #about, "Services" → #services, "Portfolio" → #portfolio, "Contact" → #contact, etc.
-- CTA buttons like "View Portfolio" → #portfolio, "Get Started" → #contact, "Our Process" → #services, etc. Match by semantic meaning.
-- Use scroll-behavior: smooth on html element.
-- If a node has a "link" property, use it exactly: type "page" → hash link, type "anchor" → #id scroll, type "url" → external link.
-
-MULTI-PAGE (SPA):
-- If there are multiple top-level frames, each one is a separate "page" in the SPA.
-- Use hash-based routing (#page-name) for navigation.
-- Show the first page by default.
-- Navigation elements should link to the correct page using hash links.
-
-RESPONSIVE:
-- Keep the design pixel-perfect at the design width.
-- Center the content on larger screens.
-- On smaller screens, allow horizontal scroll rather than breaking the layout.
-
-INTERACTIVE ELEMENTS:
-- Buttons should have hover effects (subtle opacity or color change).
-- Links should be clickable with proper cursor.
-- All nav items and CTA buttons MUST be clickable anchor links as described above.
+MULTI-PAGE:
+- If there are multiple top-level frames (pages), combine them into a single long-scroll page with distinct sections.
+- Or use hash-based SPA routing if the pages are clearly separate (different navigation, different themes).
+- Each page's content should be fully rendered — do NOT skip any page.
 
 HTML QUALITY:
-- Use semantic HTML (nav, header, main, section, footer, h1-h6, p, button, a).
-- Use Google Fonts <link> for custom fonts referenced in the design.
-- Include viewport meta tag.
-- Include CSS reset (margin:0, padding:0, box-sizing:border-box).
+- Semantic HTML (nav, header, main, section, footer, h1-h6, p, button, a).
+- Google Fonts <link> for referenced fonts.
+- Viewport meta tag, CSS reset.
+- Hover effects on buttons and links.
 
-NODE TYPE REFERENCE:
-- frame: container div (may have layout, fill, stroke, cornerRadius, children)
-- text: text element (content, fontSize, fontWeight, fontFamily, fill for color)
-- rectangle: decorative box (fill, stroke, cornerRadius)
-- ellipse: circle/oval (fill, cornerRadius:50%)
-- image: img tag (src, objectFit)
-- icon_font: icon (iconFontName = Lucide icon name, use SVG or emoji fallback)
-- line: hr or border element
-- group: transparent container (children)`
+NODE TYPES:
+- frame → div (may have layout, fill, stroke, cornerRadius, children)
+- text → text element (content, fontSize, fontWeight, fontFamily, fill = color)
+- rectangle → decorative box
+- ellipse → circle/oval
+- image → img (src, objectFit)
+- icon_font → icon (iconFontName = Lucide icon name, use inline SVG or emoji)
+- line → hr/border
+- group → transparent container`
 
 /**
- * Generate a complete website from a PenDocument using AI.
- * Returns a single HTML string ready to save as a file.
+ * Generate a complete website from a PenDocument using AI agent.
+ * Saves design data as files, lets the AI agent read them via Read tool.
  */
 export async function generateAIWebsite(
   doc: PenDocument,
@@ -79,40 +64,53 @@ export async function generateAIWebsite(
   console.log('[WebsiteGenerator] Starting…')
   onProgress?.('Capturing screenshots…')
 
-  // Capture screenshots of each top-level frame
   const screenshots = await capturePageScreenshots(doc)
   console.log(`[WebsiteGenerator] Screenshots captured: ${screenshots.length}`)
 
   onProgress?.('Preparing design data…')
 
-  // Build the document context
-  const context = buildDocumentContext(doc)
-  console.log(`[WebsiteGenerator] Context size: ${context.length} chars`)
+  // Build per-page design data files
+  const pageFiles = buildPerPageData(doc)
+  console.log(`[WebsiteGenerator] Page data files: ${pageFiles.length}`)
 
-  // Build messages with screenshots as attachments
-  const messages: Array<{ role: 'user' | 'assistant'; content: string; attachments?: Array<{ name: string; mediaType: string; data: string }> }> = []
+  // Build attachments: screenshots (images) + page data (text files)
+  const attachments: Array<{ name: string; mediaType: string; data: string }> = []
 
-  if (screenshots.length > 0) {
-    messages.push({
-      role: 'user',
-      content: `Here are screenshots of each page in the design:\n${screenshots.map((s, i) => `Page ${i + 1}: "${s.name}"`).join('\n')}\n\nNow here is the full design data:\n\n${context}`,
-      attachments: screenshots.map((s, i) => ({
-        name: `page-${i + 1}-${s.name}.png`,
-        mediaType: 'image/png',
-        data: s.base64,
-      })),
+  for (let i = 0; i < screenshots.length; i++) {
+    attachments.push({
+      name: `screenshot-page-${i + 1}.png`,
+      mediaType: 'image/png',
+      data: screenshots[i].base64,
     })
-  } else {
-    messages.push({ role: 'user', content: context })
   }
 
-  console.log(`[WebsiteGenerator] Prompt size: ${context.length} chars, screenshots: ${screenshots.length}`)
+  for (let i = 0; i < pageFiles.length; i++) {
+    attachments.push({
+      name: pageFiles[i].name,
+      mediaType: 'text/plain',
+      data: btoa(unescape(encodeURIComponent(pageFiles[i].content))),
+    })
+  }
+
+  // Build a lightweight prompt — the heavy data is in files
+  const summary = buildSummary(doc, pageFiles)
+  const userMessage = `${summary}
+
+Read all the attached files (screenshots and design data) and generate a complete HTML website.
+Make sure to include ALL ${pageFiles.length} pages worth of content. Do NOT skip any page.
+Every section must have an id for anchor navigation.`
+
+  const messages: Array<{ role: 'user' | 'assistant'; content: string; attachments?: typeof attachments }> = [
+    { role: 'user', content: userMessage, attachments },
+  ]
+
+  console.log(`[WebsiteGenerator] Prompt: ${userMessage.length} chars, ${attachments.length} attachments`)
 
   onProgress?.('Generating website…')
 
   let fullResponse = ''
   for await (const chunk of streamChat(
-    WEBSITE_SYSTEM_PROMPT,
+    WEBSITE_AGENT_PROMPT,
     messages,
     model,
     { thinkingMode: 'enabled', effort: 'medium', maxTurns: 20, firstTextTimeoutMs: 180_000, hardTimeoutMs: 600_000 },
@@ -122,21 +120,16 @@ export async function generateAIWebsite(
     if (chunk.type === 'text') {
       fullResponse += chunk.content
     } else if (chunk.type === 'error') {
-      console.error('[WebsiteGenerator] Stream error chunk:', chunk.content)
+      console.error('[WebsiteGenerator] Stream error:', chunk.content)
       throw new Error(chunk.content)
     }
   }
 
-  // Log full response
-  console.log('[WebsiteGenerator] === AI RESPONSE ===')
   console.log(`[WebsiteGenerator] Response length: ${fullResponse.length}`)
-  console.log(fullResponse.slice(0, 3000), fullResponse.length > 3000 ? `\n... (${fullResponse.length} chars total)` : '')
 
-  // Extract HTML from response (strip markdown fences if present)
   const html = extractHTML(fullResponse)
   if (!html) {
-    console.error('[WebsiteGenerator] === FULL RESPONSE (parse failed) ===')
-    console.error(fullResponse)
+    console.error('[WebsiteGenerator] Parse failed. Response starts with:', fullResponse.slice(0, 500))
     throw new Error(`AI did not return valid HTML. Response starts with: "${fullResponse.slice(0, 300)}"`)
   }
 
@@ -144,54 +137,83 @@ export async function generateAIWebsite(
   return html
 }
 
-function buildDocumentContext(doc: PenDocument): string {
+/** Build a short summary for the prompt (not the full data) */
+function buildSummary(doc: PenDocument, pageFiles: Array<{ name: string; content: string }>): string {
   const pages = doc.pages ?? []
-  const parts: string[] = []
-
-  parts.push(`DESIGN DOCUMENT: "${doc.name ?? 'Untitled'}"`)
+  const allFrames: Array<{ name: string; node: PenNode }> = []
 
   if (pages.length === 0) {
-    // Single page
-    parts.push('\nPAGES: 1 (single page)')
-    parts.push('\nTOP-LEVEL FRAMES:')
     for (const node of doc.children) {
-      parts.push(serializeNode(node, 0))
+      allFrames.push({ name: node.name ?? node.type, node })
     }
   } else {
-    // Collect all top-level frames
-    const allFrames: Array<{ pageName: string; node: PenNode }> = []
+    for (const page of pages) {
+      for (const node of page.children) {
+        allFrames.push({ name: node.name ?? page.name, node })
+      }
+    }
+  }
+
+  const lines = [`DESIGN: "${doc.name ?? 'Untitled'}" — ${allFrames.length} page(s)\n`]
+
+  for (let i = 0; i < allFrames.length; i++) {
+    const { name, node } = allFrames[i]
+    const w = 'width' in node && typeof node.width === 'number' ? node.width : '?'
+    const h = 'height' in node && typeof node.height === 'number' ? node.height : '?'
+
+    // List top-level sections
+    const children = (node as { children?: PenNode[] }).children ?? []
+    const sections = children.map((ch) => ch.name ?? ch.type).join(', ')
+
+    lines.push(`Page ${i + 1}: "${name}" (${w}x${h})`)
+    lines.push(`  Sections: ${sections}`)
+    lines.push(`  Data file: ${pageFiles[i]?.name ?? 'N/A'}`)
+    lines.push(`  Screenshot: screenshot-page-${i + 1}.png`)
+  }
+
+  return lines.join('\n')
+}
+
+/** Build per-page design data as separate text files */
+function buildPerPageData(doc: PenDocument): Array<{ name: string; content: string }> {
+  const pages = doc.pages ?? []
+  const allFrames: Array<{ pageName: string; node: PenNode }> = []
+
+  if (pages.length === 0) {
+    for (const node of doc.children) {
+      allFrames.push({ pageName: node.name ?? 'Page', node })
+    }
+  } else {
     for (const page of pages) {
       for (const node of page.children) {
         allFrames.push({ pageName: page.name, node })
       }
     }
-
-    parts.push(`\nPAGES: ${allFrames.length} top-level frames (each is a page in the SPA)`)
-    parts.push('\nPAGE LIST:')
-    for (let i = 0; i < allFrames.length; i++) {
-      const { node } = allFrames[i]
-      const w = 'width' in node && typeof node.width === 'number' ? node.width : '?'
-      const h = 'height' in node && typeof node.height === 'number' ? node.height : '?'
-      parts.push(`  ${i + 1}. "${node.name ?? 'Untitled'}" (${w}x${h})`)
-    }
-
-    parts.push('\n--- FULL NODE TREES ---')
-    for (let i = 0; i < allFrames.length; i++) {
-      const { node } = allFrames[i]
-      parts.push(`\n=== PAGE ${i + 1}: "${node.name ?? 'Untitled'}" ===`)
-      parts.push(serializeNode(node, 0))
-    }
   }
 
-  // Variables
-  if (doc.variables && Object.keys(doc.variables).length > 0) {
-    parts.push('\n--- DESIGN VARIABLES ---')
-    for (const [name, def] of Object.entries(doc.variables)) {
-      parts.push(`  $${name}: ${JSON.stringify(def)}`)
+  const result: Array<{ name: string; content: string }> = []
+
+  for (let i = 0; i < allFrames.length; i++) {
+    const { node } = allFrames[i]
+    const pageName = node.name ?? `Page-${i + 1}`
+    const content = serializeNode(node, 0)
+
+    // Add variables if on first page
+    let extra = ''
+    if (i === 0 && doc.variables && Object.keys(doc.variables).length > 0) {
+      extra = '\n\n--- DESIGN VARIABLES ---\n'
+      for (const [name, def] of Object.entries(doc.variables)) {
+        extra += `  $${name}: ${JSON.stringify(def)}\n`
+      }
     }
+
+    result.push({
+      name: `page-${i + 1}-design-data.txt`,
+      content: `=== PAGE ${i + 1}: "${pageName}" ===\n${content}${extra}`,
+    })
   }
 
-  return parts.join('\n')
+  return result
 }
 
 function serializeNode(node: PenNode, depth: number): string {
@@ -202,11 +224,9 @@ function serializeNode(node: PenNode, depth: number): string {
   if (node.name) props.push(`name: "${node.name}"`)
   if (node.role) props.push(`role: "${node.role}"`)
 
-  // Dimensions
   if ('width' in node && node.width !== undefined) props.push(`width: ${JSON.stringify(node.width)}`)
   if ('height' in node && node.height !== undefined) props.push(`height: ${JSON.stringify(node.height)}`)
 
-  // Layout
   const c = node as unknown as Record<string, unknown>
   if (c.layout) props.push(`layout: "${c.layout}"`)
   if (c.gap !== undefined) props.push(`gap: ${c.gap}`)
@@ -216,22 +236,18 @@ function serializeNode(node: PenNode, depth: number): string {
   if (c.cornerRadius !== undefined) props.push(`cornerRadius: ${JSON.stringify(c.cornerRadius)}`)
   if (c.clipContent) props.push(`clipContent: true`)
 
-  // Fill
   if (c.fill && Array.isArray(c.fill) && c.fill.length > 0) {
     const f = c.fill[0] as Record<string, unknown>
     if (f.type === 'solid') props.push(`fill: "${f.color}"`)
     else props.push(`fill: ${JSON.stringify(c.fill[0])}`)
   }
 
-  // Stroke
   if (c.stroke) props.push(`stroke: ${JSON.stringify(c.stroke)}`)
 
-  // Effects
   if (c.effects && Array.isArray(c.effects) && c.effects.length > 0) {
     props.push(`effects: ${JSON.stringify(c.effects)}`)
   }
 
-  // Text
   if (node.type === 'text') {
     if (c.content) props.push(`content: ${JSON.stringify(c.content)}`)
     if (c.fontSize) props.push(`fontSize: ${c.fontSize}`)
@@ -242,7 +258,6 @@ function serializeNode(node: PenNode, depth: number): string {
     if (c.textAlign) props.push(`textAlign: "${c.textAlign}"`)
   }
 
-  // Image
   if (node.type === 'image') {
     if (c.src) {
       const src = String(c.src)
@@ -251,20 +266,15 @@ function serializeNode(node: PenNode, depth: number): string {
     if (c.objectFit) props.push(`objectFit: "${c.objectFit}"`)
   }
 
-  // Icon
   if (node.type === 'icon_font') {
     if (c.iconFontName) props.push(`icon: "${c.iconFontName}"`)
   }
 
-  // Opacity
   if (node.opacity !== undefined && node.opacity !== 1) props.push(`opacity: ${node.opacity}`)
-
-  // Link
   if (node.link) props.push(`link: ${JSON.stringify(node.link)}`)
 
   let result = `${pad}{ ${props.join(', ')} }`
 
-  // Children
   const children = (node as { children?: PenNode[] }).children
   if (children && children.length > 0) {
     const childStr = children.map((ch) => serializeNode(ch, depth + 1)).join('\n')
@@ -274,9 +284,6 @@ function serializeNode(node: PenNode, depth: number): string {
   return result
 }
 
-/**
- * Capture a screenshot of each top-level frame using CanvasKit SW surface.
- */
 async function capturePageScreenshots(doc: PenDocument): Promise<Array<{ name: string; base64: string }>> {
   const ck = getCanvasKit()
   if (!ck) return []
@@ -319,7 +326,6 @@ async function capturePageScreenshots(doc: PenDocument): Promise<Array<{ name: s
       const contentH = maxY - minY
       if (contentW <= 0 || contentH <= 0) continue
 
-      // Cap at reasonable size for AI context
       const maxDim = 1200
       const scale = Math.min(1, maxDim / Math.max(contentW, contentH))
       const w = Math.ceil(contentW * scale)
@@ -350,7 +356,6 @@ async function capturePageScreenshots(doc: PenDocument): Promise<Array<{ name: s
         if (img) {
           const encoded = img.encodeToBytes()
           if (encoded) {
-            // Convert to base64
             const binary = Array.from(encoded).map(b => String.fromCharCode(b)).join('')
             const base64 = btoa(binary)
             results.push({ name, base64 })
@@ -382,12 +387,10 @@ function extractHTML(response: string): string | null {
     }
   }
 
-  // Must start with <!DOCTYPE or <html
   if (html.startsWith('<!DOCTYPE') || html.startsWith('<!doctype') || html.startsWith('<html')) {
     return html
   }
 
-  // Try to find HTML within the response
   const match = html.match(/<!DOCTYPE[\s\S]*<\/html>/i)
   if (match) return match[0]
 
