@@ -351,7 +351,7 @@ function wrapWithLink(html: string, node: PenNode, pad: string, pageNames?: Map<
   }
   if (node.link.type === 'page' && pageNames) {
     const pageName = pageNames.get(node.link.pageId)
-    const href = pageName ? `${pageName.replace(/\s+/g, '-').toLowerCase()}.html` : '#'
+    const href = pageName ? `${pageName.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '')}.html` : '#'
     return `${pad}<a href="${escapeHTML(href)}" ${aStyle}>\n${html}\n${pad}</a>`
   }
   if (node.link.type === 'anchor') {
@@ -440,20 +440,42 @@ export function generateHTMLFromDocument(doc: PenDocument, activePageId?: string
  * Returns a map of filename → full HTML content.
  */
 export function generateMultiPageHTML(doc: PenDocument): Map<string, string> {
+  // Collect all top-level frames across all pages — each becomes its own HTML file
+  const allFrames: Array<{ node: PenNode; pageName: string }> = []
+
   const pages = doc.pages ?? []
   if (pages.length === 0) {
-    const { html, css } = generateHTMLCode(doc.children)
-    const fullHTML = buildFullHTML('Design', html, css)
-    return new Map([['index.html', fullHTML]])
+    // No pages — use doc.children directly
+    for (const node of doc.children) {
+      allFrames.push({ node, pageName: node.name ?? node.type })
+    }
+  } else {
+    for (const page of pages) {
+      for (const node of page.children) {
+        allFrames.push({ node, pageName: node.name ?? page.name })
+      }
+    }
   }
 
-  // Build page name → filename map for link resolution
-  const pageNames = new Map<string, string>()
+  if (allFrames.length === 0) {
+    return new Map([['index.html', buildFullHTML('Design', '<div></div>', '')]])
+  }
+
+  // Build frame name → filename map for link resolution
+  const frameNames = new Map<string, string>()
+  for (const { node } of allFrames) {
+    frameNames.set(node.id, node.name ?? node.type)
+  }
+  // Also map page IDs for backward compatibility with page links
   for (const page of pages) {
-    pageNames.set(page.id, page.name)
+    if (!frameNames.has(page.id)) {
+      // Map page ID to its first child frame
+      const firstChild = page.children[0]
+      if (firstChild) frameNames.set(page.id, firstChild.name ?? page.name)
+    }
   }
 
-  // Collect anchor target node IDs (nodes that other nodes link to via anchor)
+  // Collect anchor target node IDs
   const anchorTargetIds = new Set<string>()
   function collectAnchors(nodes: PenNode[]) {
     for (const node of nodes) {
@@ -462,53 +484,58 @@ export function generateMultiPageHTML(doc: PenDocument): Map<string, string> {
       if (ch) collectAnchors(ch)
     }
   }
-  for (const page of pages) collectAnchors(page.children)
+  for (const { node } of allFrames) {
+    collectAnchors((node as { children?: PenNode[] }).children ?? [])
+  }
 
   const varsCSS = doc.variables && Object.keys(doc.variables).length > 0
     ? generateCSSVariables(doc)
     : ''
 
   const files = new Map<string, string>()
+  const usedFilenames = new Set<string>()
 
-  for (let i = 0; i < pages.length; i++) {
-    const page = pages[i]
+  for (let i = 0; i < allFrames.length; i++) {
+    const { node, pageName } = allFrames[i]
     resetClassCounter()
     const rules: CSSRule[] = []
 
-    // Compute wrapper
-    let maxW = 0, maxH = 0
-    for (const node of page.children) {
-      const x = node.x ?? 0
-      const y = node.y ?? 0
-      const w = 'width' in node && typeof node.width === 'number' ? node.width : 0
-      const h = 'height' in node && typeof node.height === 'number' ? node.height : 0
-      maxW = Math.max(maxW, x + w)
-      maxH = Math.max(maxH, y + h)
-    }
+    // Reset position to (0,0) — each frame is its own page
+    const frameNode = { ...node, x: 0, y: 0 } as PenNode
 
+    // Container matches frame size
+    const w = 'width' in frameNode && typeof frameNode.width === 'number' ? frameNode.width : 0
+    const h = 'height' in frameNode && typeof frameNode.height === 'number' ? frameNode.height : 0
     const containerCSS: Record<string, string> = { position: 'relative' }
-    if (maxW > 0) containerCSS.width = `${maxW}px`
-    if (maxH > 0) containerCSS.height = `${maxH}px`
+    if (w > 0) containerCSS.width = `${w}px`
+    if (h > 0) containerCSS['min-height'] = `${h}px`
     rules.push({ className: 'container', properties: containerCSS })
 
-    const childrenHTML = page.children
-      .map((n) => {
-        let html = generateNodeHTML(n, 1, rules)
-        if (anchorTargetIds.has(n.id)) html = addAnchorId(html, n)
-        return wrapWithLink(html, n, indent(1), pageNames)
-      })
-      .join('\n')
+    let html = generateNodeHTML(frameNode, 1, rules)
+    if (anchorTargetIds.has(node.id)) html = addAnchorId(html, node)
+    html = wrapWithLink(html, node, indent(1), frameNames)
 
-    const html = `<div class="container">\n${childrenHTML}\n</div>`
+    const bodyHTML = `<div class="container">\n${html}\n</div>`
     const css = varsCSS
       ? `${varsCSS}\n${cssRulesToString(rules)}`
       : cssRulesToString(rules)
 
-    const filename = i === 0
-      ? 'index.html'
-      : `${page.name.replace(/\s+/g, '-').toLowerCase()}.html`
+    // Generate unique filename
+    let filename: string
+    if (i === 0) {
+      filename = 'index.html'
+    } else {
+      const base = pageName.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9-]/g, '')
+      filename = `${base || 'page'}.html`
+      let suffix = 2
+      while (usedFilenames.has(filename)) {
+        filename = `${base}-${suffix}.html`
+        suffix++
+      }
+    }
+    usedFilenames.add(filename)
 
-    files.set(filename, buildFullHTML(page.name, html, css))
+    files.set(filename, buildFullHTML(pageName, bodyHTML, css))
   }
 
   return files
