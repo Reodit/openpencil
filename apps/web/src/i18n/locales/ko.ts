@@ -531,6 +531,15 @@ const ko: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}}개 연결됨',
   'topbar.autoLinkError': '자동 링크 실패',
 
+  // ── Website Export ──
+  'website.title': '웹사이트로 내보내기',
+  'website.description': 'AI가 디자인을 분석하여 완성된 HTML 웹사이트를 생성합니다.',
+  'website.generate': '웹사이트 생성',
+  'website.done': '웹사이트 생성 완료!',
+  'website.download': 'HTML 다운로드',
+  'website.regenerate': '다시 생성',
+  'website.retry': '재시도',
+
   // ── AI Modify ──
   'aiModify.title': 'AI 수정',
   'aiModify.placeholder': '원하는 변경을 설명하세요…',

@@ -529,6 +529,15 @@ const en = {
   'topbar.autoLinkDone': '{{count}} linked',
   'topbar.autoLinkError': 'Auto-link failed',
 
+  // ── Website Export ──
+  'website.title': 'Export as Website',
+  'website.description': 'AI will analyze your design and generate a complete, working HTML website.',
+  'website.generate': 'Generate Website',
+  'website.done': 'Website generated!',
+  'website.download': 'Download HTML',
+  'website.regenerate': 'Regenerate',
+  'website.retry': 'Try Again',
+
   // ── AI Modify ──
   'aiModify.title': 'AI Modify',
   'aiModify.placeholder': 'Describe the change you want…',

@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user-store'
 import { useHistoryStore } from '@/stores/history-store'
 import { useAIStore } from '@/stores/ai-store'
 import CollabPresence from './collab-presence'
+import WebsiteExportDialog from '@/components/shared/website-export-dialog'
 import type { ComponentType, SVGProps } from 'react'
 import {
   PanelLeft,
@@ -18,6 +19,7 @@ import {
   Blocks,
   Home,
   Link2,
+  Globe,
   Loader2 as Loader2Icon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -402,6 +404,10 @@ export default function TopBar() {
         </Tooltip>
 
         <AutoLinkButton />
+
+        <div className="w-px h-3.5 bg-border/60 mx-1" />
+
+        <WebsiteExportButton />
       </div>
 
       {/* Center section — file name */}
@@ -560,5 +566,30 @@ function AutoLinkButton() {
           : t('topbar.autoLink')}
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+function WebsiteExportButton() {
+  const { t } = useTranslation()
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Globe size={15} strokeWidth={1.5} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">{t('website.title')}</TooltipContent>
+      </Tooltip>
+
+      <WebsiteExportDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+    </>
   )
 }

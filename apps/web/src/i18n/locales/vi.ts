@@ -531,6 +531,15 @@ const vi: TranslationKeys = {
   'topbar.autoLinkDone': 'Đã liên kết {{count}}',
   'topbar.autoLinkError': 'Tự động liên kết thất bại',
 
+  // ── Website Export ──
+  'website.title': 'Xuất dưới dạng trang web',
+  'website.description': 'AI sẽ phân tích thiết kế của bạn và tạo một trang web HTML hoàn chỉnh, hoạt động được.',
+  'website.generate': 'Tạo trang web',
+  'website.done': 'Đã tạo trang web!',
+  'website.download': 'Tải HTML',
+  'website.regenerate': 'Tạo lại',
+  'website.retry': 'Thử lại',
+
   // ── AI Modify ──
   'aiModify.title': 'Chỉnh sửa AI',
   'aiModify.placeholder': 'Mô tả thay đổi bạn muốn…',

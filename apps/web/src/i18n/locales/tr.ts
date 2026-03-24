@@ -531,6 +531,15 @@ const tr: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}} bağlandı',
   'topbar.autoLinkError': 'Otomatik bağlama başarısız',
 
+  // ── Website Export ──
+  'website.title': 'Web Sitesi Olarak Dışa Aktar',
+  'website.description': 'Yapay zeka tasarımınızı analiz edecek ve eksiksiz, çalışan bir HTML web sitesi oluşturacaktır.',
+  'website.generate': 'Web Sitesi Oluştur',
+  'website.done': 'Web sitesi oluşturuldu!',
+  'website.download': 'HTML İndir',
+  'website.regenerate': 'Yeniden Oluştur',
+  'website.retry': 'Tekrar Dene',
+
   // ── AI Modify ──
   'aiModify.title': 'AI Düzenleme',
   'aiModify.placeholder': 'İstediğiniz değişikliği açıklayın…',

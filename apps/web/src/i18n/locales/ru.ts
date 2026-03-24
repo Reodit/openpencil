@@ -534,6 +534,15 @@ const ru: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}} связано',
   'topbar.autoLinkError': 'Ошибка автосвязи',
 
+  // ── Website Export ──
+  'website.title': 'Экспорт как веб-сайт',
+  'website.description': 'ИИ проанализирует ваш дизайн и создаст полноценный рабочий HTML-сайт.',
+  'website.generate': 'Сгенерировать сайт',
+  'website.done': 'Сайт сгенерирован!',
+  'website.download': 'Скачать HTML',
+  'website.regenerate': 'Сгенерировать заново',
+  'website.retry': 'Попробовать снова',
+
   // ── AI Modify ──
   'aiModify.title': 'ИИ-редактирование',
   'aiModify.placeholder': 'Опишите желаемое изменение…',

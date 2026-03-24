@@ -534,6 +534,15 @@ const pt: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}} vinculadas',
   'topbar.autoLinkError': 'Falha ao vincular automaticamente',
 
+  // ── Website Export ──
+  'website.title': 'Exportar como Site',
+  'website.description': 'A IA analisará seu design e gerará um site HTML completo e funcional.',
+  'website.generate': 'Gerar Site',
+  'website.done': 'Site gerado!',
+  'website.download': 'Baixar HTML',
+  'website.regenerate': 'Regerar',
+  'website.retry': 'Tentar Novamente',
+
   // ── AI Modify ──
   'aiModify.title': 'Modificar com IA',
   'aiModify.placeholder': 'Descreva a alteração desejada…',

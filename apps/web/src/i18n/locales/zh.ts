@@ -522,6 +522,15 @@ const zh: TranslationKeys = {
   'topbar.autoLinkDone': '已链接 {{count}} 个',
   'topbar.autoLinkError': '自动链接失败',
 
+  // ── Website Export ──
+  'website.title': '导出为网站',
+  'website.description': 'AI 将分析您的设计并生成一个完整的、可运行的 HTML 网站。',
+  'website.generate': '生成网站',
+  'website.done': '网站已生成！',
+  'website.download': '下载 HTML',
+  'website.regenerate': '重新生成',
+  'website.retry': '重试',
+
   // ── AI Modify ──
   'aiModify.title': 'AI 修改',
   'aiModify.placeholder': '描述你想要的更改…',

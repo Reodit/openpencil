@@ -537,6 +537,15 @@ const ja: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}}件リンク済み',
   'topbar.autoLinkError': '自動リンクに失敗しました',
 
+  // ── Website Export ──
+  'website.title': 'ウェブサイトとしてエクスポート',
+  'website.description': 'AIがデザインを分析し、完全に動作するHTMLウェブサイトを生成します。',
+  'website.generate': 'ウェブサイトを生成',
+  'website.done': 'ウェブサイトが生成されました！',
+  'website.download': 'HTMLをダウンロード',
+  'website.regenerate': '再生成',
+  'website.retry': 'もう一度試す',
+
   // ── AI Modify ──
   'aiModify.title': 'AI 修正',
   'aiModify.placeholder': '変更したい内容を入力…',

@@ -539,6 +539,15 @@ const fr: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}} liées',
   'topbar.autoLinkError': 'Échec de la liaison automatique',
 
+  // ── Website Export ──
+  'website.title': 'Exporter en site web',
+  'website.description': "L'IA analysera votre design et générera un site web HTML complet et fonctionnel.",
+  'website.generate': 'Générer le site web',
+  'website.done': 'Site web généré !',
+  'website.download': 'Télécharger le HTML',
+  'website.regenerate': 'Régénérer',
+  'website.retry': 'Réessayer',
+
   // ── AI Modify ──
   'aiModify.title': 'Modification IA',
   'aiModify.placeholder': 'Décrivez la modification souhaitée…',

@@ -531,6 +531,15 @@ const hi: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}} लिंक किए गए',
   'topbar.autoLinkError': 'स्वतः लिंक विफल',
 
+  // ── Website Export ──
+  'website.title': 'वेबसाइट के रूप में निर्यात करें',
+  'website.description': 'AI आपके डिज़ाइन का विश्लेषण करेगा और एक पूर्ण, कार्यशील HTML वेबसाइट तैयार करेगा।',
+  'website.generate': 'वेबसाइट बनाएं',
+  'website.done': 'वेबसाइट तैयार!',
+  'website.download': 'HTML डाउनलोड करें',
+  'website.regenerate': 'पुनः बनाएं',
+  'website.retry': 'पुनः प्रयास करें',
+
   // ── AI Modify ──
   'aiModify.title': 'AI संशोधन',
   'aiModify.placeholder': 'आप जो बदलाव चाहते हैं उसका वर्णन करें…',

@@ -522,6 +522,15 @@ const zhTW: TranslationKeys = {
   'topbar.autoLinkDone': '已連結 {{count}} 個',
   'topbar.autoLinkError': '自動連結失敗',
 
+  // ── Website Export ──
+  'website.title': '匯出為網站',
+  'website.description': 'AI 將分析您的設計並產生一個完整的、可運作的 HTML 網站。',
+  'website.generate': '產生網站',
+  'website.done': '網站已產生！',
+  'website.download': '下載 HTML',
+  'website.regenerate': '重新產生',
+  'website.retry': '重試',
+
   // ── AI Modify ──
   'aiModify.title': 'AI 修改',
   'aiModify.placeholder': '描述你想要的變更…',

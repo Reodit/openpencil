@@ -531,6 +531,15 @@ const th: TranslationKeys = {
   'topbar.autoLinkDone': 'ลิงก์แล้ว {{count}} รายการ',
   'topbar.autoLinkError': 'ลิงก์อัตโนมัติล้มเหลว',
 
+  // ── Website Export ──
+  'website.title': 'ส่งออกเป็นเว็บไซต์',
+  'website.description': 'AI จะวิเคราะห์ดีไซน์ของคุณและสร้างเว็บไซต์ HTML ที่สมบูรณ์และใช้งานได้จริง',
+  'website.generate': 'สร้างเว็บไซต์',
+  'website.done': 'สร้างเว็บไซต์เสร็จแล้ว!',
+  'website.download': 'ดาวน์โหลด HTML',
+  'website.regenerate': 'สร้างใหม่',
+  'website.retry': 'ลองอีกครั้ง',
+
   // ── AI Modify ──
   'aiModify.title': 'AI แก้ไข',
   'aiModify.placeholder': 'อธิบายการเปลี่ยนแปลงที่คุณต้องการ…',

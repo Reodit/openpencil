@@ -531,6 +531,15 @@ const id: TranslationKeys = {
   'topbar.autoLinkDone': '{{count}} tertaut',
   'topbar.autoLinkError': 'Gagal menautkan otomatis',
 
+  // ── Website Export ──
+  'website.title': 'Ekspor sebagai Situs Web',
+  'website.description': 'AI akan menganalisis desain Anda dan menghasilkan situs web HTML yang lengkap dan berfungsi.',
+  'website.generate': 'Buat Situs Web',
+  'website.done': 'Situs web berhasil dibuat!',
+  'website.download': 'Unduh HTML',
+  'website.regenerate': 'Buat Ulang',
+  'website.retry': 'Coba Lagi',
+
   // ── AI Modify ──
   'aiModify.title': 'Modifikasi AI',
   'aiModify.placeholder': 'Jelaskan perubahan yang Anda inginkan…',
