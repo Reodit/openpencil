@@ -363,6 +363,7 @@ const hi: TranslationKeys = {
   'code.copyClipboard': 'क्लिपबोर्ड पर कॉपी करें',
   'code.copied': 'कॉपी हो गया!',
   'code.download': 'कोड फ़ाइल डाउनलोड करें',
+  'code.exportWebsite': 'वेबसाइट के रूप में निर्यात करें',
   'code.closeCodePanel': 'कोड पैनल बंद करें',
   'code.genCssVars': 'संपूर्ण डॉक्यूमेंट के लिए CSS वेरिएबल जनरेट हो रहे हैं',
   'code.genSelected':

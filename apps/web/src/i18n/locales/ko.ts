@@ -363,6 +363,7 @@ const ko: TranslationKeys = {
   'code.copyClipboard': '클립보드에 복사',
   'code.copied': '복사됨!',
   'code.download': '코드 파일 다운로드',
+  'code.exportWebsite': '웹사이트로 내보내기',
   'code.closeCodePanel': '코드 패널 닫기',
   'code.genCssVars': '전체 문서의 CSS 변수를 생성 중',
   'code.genSelected':

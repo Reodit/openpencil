@@ -215,7 +215,10 @@ function generateNodeHTML(
         return `${pad}<div class="${className}"></div>`
       }
       const childrenHTML = children
-        .map((c) => generateNodeHTML(c, depth + 1, rules))
+        .map((c) => {
+          const h = generateNodeHTML(c, depth + 1, rules)
+          return wrapWithLink(h, c, indent(depth + 1))
+        })
         .join('\n')
       return `${pad}<div class="${className}">\n${childrenHTML}\n${pad}</div>`
     }
@@ -339,6 +342,20 @@ function generateNodeHTML(
   }
 }
 
+/** Wrap HTML output in <a> tag if node has a link property */
+function wrapWithLink(html: string, node: PenNode, pad: string, pageNames?: Map<string, string>): string {
+  if (!node.link) return html
+  if (node.link.type === 'url') {
+    return `${pad}<a href="${escapeHTML(node.link.url)}" style="text-decoration:none;color:inherit;display:contents;">\n${html}\n${pad}</a>`
+  }
+  if (node.link.type === 'page' && pageNames) {
+    const pageName = pageNames.get(node.link.pageId)
+    const href = pageName ? `${pageName.replace(/\s+/g, '-').toLowerCase()}.html` : '#'
+    return `${pad}<a href="${escapeHTML(href)}" style="text-decoration:none;color:inherit;display:contents;">\n${html}\n${pad}</a>`
+  }
+  return html
+}
+
 function cssRulesToString(rules: CSSRule[]): string {
   return rules
     .map((r) => {
@@ -379,7 +396,10 @@ export function generateHTMLCode(nodes: PenNode[]): { html: string; css: string 
   rules.push({ className: 'container', properties: containerCSS })
 
   const childrenHTML = nodes
-    .map((n) => generateNodeHTML(n, 1, rules))
+    .map((n) => {
+      const html = generateNodeHTML(n, 1, rules)
+      return wrapWithLink(html, n, indent(1))
+    })
     .join('\n')
 
   const html = `<div class="container">\n${childrenHTML}\n</div>`
@@ -400,4 +420,91 @@ export function generateHTMLFromDocument(doc: PenDocument, activePageId?: string
     html: result.html,
     css: varsCSS ? `${varsCSS}\n${result.css}` : result.css,
   }
+}
+
+/**
+ * Generate a complete multi-page HTML website from a PenDocument.
+ * Each page becomes a separate HTML file with navigation links between pages.
+ * Returns a map of filename → full HTML content.
+ */
+export function generateMultiPageHTML(doc: PenDocument): Map<string, string> {
+  const pages = doc.pages ?? []
+  if (pages.length === 0) {
+    // Single page fallback
+    const { html, css } = generateHTMLCode(doc.children)
+    const fullHTML = buildFullHTML('Design', html, css)
+    return new Map([['index.html', fullHTML]])
+  }
+
+  // Build page name → filename map for link resolution
+  const pageNames = new Map<string, string>()
+  for (const page of pages) {
+    pageNames.set(page.id, page.name)
+  }
+
+  const varsCSS = doc.variables && Object.keys(doc.variables).length > 0
+    ? generateCSSVariables(doc)
+    : ''
+
+  const files = new Map<string, string>()
+
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i]
+    resetClassCounter()
+    const rules: CSSRule[] = []
+
+    // Compute wrapper
+    let maxW = 0, maxH = 0
+    for (const node of page.children) {
+      const x = node.x ?? 0
+      const y = node.y ?? 0
+      const w = 'width' in node && typeof node.width === 'number' ? node.width : 0
+      const h = 'height' in node && typeof node.height === 'number' ? node.height : 0
+      maxW = Math.max(maxW, x + w)
+      maxH = Math.max(maxH, y + h)
+    }
+
+    const containerCSS: Record<string, string> = { position: 'relative' }
+    if (maxW > 0) containerCSS.width = `${maxW}px`
+    if (maxH > 0) containerCSS.height = `${maxH}px`
+    rules.push({ className: 'container', properties: containerCSS })
+
+    const childrenHTML = page.children
+      .map((n) => {
+        const html = generateNodeHTML(n, 1, rules)
+        return wrapWithLink(html, n, indent(1), pageNames)
+      })
+      .join('\n')
+
+    const html = `<div class="container">\n${childrenHTML}\n</div>`
+    const css = varsCSS
+      ? `${varsCSS}\n${cssRulesToString(rules)}`
+      : cssRulesToString(rules)
+
+    const filename = i === 0
+      ? 'index.html'
+      : `${page.name.replace(/\s+/g, '-').toLowerCase()}.html`
+
+    files.set(filename, buildFullHTML(page.name, html, css))
+  }
+
+  return files
+}
+
+function buildFullHTML(title: string, bodyHTML: string, css: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHTML(title)}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+${css.split('\n').map((l) => `    ${l}`).join('\n')}
+  </style>
+</head>
+<body>
+${bodyHTML.split('\n').map((l) => `  ${l}`).join('\n')}
+</body>
+</html>`
 }

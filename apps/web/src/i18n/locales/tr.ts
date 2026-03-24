@@ -363,6 +363,7 @@ const tr: TranslationKeys = {
   'code.copyClipboard': 'Panoya kopyala',
   'code.copied': 'Kopyalandı!',
   'code.download': 'Kod dosyasını indir',
+  'code.exportWebsite': 'Web sitesi olarak dışa aktar',
   'code.closeCodePanel': 'Kod panelini kapat',
   'code.genCssVars': 'Tüm belge için CSS değişkenleri oluşturuluyor',
   'code.genSelected':

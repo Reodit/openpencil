@@ -369,6 +369,7 @@ const es: TranslationKeys = {
   'code.copyClipboard': 'Copiar al portapapeles',
   'code.copied': '¡Copiado!',
   'code.download': 'Descargar archivo de código',
+  'code.exportWebsite': 'Exportar como sitio web',
   'code.closeCodePanel': 'Cerrar panel de código',
   'code.genCssVars':
     'Generando variables CSS para todo el documento',

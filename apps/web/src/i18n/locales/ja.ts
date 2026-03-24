@@ -367,6 +367,7 @@ const ja: TranslationKeys = {
   'code.copyClipboard': 'クリップボードにコピー',
   'code.copied': 'コピーしました！',
   'code.download': 'コードファイルをダウンロード',
+  'code.exportWebsite': 'ウェブサイトとしてエクスポート',
   'code.closeCodePanel': 'コードパネルを閉じる',
   'code.genCssVars': 'ドキュメント全体の CSS 変数を生成中',
   'code.genSelected': '{{count}} 個の選択要素のコードを生成中',

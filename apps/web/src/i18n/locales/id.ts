@@ -363,6 +363,7 @@ const id: TranslationKeys = {
   'code.copyClipboard': 'Salin ke papan klip',
   'code.copied': 'Tersalin!',
   'code.download': 'Unduh file kode',
+  'code.exportWebsite': 'Ekspor sebagai situs web',
   'code.closeCodePanel': 'Tutup panel kode',
   'code.genCssVars': 'Membuat CSS variables untuk seluruh dokumen',
   'code.genSelected':

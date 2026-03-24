@@ -365,6 +365,7 @@ const pt: TranslationKeys = {
   'code.copyClipboard': 'Copiar para a área de transferência',
   'code.copied': 'Copiado!',
   'code.download': 'Baixar arquivo de código',
+  'code.exportWebsite': 'Exportar como site',
   'code.closeCodePanel': 'Fechar painel de código',
   'code.genCssVars': 'Gerando variáveis CSS para o documento inteiro',
   'code.genSelected':

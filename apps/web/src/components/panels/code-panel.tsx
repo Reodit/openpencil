@@ -9,6 +9,7 @@ import { useDocumentStore, getActivePageChildren } from '@/stores/document-store
 import { useAIStore } from '@/stores/ai-store'
 import { streamChat } from '@/services/ai/ai-service'
 import { generateReactCode } from '@/services/codegen/react-generator'
+import { generateMultiPageHTML } from '@/services/codegen/html-generator'
 import { generateHTMLCode } from '@/services/codegen/html-generator'
 import { generateVueCode } from '@/services/codegen/vue-generator'
 import { generateSvelteCode } from '@/services/codegen/svelte-generator'
@@ -288,6 +289,32 @@ ${generatedCode}`
     })
   }, [activeTab])
 
+  const handleExportWebsite = useCallback(() => {
+    const files = generateMultiPageHTML(document)
+    if (files.size === 1) {
+      // Single file — download directly
+      const [filename, content] = files.entries().next().value!
+      const blob = new Blob([content], { type: 'text/html;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = globalThis.document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } else {
+      // Multiple files — download each (ZIP would be better but keeping it simple)
+      for (const [filename, content] of files) {
+        const blob = new Blob([content], { type: 'text/html;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const a = globalThis.document.createElement('a')
+        a.href = url
+        a.download = filename
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    }
+  }, [document])
+
   // Clear enhanced code when nodes change
   useEffect(() => {
     setEnhancedCode({})
@@ -442,6 +469,19 @@ ${generatedCode}`
         <pre className="text-[10px] leading-relaxed font-mono text-foreground/80 whitespace-pre-wrap break-all">
           <code dangerouslySetInnerHTML={{ __html: highlightedHTML }} />
         </pre>
+      </div>
+
+      {/* Export website button */}
+      <div className="px-2 py-1.5 border-t border-border shrink-0">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs h-7"
+          onClick={handleExportWebsite}
+        >
+          <Download size={12} className="mr-1" />
+          {t('code.exportWebsite')}
+        </Button>
       </div>
 
       {/* Footer info */}

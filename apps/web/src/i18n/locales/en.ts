@@ -361,6 +361,7 @@ const en = {
   'code.copyClipboard': 'Copy to clipboard',
   'code.copied': 'Copied!',
   'code.download': 'Download code file',
+  'code.exportWebsite': 'Export as Website',
   'code.closeCodePanel': 'Close code panel',
   'code.genCssVars': 'Generating CSS variables for entire document',
   'code.genSelected':
