@@ -29,9 +29,30 @@ export default function AiVariantsPopup({
 
   const cols = Math.min(variants.length + 1, 4)
 
-  // Get full page children and build trees with variants swapped in
+  // Find the root frame containing the selected node
   const activePageId = useCanvasStore((s) => s.activePageId)
   const pageChildren = useDocumentStore((s) => getActivePageChildren(s.document, activePageId))
+
+  const findRootParent = (children: PenNode[], targetId: string): PenNode | null => {
+    for (const child of children) {
+      if (child.id === targetId) return child
+      const ch = (child as { children?: PenNode[] }).children
+      if (ch && containsNode(ch, targetId)) return child
+    }
+    return null
+  }
+
+  const containsNode = (children: PenNode[], targetId: string): boolean => {
+    for (const child of children) {
+      if (child.id === targetId) return true
+      const ch = (child as { children?: PenNode[] }).children
+      if (ch && containsNode(ch, targetId)) return true
+    }
+    return false
+  }
+
+  const rootFrame = findRootParent(pageChildren, originalNode.id)
+  const previewRoot = rootFrame ? [rootFrame] : [originalNode]
 
   const replaceInTree = (children: PenNode[], nodeId: string, replacement: PenNode): PenNode[] => {
     return children.map((child) => {
@@ -79,7 +100,7 @@ export default function AiVariantsPopup({
             <div className="rounded-lg border-2 border-dashed border-border bg-background overflow-hidden group hover:border-primary/50 transition-colors">
               <div className="relative" style={{ paddingBottom: '75%' }}>
                 <div className="absolute inset-0">
-                  <SkiaPreviewCanvas nodes={pageChildren} />
+                  <SkiaPreviewCanvas nodes={previewRoot} />
                 </div>
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-card/80 text-[9px] font-medium text-muted-foreground border border-border">
                   {t('aiModify.original')}
@@ -103,8 +124,8 @@ export default function AiVariantsPopup({
             {variants.map((variantNodes, i) => {
               const primaryVariant = variantNodes[0]
               const variantTree = primaryVariant
-                ? replaceInTree(pageChildren, originalNode.id, primaryVariant)
-                : pageChildren
+                ? replaceInTree(previewRoot, originalNode.id, primaryVariant)
+                : previewRoot
               return (
                 <VariantCard
                   key={i}
