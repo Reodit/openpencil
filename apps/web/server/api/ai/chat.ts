@@ -249,129 +249,60 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
           ? stripNoToolsRestriction(body.system)
           : body.system
 
-        // When images are attached, use result-based flow (like validate.ts):
-        // let Claude Code read the image via its Read tool internally, then
-        // only emit the final result text. This avoids streaming intermediate
-        // tool-use preamble like "I need to read the file first".
-        if (hasImageAttachments) {
-          const runImageQuery = async (): Promise<string> => {
-            const agentMessages: string[] = []
-            const q = query({
-              prompt,
-              options: {
-                systemPrompt: effectiveSystemPrompt,
-                ...(model ? { model } : {}),
-                maxTurns: body.maxTurns ?? 3,
-                tools: ['Read'],
-                plugins: [],
-                permissionMode: 'default',
-                persistSession: false,
-                ...(body.effort ? { effort: body.effort } : {}),
-                ...(thinking ? { thinking } : {}),
-                env,
-                ...(debugFile ? { debugFile } : {}),
-                ...(claudePath ? { pathToClaudeCodeExecutable: claudePath } : {}),
-                ...(buildSpawnClaudeCodeProcess() ? { spawnClaudeCodeProcess: buildSpawnClaudeCodeProcess() } : {}),
-              },
-            })
+        // Unified streaming path — works for both text-only and image queries
+        const runQuery = async () => {
+          const q = query({
+            prompt,
+            options: {
+              systemPrompt: effectiveSystemPrompt,
+              ...(model ? { model } : {}),
+              maxTurns: body.maxTurns ?? (hasImageAttachments ? 3 : 1),
+              includePartialMessages: true,
+              tools: hasImageAttachments ? ['Read'] : [],
+              plugins: [],
+              permissionMode: hasImageAttachments ? 'default' : 'plan',
+              persistSession: false,
+              ...(body.effort ? { effort: body.effort } : {}),
+              ...(thinking ? { thinking } : {}),
+              env,
+              ...(debugFile ? { debugFile } : {}),
+              ...(claudePath ? { pathToClaudeCodeExecutable: claudePath } : {}),
+              ...(buildSpawnClaudeCodeProcess() ? { spawnClaudeCodeProcess: buildSpawnClaudeCodeProcess() } : {}),
+            },
+          })
 
-            try {
-              for await (const message of q) {
-                // Log every message from Agent SDK
-                const msgSummary = JSON.stringify({
-                  type: message.type,
-                  ...(message.type === 'result' ? { subtype: (message as any).subtype, resultLength: ((message as any).result ?? '').length, errors: (message as any).errors } : {}),
-                  ...(message.type === 'assistant' ? { contentPreview: JSON.stringify(message).slice(0, 500) } : {}),
-                }, null, 2)
-                agentMessages.push(msgSummary)
-
-                if (message.type === 'result') {
-                  logToFile('agent-sdk-messages', agentMessages.join('\n---\n')).catch(() => {})
-                  const isErrorResult = 'is_error' in message && Boolean((message as { is_error?: boolean }).is_error)
-                  if (message.subtype === 'success' && !isErrorResult) {
-                    return message.result ?? ''
+          try {
+            for await (const message of q) {
+              if (message.type === 'stream_event') {
+                const ev = message.event
+                if (ev.type === 'content_block_delta') {
+                  if (ev.delta.type === 'text_delta') {
+                    clearInterval(pingTimer)
+                    const data = JSON.stringify({ type: 'text', content: ev.delta.text })
+                    controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                  } else if (ev.delta.type === 'thinking_delta') {
+                    const data = JSON.stringify({ type: 'thinking', content: (ev.delta as any).thinking })
+                    controller.enqueue(encoder.encode(`data: ${data}\n\n`))
                   }
+                }
+              } else if (message.type === 'result') {
+                const isErrorResult = 'is_error' in message && Boolean((message as { is_error?: boolean }).is_error)
+                if (message.subtype !== 'success' || isErrorResult) {
                   const errors = 'errors' in message ? (message.errors as string[]) : []
                   const resultText = 'result' in message ? String(message.result ?? '') : ''
-                  const errContent = errors.join('; ') || resultText || `Query ended with: ${message.subtype}`
-                  throw new Error(errContent)
+                  const content = errors.join('; ') || resultText || `Query ended with: ${message.subtype}`
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ type: 'error', content })}\n\n`),
+                  )
                 }
               }
-              logToFile('agent-sdk-messages', agentMessages.join('\n---\n') + '\n--- (stream ended without result)').catch(() => {})
-              return ''
-            } finally {
-              q.close()
             }
+          } finally {
+            q.close()
           }
-
-          const resultText = await runImageQuery()
-
-          // Log response
-          logToFile('chat-response', resultText || '(empty response)').catch(() => {})
-
-          clearInterval(pingTimer)
-          if (resultText) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'text', content: resultText })}\n\n`),
-            )
-          }
-        } else {
-          // Normal text-only chat: stream partial messages as before
-          const runQuery = async () => {
-            const q = query({
-              prompt,
-              options: {
-                systemPrompt: effectiveSystemPrompt,
-                ...(model ? { model } : {}),
-                maxTurns: body.maxTurns ?? 1,
-                includePartialMessages: true,
-                tools: [],
-                plugins: [],
-                permissionMode: 'plan',
-                persistSession: false,
-                ...(body.effort ? { effort: body.effort } : {}),
-                ...(thinking ? { thinking } : {}),
-                env,
-                ...(debugFile ? { debugFile } : {}),
-                ...(claudePath ? { pathToClaudeCodeExecutable: claudePath } : {}),
-                ...(buildSpawnClaudeCodeProcess() ? { spawnClaudeCodeProcess: buildSpawnClaudeCodeProcess() } : {}),
-              },
-            })
-
-            try {
-              for await (const message of q) {
-                if (message.type === 'stream_event') {
-                  const ev = message.event
-                  if (ev.type === 'content_block_delta') {
-                    if (ev.delta.type === 'text_delta') {
-                      clearInterval(pingTimer)
-                      const data = JSON.stringify({ type: 'text', content: ev.delta.text })
-                      controller.enqueue(encoder.encode(`data: ${data}\n\n`))
-                    } else if (ev.delta.type === 'thinking_delta') {
-                      // Keep pings alive during thinking — only stop on text output
-                      const data = JSON.stringify({ type: 'thinking', content: (ev.delta as any).thinking })
-                      controller.enqueue(encoder.encode(`data: ${data}\n\n`))
-                    }
-                  }
-                } else if (message.type === 'result') {
-                    const isErrorResult = 'is_error' in message && Boolean((message as { is_error?: boolean }).is_error)
-                    if (message.subtype !== 'success' || isErrorResult) {
-                      const errors = 'errors' in message ? (message.errors as string[]) : []
-                      const resultText = 'result' in message ? String(message.result ?? '') : ''
-                      const content = errors.join('; ') || resultText || `Query ended with: ${message.subtype}`
-                      controller.enqueue(
-                        encoder.encode(`data: ${JSON.stringify({ type: 'error', content })}\n\n`),
-                      )
-                  }
-                }
-              }
-            } finally {
-              q.close()
-            }
-          }
-
-          await runQuery()
         }
+
+        await runQuery()
 
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ type: 'done', content: '' })}\n\n`),
