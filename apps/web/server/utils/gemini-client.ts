@@ -11,6 +11,8 @@ export interface GeminiExecOptions {
   thinkingBudgetTokens?: number
   effort?: ThinkingEffort
   timeoutMs?: number
+  /** Paths to files (images/text) for the agent to read */
+  attachmentFiles?: string[]
 }
 
 interface GeminiCliResult {
@@ -62,19 +64,21 @@ export async function runGeminiExec(
     return { error: 'Gemini CLI not found. Install it first.' }
   }
 
-  const prompt = buildPrompt(options.systemPrompt, userPrompt)
+  const hasAttachments = options.attachmentFiles && options.attachmentFiles.length > 0
+  const prompt = buildPrompt(options.systemPrompt, userPrompt, options.attachmentFiles)
+
+  const approvalMode = hasAttachments ? 'yolo' : 'plan'
 
   const args = [
     '-o', 'json',
-    '--approval-mode', 'plan',
+    '--approval-mode', approvalMode,
+    ...(hasAttachments ? ['--sandbox'] : []),
   ]
 
   if (options.model) {
     args.push('-m', options.model)
   }
 
-  // Use -p with a minimal marker; full prompt piped via stdin.
-  // Gemini CLI appends -p value after stdin content.
   args.push('-p', ' ')
 
   try {
@@ -111,18 +115,23 @@ export function streamGeminiExec(
     }
   }
 
-  const prompt = buildPrompt(options.systemPrompt, userPrompt)
+  const hasAttachments = options.attachmentFiles && options.attachmentFiles.length > 0
+  const prompt = buildPrompt(options.systemPrompt, userPrompt, options.attachmentFiles)
+
+  // When attachments are present, use 'yolo' mode so the agent can read files
+  // without interactive approval prompts. Otherwise use 'plan' (read-only).
+  const approvalMode = hasAttachments ? 'yolo' : 'plan'
 
   const args = [
     '-o', 'stream-json',
-    '--approval-mode', 'plan',
+    '--approval-mode', approvalMode,
+    ...(hasAttachments ? ['--sandbox'] : []),
   ]
 
   if (options.model) {
     args.push('-m', options.model)
   }
 
-  // Use -p with minimal marker; full prompt piped via stdin.
   args.push('-p', ' ')
 
   const child = spawn(binPath, args, {
@@ -187,9 +196,18 @@ export function streamGeminiExec(
   }
 }
 
-function buildPrompt(systemPrompt: string | undefined, userPrompt: string): string {
+function buildPrompt(systemPrompt: string | undefined, userPrompt: string, attachmentFiles?: string[]): string {
   const userText = userPrompt.trim()
-  if (!systemPrompt?.trim()) return userText
+  const fileSection = attachmentFiles && attachmentFiles.length > 0
+    ? '\n\n--- ATTACHED FILES ---\n' + attachmentFiles.map((f) => {
+        const isImage = /\.(png|jpe?g|gif|webp)$/i.test(f)
+        return isImage
+          ? `Read the image file at "${f}" to view it.`
+          : `Read the file at "${f}" for additional context.`
+      }).join('\n')
+    : ''
+
+  if (!systemPrompt?.trim()) return userText + fileSection
 
   return [
     'You are a design generation assistant. Follow the guidelines below to produce the requested output.',
@@ -198,7 +216,7 @@ function buildPrompt(systemPrompt: string | undefined, userPrompt: string): stri
     systemPrompt.trim(),
     '',
     '--- TASK ---',
-    userText,
+    userText + fileSection,
   ].join('\n')
 }
 

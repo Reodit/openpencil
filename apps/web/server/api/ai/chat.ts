@@ -730,16 +730,26 @@ function streamViaGemini(body: ChatBody, model?: string) {
         } catch { /* stream already closed */ }
       }, KEEPALIVE_INTERVAL_MS)
 
+      let attachTempDir: string | undefined
       try {
         const { streamGeminiExec } = await import('../../utils/gemini-client')
 
-        // Build prompt from messages
         const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user')
         const prompt = lastUserMsg?.content ?? ''
+
+        // Save attachments to temp files for Gemini agent to read
+        const attachments = getLastUserAttachments(body)
+        let attachmentFiles: string[] | undefined
+        if (attachments.length > 0) {
+          const saved = await saveAttachmentsToTempFiles(attachments, true)
+          attachTempDir = saved.tempDir
+          attachmentFiles = saved.files
+        }
 
         const { stream: geminiStream } = streamGeminiExec(prompt, {
           model,
           systemPrompt: body.system,
+          attachmentFiles,
         })
 
         for await (const event of geminiStream) {
@@ -753,7 +763,6 @@ function streamViaGemini(body: ChatBody, model?: string) {
             const data = JSON.stringify({ type: 'error', content: event.content })
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
           }
-          // 'done' is handled after loop
         }
 
         controller.enqueue(
@@ -766,6 +775,9 @@ function streamViaGemini(body: ChatBody, model?: string) {
         )
       } finally {
         clearInterval(pingTimer)
+        if (attachTempDir) {
+          rm(attachTempDir, { recursive: true, force: true }).catch(() => {})
+        }
         controller.close()
       }
     },
