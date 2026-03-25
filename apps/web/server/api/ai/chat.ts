@@ -305,12 +305,10 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // Always strip "NEVER use tools" restriction so the agent can use tools
         const effectiveSystemPrompt = stripNoToolsRestriction(body.system)
 
-        // Tool configuration depends on context:
-        // - With attachments: full tools for image analysis, file reading
-        // - Without attachments: minimal tools, text output focus
-        const agentTools = hasAttachments
-          ? ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
-          : []
+        // Tool configuration:
+        // - With attachments: Read tool for image/file analysis
+        // - Without attachments: no tools, pure text output (design JSON)
+        const agentTools = hasAttachments ? ['Read'] : []
         const agentPermission = hasAttachments ? 'default' : 'plan'
 
         const runQuery = async () => {
