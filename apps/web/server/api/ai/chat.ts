@@ -537,15 +537,17 @@ function streamViaOpenCode(body: ChatBody, model?: string) {
           console.warn(`[AI] OpenCode: could not parse model string "${model}", sending without model override`)
         }
 
-        // Build parts array, adding image attachments if present
+        // Build parts array with image and text file attachments
         const attachments = getLastUserAttachments(body)
-        const parts: Array<Record<string, unknown>> = [
-          ...attachments.map((a) => ({
-            type: 'image',
-            url: `data:${a.mediaType};base64,${a.data}`,
-          })),
-          { type: 'text', text: prompt || 'Analyze these images.' },
-        ]
+        const parts: Array<Record<string, unknown>> = []
+        for (const a of attachments) {
+          if (ALLOWED_MEDIA_TYPES.has(a.mediaType)) {
+            parts.push({ type: 'image', url: `data:${a.mediaType};base64,${a.data}` })
+          } else if (ALLOWED_TEXT_TYPES.has(a.mediaType)) {
+            parts.push({ type: 'file', mime: a.mediaType, url: `data:${a.mediaType};base64,${a.data}` })
+          }
+        }
+        parts.push({ type: 'text', text: prompt || 'Analyze the attached files.' })
 
 
         // Build prompt payload with optional model and reasoning
