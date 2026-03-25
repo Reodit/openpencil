@@ -127,17 +127,19 @@ export function streamGeminiExec(
 
   args.push('-p', ' ')
 
+  // Pass prompt via -p flag instead of stdin to avoid child_process hang
+  // (see: https://github.com/google-gemini/gemini-cli/issues/6715)
+  // Remove the placeholder -p ' ' and add the actual prompt
+  const pIdx = args.indexOf('-p')
+  if (pIdx >= 0) {
+    args[pIdx + 1] = prompt
+  }
+
   const child = spawn(binPath, args, {
     env: { ...process.env },
-    stdio: ['pipe', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe'],
     ...(process.platform === 'win32' && { shell: true }),
   })
-
-  // Pipe prompt via stdin
-  if (child.stdin) {
-    child.stdin.write(prompt)
-    child.stdin.end()
-  }
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_GEMINI_TIMEOUT_MS
   const timer = setTimeout(() => {
@@ -146,14 +148,10 @@ export function streamGeminiExec(
 
   async function* generateStream(): AsyncGenerator<{ type: 'text' | 'error' | 'done' | 'thinking'; content: string }> {
     let buffer = ''
-    let rawLogSize = 0
 
     try {
       for await (const chunk of child.stdout!) {
-        const str = chunk.toString('utf-8')
-        rawLogSize += str.length
-        if (rawLogSize <= 2000) console.log('[Gemini] stdout chunk:', str.slice(0, 200))
-        buffer += str
+        buffer += chunk.toString('utf-8')
         let idx = buffer.indexOf('\n')
         while (idx >= 0) {
           const line = buffer.slice(0, idx).trim()
