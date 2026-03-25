@@ -223,36 +223,55 @@ export function useChatHandlers() {
  * Returns the number of nodes applied.
  */
 function tryApplyDesignFromResponse(response: string): number {
-  // Look for ```json blocks in the response
   const jsonBlocks = extractJsonBlocks(response)
   let totalApplied = 0
 
   for (const block of jsonBlocks) {
-    try {
-      // Try as JSONL (flat format with _parent)
-      const lines = block.split('\n').filter(l => l.trim().startsWith('{'))
-      if (lines.length > 0 && lines[0].includes('"_parent"')) {
-        // JSONL flat format — new design
-        const nodes = lines.map(l => JSON.parse(l))
-        if (nodes.length > 0) {
-          animateNodesToCanvas(nodes)
-          totalApplied += nodes.length
-          continue
-        }
-      }
+    const count = tryApplyJsonBlock(block)
+    totalApplied += count
+  }
 
-      // Try as JSON array (modification format)
-      const parsed = JSON.parse(block)
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type) {
-        const count = extractAndApplyDesignModification(block)
-        totalApplied += count
-      }
-    } catch {
-      // Not valid JSON — skip
+  // Fallback: if no ```json blocks found, try to find raw JSON in the response
+  if (totalApplied === 0) {
+    const rawJson = extractRawJson(response)
+    if (rawJson) {
+      totalApplied += tryApplyJsonBlock(rawJson)
     }
   }
 
   return totalApplied
+}
+
+function tryApplyJsonBlock(block: string): number {
+  try {
+    // Try as JSONL (flat format with _parent)
+    const lines = block.split('\n').filter(l => l.trim().startsWith('{'))
+    if (lines.length > 1 && lines[0].includes('"_parent"')) {
+      const nodes = lines.map(l => JSON.parse(l))
+      if (nodes.length > 0) {
+        animateNodesToCanvas(nodes)
+        return nodes.length
+      }
+    }
+
+    const parsed = JSON.parse(block)
+
+    // JSON array of nodes
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type) {
+      const count = extractAndApplyDesignModification(block)
+      return count
+    }
+
+    // Single node object (wrap in array)
+    if (parsed && typeof parsed === 'object' && parsed.type && !Array.isArray(parsed)) {
+      const wrapped = JSON.stringify([parsed])
+      const count = extractAndApplyDesignModification(wrapped)
+      return count
+    }
+  } catch {
+    // Not valid JSON
+  }
+  return 0
 }
 
 /** Extract all ```json code blocks from text */
@@ -264,4 +283,28 @@ function extractJsonBlocks(text: string): string[] {
     blocks.push(match[1].trim())
   }
   return blocks
+}
+
+/** Try to find raw JSON (no code fences) in the response */
+function extractRawJson(text: string): string | null {
+  // Find first { that looks like a PenNode
+  const start = text.indexOf('{\n')
+  if (start < 0) return null
+
+  // Find matching closing }
+  let depth = 0
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '{') depth++
+    else if (text[i] === '}') {
+      depth--
+      if (depth === 0) {
+        const candidate = text.slice(start, i + 1)
+        try {
+          const parsed = JSON.parse(candidate)
+          if (parsed.type) return candidate
+        } catch { /* continue */ }
+      }
+    }
+  }
+  return null
 }
