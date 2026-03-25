@@ -274,7 +274,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user')
         let prompt = lastUserMsg?.content ?? ''
 
-        // Save attachments (images + text files) to temp files
+        // Save attachments to session-persistent directory (not temp)
+        // so images remain accessible across conversation turns
         const attachments = getLastUserAttachments(body)
         const imageAttachments = attachments.filter((a) => ALLOWED_MEDIA_TYPES.has(a.mediaType))
         const textAttachments = attachments.filter((a) => ALLOWED_TEXT_TYPES.has(a.mediaType))
@@ -282,7 +283,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
 
         if (hasAttachments) {
           const saved = await saveAttachmentsToTempFiles(attachments, true)
-          attachTempDir = saved.tempDir
+          // Don't set attachTempDir — keep files for session persistence
+          // Files live in .openpencil-tmp/ and survive across turns
 
           const refs: string[] = []
           let fileIdx = 0
@@ -393,9 +395,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         )
       } finally {
         clearInterval(pingTimer)
-        if (attachTempDir) {
-          rm(attachTempDir, { recursive: true, force: true }).catch(() => {})
-        }
+        // Attachment files are kept for session persistence (not deleted).
+        // They live in .openpencil-tmp/ and remain accessible across turns.
         controller.close()
       }
     },
