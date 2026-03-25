@@ -54,8 +54,12 @@ export async function runCodexExec(
 ): Promise<CodexCliResult> {
   const tempDir = await mkdtemp(join(tmpdir(), 'openpencil-codex-'))
   const outputPath = join(tempDir, 'last-message.txt')
-  const prompt = buildPrompt(options.systemPrompt, userPrompt, options.imageFiles)
+  const prompt = buildPrompt(options.systemPrompt, userPrompt, textFiles)
   const codexEffort = resolveCodexEffort(options.thinkingMode, options.effort)
+
+  // Separate image files from text files
+  const imageFiles = options.imageFiles?.filter((f) => /\.(png|jpe?g|gif|webp)$/i.test(f)) ?? []
+  const textFiles = options.imageFiles?.filter((f) => !/\.(png|jpe?g|gif|webp)$/i.test(f)) ?? []
 
   const args = [
     'exec',
@@ -75,10 +79,11 @@ export async function runCodexExec(
     args.push('--config', `model_reasoning_effort=${codexEffort}`)
   }
 
-  // On Windows, passing long prompts as command-line arguments causes
-  // shell escaping issues (PowerShell MissingExpression, special chars).
-  // Use codex's stdin mode (`-` as prompt arg) on all platforms — simpler
-  // and avoids command-line length limits.
+  // Pass images via native --image flag (multimodal input)
+  for (const img of imageFiles) {
+    args.push('--image', img)
+  }
+
   args.push('-')
 
   try {
@@ -106,14 +111,14 @@ export async function runCodexExec(
   }
 }
 
-function buildPrompt(systemPrompt: string | undefined, userPrompt: string, imageFiles?: string[]): string {
+function buildPrompt(systemPrompt: string | undefined, userPrompt: string, textFiles?: string[]): string {
   const userText = userPrompt.trim()
-  const imageSection = imageFiles && imageFiles.length > 0
-    ? '\n' + imageFiles.map((f) => `[Attached image: ${f} — read this file to see the image]`).join('\n')
+  const fileSection = textFiles && textFiles.length > 0
+    ? '\n' + textFiles.map((f) => `[Attached file: ${f} — read this file for additional context]`).join('\n')
     : ''
 
   if (!systemPrompt?.trim()) {
-    return userText + imageSection
+    return userText + fileSection
   }
 
   return [
@@ -123,7 +128,7 @@ function buildPrompt(systemPrompt: string | undefined, userPrompt: string, image
     systemPrompt.trim(),
     '',
     '--- TASK ---',
-    userText + imageSection,
+    userText + fileSection,
   ].join('\n')
 }
 
