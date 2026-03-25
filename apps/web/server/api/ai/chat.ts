@@ -305,10 +305,13 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // Always strip "NEVER use tools" restriction so the agent can use tools
         const effectiveSystemPrompt = stripNoToolsRestriction(body.system)
 
-        // Unified streaming path — works for both text-only and image queries
+        // Tool configuration depends on context:
+        // - With attachments: full tools for image analysis, file reading
+        // - Without attachments: minimal tools, text output focus
         const agentTools = hasAttachments
           ? ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
-          : ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
+          : []
+        const agentPermission = hasAttachments ? 'default' : 'plan'
 
         const runQuery = async () => {
           const q = query({
@@ -320,7 +323,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               includePartialMessages: true,
               tools: agentTools,
               plugins: [],
-              permissionMode: 'default',
+              permissionMode: agentPermission,
               persistSession: false,
               ...(body.effort ? { effort: body.effort } : {}),
               ...(thinking ? { thinking } : {}),
