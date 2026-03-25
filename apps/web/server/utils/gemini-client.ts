@@ -70,7 +70,6 @@ export async function runGeminiExec(
   const args = [
     '-o', 'json',
     '--approval-mode', 'yolo',
-    '-y',
   ]
 
   if (options.model && options.model !== 'default') {
@@ -120,7 +119,6 @@ export function streamGeminiExec(
   const args = [
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
-    '-y',
   ]
 
   if (options.model && options.model !== 'default') {
@@ -130,20 +128,9 @@ export function streamGeminiExec(
   args.push('-p', ' ')
 
   const child = spawn(binPath, args, {
-    env: filterGeminiEnv(process.env as Record<string, string | undefined>),
+    env: { ...process.env },
     stdio: ['pipe', 'pipe', 'pipe'],
     ...(process.platform === 'win32' && { shell: true }),
-  })
-
-  // Log stderr for debugging
-  let stderrLog = ''
-  child.stderr?.on('data', (chunk: Buffer) => {
-    stderrLog += chunk.toString('utf-8')
-  })
-  child.on('exit', (code) => {
-    if (stderrLog.trim()) {
-      console.log(`[Gemini] stderr (exit ${code}):`, stderrLog.slice(0, 500))
-    }
   })
 
   // Pipe prompt via stdin
