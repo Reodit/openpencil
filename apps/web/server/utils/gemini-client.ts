@@ -73,7 +73,7 @@ export async function runGeminiExec(
     '--sandbox',
   ]
 
-  if (options.model) {
+  if (options.model && options.model !== 'default') {
     args.push('-m', options.model)
   }
 
@@ -124,7 +124,7 @@ export function streamGeminiExec(
     '--sandbox',
   ]
 
-  if (options.model) {
+  if (options.model && options.model !== 'default') {
     args.push('-m', options.model)
   }
 

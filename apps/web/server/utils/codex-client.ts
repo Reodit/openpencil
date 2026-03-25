@@ -54,12 +54,12 @@ export async function runCodexExec(
 ): Promise<CodexCliResult> {
   const tempDir = await mkdtemp(join(tmpdir(), 'openpencil-codex-'))
   const outputPath = join(tempDir, 'last-message.txt')
-  const prompt = buildPrompt(options.systemPrompt, userPrompt, textFiles)
   const codexEffort = resolveCodexEffort(options.thinkingMode, options.effort)
 
   // Separate image files from text files
   const imageFiles = options.imageFiles?.filter((f) => /\.(png|jpe?g|gif|webp)$/i.test(f)) ?? []
   const textFiles = options.imageFiles?.filter((f) => !/\.(png|jpe?g|gif|webp)$/i.test(f)) ?? []
+  const prompt = buildPrompt(options.systemPrompt, userPrompt, textFiles)
 
   const hasAttachments = imageFiles.length > 0 || textFiles.length > 0
 
@@ -74,7 +74,7 @@ export async function runCodexExec(
     outputPath,
   ]
 
-  if (options.model) {
+  if (options.model && options.model !== 'default') {
     args.push('--model', options.model)
   }
 
