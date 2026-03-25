@@ -134,6 +134,17 @@ export function streamGeminiExec(
     ...(process.platform === 'win32' && { shell: true }),
   })
 
+  // Log stderr for debugging
+  let stderrLog = ''
+  child.stderr?.on('data', (chunk: Buffer) => {
+    stderrLog += chunk.toString('utf-8')
+  })
+  child.on('exit', (code) => {
+    if (stderrLog.trim()) {
+      console.log(`[Gemini] stderr (exit ${code}):`, stderrLog.slice(0, 500))
+    }
+  })
+
   // Pipe prompt via stdin
   if (child.stdin) {
     child.stdin.write(prompt)
@@ -145,14 +156,16 @@ export function streamGeminiExec(
     child.kill('SIGTERM')
   }, timeoutMs)
 
-  async function* generateStream(): AsyncGenerator<{ type: 'text' | 'error' | 'done'; content: string }> {
+  async function* generateStream(): AsyncGenerator<{ type: 'text' | 'error' | 'done' | 'thinking'; content: string }> {
     let buffer = ''
-
-    child.stderr?.on('data', () => { /* discard stderr */ })
+    let rawLogSize = 0
 
     try {
       for await (const chunk of child.stdout!) {
-        buffer += chunk.toString('utf-8')
+        const str = chunk.toString('utf-8')
+        rawLogSize += str.length
+        if (rawLogSize <= 2000) console.log('[Gemini] stdout chunk:', str.slice(0, 200))
+        buffer += str
         let idx = buffer.indexOf('\n')
         while (idx >= 0) {
           const line = buffer.slice(0, idx).trim()
