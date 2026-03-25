@@ -10,6 +10,10 @@ import {
   animateNodesToCanvas,
   extractAndApplyDesignModification,
 } from '@/services/ai/design-generator'
+import {
+  insertStreamingNode,
+  resetGenerationRemapping,
+} from '@/services/ai/design-canvas-ops'
 import { trimChatHistory } from '@/services/ai/context-optimizer'
 import type { ChatMessage as ChatMessageType } from '@/services/ai/ai-types'
 
@@ -139,6 +143,9 @@ export function useChatHandlers() {
       let accumulated = ''
       let thinkingContent = ''
       let appliedCount = 0
+      let inJsonBlock = false
+      let jsonBuffer = ''
+      let streamingDesignStarted = false
 
       const abortController = new AbortController()
       useAIStore.getState().setAbortController(abortController)
@@ -172,6 +179,51 @@ export function useChatHandlers() {
             updateLastMessage(thinkingStep + (accumulated ? '\n' + accumulated : ''))
           } else if (chunk.type === 'text') {
             accumulated += chunk.content
+
+            // Real-time JSON detection during streaming
+            const newText = chunk.content
+            for (const char of newText) {
+              if (!inJsonBlock) {
+                // Detect start of ```json block
+                if (accumulated.endsWith('```json\n') || accumulated.endsWith('```json\r\n')) {
+                  inJsonBlock = true
+                  jsonBuffer = ''
+                  if (!streamingDesignStarted) {
+                    resetGenerationRemapping()
+                    streamingDesignStarted = true
+                  }
+                }
+              } else {
+                // Inside JSON block
+                if (accumulated.endsWith('```') && jsonBuffer.length > 0) {
+                  // End of JSON block — process remaining buffer
+                  inJsonBlock = false
+                  // Remove trailing ``` from jsonBuffer
+                  jsonBuffer = jsonBuffer.slice(0, -3)
+                } else {
+                  jsonBuffer += char
+                  // Try to parse complete JSONL lines
+                  if (char === '\n' && jsonBuffer.trim()) {
+                    const lines = jsonBuffer.split('\n')
+                    jsonBuffer = lines.pop() ?? ''
+                    for (const line of lines) {
+                      const trimmed = line.trim()
+                      if (!trimmed || !trimmed.startsWith('{')) continue
+                      try {
+                        const node = JSON.parse(trimmed)
+                        if (node.type) {
+                          const parentId = node._parent ?? null
+                          delete node._parent
+                          insertStreamingNode(node, parentId)
+                          appliedCount++
+                        }
+                      } catch { /* incomplete JSON line, skip */ }
+                    }
+                  }
+                }
+              }
+            }
+
             const thinkingPrefix = thinkingContent
               ? `<step title="Thinking">${thinkingContent}</step>\n`
               : ''
@@ -182,8 +234,10 @@ export function useChatHandlers() {
           }
         }
 
-        // After streaming complete — try to apply any design JSON from the response
-        appliedCount = tryApplyDesignFromResponse(accumulated)
+        // After streaming — apply any remaining design JSON not caught during streaming
+        if (appliedCount === 0) {
+          appliedCount = tryApplyDesignFromResponse(accumulated)
+        }
 
       } catch (error) {
         if (!abortController.signal.aborted) {
