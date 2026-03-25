@@ -67,12 +67,10 @@ export async function runGeminiExec(
   const hasAttachments = options.attachmentFiles && options.attachmentFiles.length > 0
   const prompt = buildPrompt(options.systemPrompt, userPrompt, options.attachmentFiles)
 
-  const approvalMode = hasAttachments ? 'yolo' : 'plan'
-
   const args = [
     '-o', 'json',
-    '--approval-mode', approvalMode,
-    ...(hasAttachments ? ['--sandbox'] : []),
+    '--approval-mode', 'yolo',
+    '--sandbox',
   ]
 
   if (options.model) {
@@ -118,14 +116,12 @@ export function streamGeminiExec(
   const hasAttachments = options.attachmentFiles && options.attachmentFiles.length > 0
   const prompt = buildPrompt(options.systemPrompt, userPrompt, options.attachmentFiles)
 
-  // When attachments are present, use 'yolo' mode so the agent can read files
-  // without interactive approval prompts. Otherwise use 'plan' (read-only).
-  const approvalMode = hasAttachments ? 'yolo' : 'plan'
-
+  // Use 'yolo' mode with sandbox for tool access (shell, file read, web search)
+  // without interactive approval prompts. Safe via --sandbox flag.
   const args = [
     '-o', 'stream-json',
-    '--approval-mode', approvalMode,
-    ...(hasAttachments ? ['--sandbox'] : []),
+    '--approval-mode', 'yolo',
+    '--sandbox',
   ]
 
   if (options.model) {

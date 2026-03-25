@@ -261,24 +261,25 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         const claudePath = resolveClaudeCli()
         const thinking = getAgentThinkingConfig(body)
 
-        // When images are attached, strip the "NEVER use tools" restriction from
-        // the system prompt so Claude Code will use its Read tool to view images.
-        const effectiveSystemPrompt = hasAttachments
-          ? stripNoToolsRestriction(body.system)
-          : body.system
+        // Always strip "NEVER use tools" restriction so the agent can use tools
+        const effectiveSystemPrompt = stripNoToolsRestriction(body.system)
 
         // Unified streaming path — works for both text-only and image queries
+        const agentTools = hasAttachments
+          ? ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
+          : ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
+
         const runQuery = async () => {
           const q = query({
             prompt,
             options: {
               systemPrompt: effectiveSystemPrompt,
               ...(model ? { model } : {}),
-              maxTurns: body.maxTurns ?? (hasAttachments ? 3 : 1),
+              maxTurns: body.maxTurns ?? (hasAttachments ? 5 : 1),
               includePartialMessages: true,
-              tools: hasAttachments ? ['Read'] : [],
+              tools: agentTools,
               plugins: [],
-              permissionMode: hasAttachments ? 'default' : 'plan',
+              permissionMode: 'default',
               persistSession: false,
               ...(body.effort ? { effort: body.effort } : {}),
               ...(thinking ? { thinking } : {}),
@@ -824,7 +825,7 @@ function streamViaCopilot(body: ChatBody, model?: string) {
           ...(model ? { model } : {}),
           streaming: true,
           onPermissionRequest: approveAll,
-          systemMessage: { mode: 'replace', content: body.system },
+          systemMessage: { mode: 'replace', content: stripNoToolsRestriction(body.system) },
           ...(body.effort ? { reasoningEffort: mapCopilotReasoningEffort(body.effort) } : {}),
         })
 

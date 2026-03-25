@@ -61,12 +61,15 @@ export async function runCodexExec(
   const imageFiles = options.imageFiles?.filter((f) => /\.(png|jpe?g|gif|webp)$/i.test(f)) ?? []
   const textFiles = options.imageFiles?.filter((f) => !/\.(png|jpe?g|gif|webp)$/i.test(f)) ?? []
 
+  const hasAttachments = imageFiles.length > 0 || textFiles.length > 0
+
   const args = [
     'exec',
     '--json',
     '--skip-git-repo-check',
     '--sandbox',
-    'read-only',
+    hasAttachments ? 'workspace-write' : 'read-only',
+    '--full-auto',
     '--output-last-message',
     outputPath,
   ]
