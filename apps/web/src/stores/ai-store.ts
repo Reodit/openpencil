@@ -5,7 +5,7 @@ import { appStorage } from '@/utils/app-storage'
 
 export type PanelCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
-const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929'
+const DEFAULT_MODEL = 'claude-sonnet-4-6'
 const MODEL_PREFERENCE_STORAGE_KEY = 'openpencil-ai-model-preference'
 const CONCURRENCY_STORAGE_KEY = 'openpencil-ai-concurrency'
 const UI_PREFS_KEY = 'openpencil-ai-ui-preferences'

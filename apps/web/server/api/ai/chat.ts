@@ -155,9 +155,9 @@ export default defineEventHandler(async (event) => {
 
 /** Default models per provider — used when the selected model doesn't match the provider */
 const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
-  anthropic: 'claude-sonnet-4-5-20250929',
-  openai: 'o3-mini',
-  opencode: 'anthropic/claude-sonnet-4-5-20250929',
+  anthropic: 'claude-sonnet-4-6',
+  openai: 'o3-pro',
+  opencode: 'anthropic/claude-sonnet-4-6',
   copilot: 'claude-sonnet-4.5',
   gemini: 'gemini-2.5-pro',
 }
