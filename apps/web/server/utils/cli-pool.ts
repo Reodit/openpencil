@@ -67,10 +67,10 @@ function spawnGemini(prompt: string, model?: string): ChildProcess | null {
   child.stderr?.on('data', () => { /* discard */ })
 
   // Write prompt to stdin — Gemini CLI prepends stdin content to -p value
-  // Do NOT close stdin — keep open for multi-turn tool I/O
+  // Close stdin to signal prompt submission. Tools run internally (no stdin needed).
   if (child.stdin?.writable) {
     child.stdin.write(prompt)
-    // Don't end stdin — Gemini needs it open for tools
+    child.stdin.end()
   }
 
   return child
