@@ -774,31 +774,27 @@ function streamViaGemini(body: ChatBody, model?: string) {
 
       let attachTempDir: string | undefined
       try {
-        const { streamGeminiPooled } = await import('../../utils/cli-pool')
+        const { streamGeminiExec } = await import('../../utils/gemini-client')
 
         const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user')
-        let prompt = lastUserMsg?.content ?? ''
+        const prompt = lastUserMsg?.content ?? ''
 
         // Save attachments to temp files for Gemini agent to read
         const attachments = getLastUserAttachments(body)
+        let attachmentFiles: string[] | undefined
         if (attachments.length > 0) {
           const saved = await saveAttachmentsToTempFiles(attachments, true)
           attachTempDir = saved.tempDir
-          const fileRefs = saved.files.map((f) => {
-            const isImage = /\.(png|jpe?g|gif|webp)$/i.test(f)
-            return isImage
-              ? `Read the image file at "${f}" to view it.`
-              : `Read the file at "${f}" for additional context.`
-          }).join('\n')
-          prompt = fileRefs + '\n\n' + prompt
+          attachmentFiles = saved.files
         }
 
-        // Prepend system prompt
-        if (body.system?.trim()) {
-          prompt = `--- GUIDELINES ---\n${body.system.trim()}\n\n--- TASK ---\n${prompt}`
-        }
+        const { stream: geminiStream } = streamGeminiExec(prompt, {
+          model,
+          systemPrompt: body.system,
+          attachmentFiles,
+        })
 
-        for await (const event of streamGeminiPooled(prompt, model)) {
+        for await (const event of geminiStream) {
           if (event.type === 'text') {
             clearInterval(pingTimer)
             const data = JSON.stringify({ type: 'text', content: event.content })
