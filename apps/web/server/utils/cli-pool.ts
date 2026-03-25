@@ -1,42 +1,34 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { resolveGeminiCli } from './resolve-gemini-cli'
-import { resolveClaudeCli } from './resolve-claude-cli'
 
 /**
- * CLI Session Pool — keeps CLI processes alive in interactive mode
- * to avoid cold-start latency (MCP init, model loading, etc.)
+ * CLI Session Pool — pre-spawns Gemini CLI processes with `-p` flag.
+ * Stdin stays open until a prompt arrives. MCP/model init happens at spawn
+ * time so the actual request only needs to write stdin + read stdout.
  *
- * Gemini CLI: Interactive mode with stream-json output.
- * Claude Agent SDK: Each query() spawns a new process (SDK limitation).
- *   → Pre-warm not effective. Skip pooling.
- * Codex CLI: exec is single-shot. Already fast (<5s). Skip pooling.
+ * Flow:
+ * 1. Server start: spawn N processes (`gemini -o stream-json -p ' ' --yolo --sandbox`)
+ *    → process starts, loads MCP, waits for stdin
+ * 2. Request arrives: write prompt to stdin, close stdin, stream stdout
+ * 3. Process exits after response → spawn replacement
  */
-
-// ─── Types ───────────────────────────────────────────────
 
 export interface StreamEvent {
   type: 'text' | 'thinking' | 'error' | 'done'
   content: string
 }
 
-interface PooledSession {
+interface PrewarmedProcess {
   process: ChildProcess
-  busy: boolean
   model: string | undefined
+  busy: boolean
   createdAt: number
-  buffer: string
-  /** Resolvers for pending prompt responses */
-  onLine?: (line: string) => void
 }
 
-// ─── Config ──────────────────────────────────────────────
+const MAX_POOL_SIZE = 3
+const SESSION_TTL_MS = 5 * 60 * 1000 // 5 min (before the process gets stale)
 
-const MAX_POOL_SIZE = 2
-const SESSION_TTL_MS = 10 * 60 * 1000 // 10 min
-
-// ─── Gemini Pool ─────────────────────────────────────────
-
-let geminiPool: PooledSession[] = []
+let pool: PrewarmedProcess[] = []
 
 function filterGeminiEnv(): Record<string, string | undefined> {
   const allowlist = new Set([
@@ -53,8 +45,11 @@ function filterGeminiEnv(): Record<string, string | undefined> {
   return result
 }
 
-/** Spawn a Gemini CLI process in interactive stream-json mode */
-function spawnGeminiSession(model?: string): PooledSession | null {
+/**
+ * Spawn a Gemini CLI process that waits for stdin input.
+ * `-p ' '` makes it non-interactive but stdin piped content becomes the prompt.
+ */
+function spawnWarm(model?: string): PrewarmedProcess | null {
   const binPath = resolveGeminiCli()
   if (!binPath) return null
 
@@ -62,6 +57,7 @@ function spawnGeminiSession(model?: string): PooledSession | null {
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
     '--sandbox',
+    '-p', ' ',
   ]
   if (model && model !== 'default') {
     args.push('-m', model)
@@ -75,191 +71,184 @@ function spawnGeminiSession(model?: string): PooledSession | null {
 
   child.stderr?.on('data', () => { /* discard */ })
 
-  const session: PooledSession = {
+  const entry: PrewarmedProcess = {
     process: child,
-    busy: false,
     model,
+    busy: false,
     createdAt: Date.now(),
-    buffer: '',
   }
 
-  // Wire up stdout line parser
-  child.stdout?.on('data', (chunk: Buffer) => {
-    session.buffer += chunk.toString('utf-8')
-    let idx = session.buffer.indexOf('\n')
-    while (idx >= 0) {
-      const line = session.buffer.slice(0, idx).trim()
-      session.buffer = session.buffer.slice(idx + 1)
-      if (line && session.onLine) {
-        session.onLine(line)
+  child.on('exit', () => {
+    pool = pool.filter((e) => e !== entry)
+    // Auto-replenish
+    if (pool.filter((e) => !e.busy).length < 1) {
+      const replacement = spawnWarm(model)
+      if (replacement) {
+        pool.push(replacement)
+        console.log(`[CliPool] Replenished (pool: ${pool.length})`)
       }
-      idx = session.buffer.indexOf('\n')
     }
   })
 
-  child.on('exit', () => {
-    geminiPool = geminiPool.filter((s) => s !== session)
-  })
-
-  return session
+  return entry
 }
 
-/** Clean expired sessions from pool */
-function cleanPool(): void {
+function cleanExpired(): void {
   const now = Date.now()
-  geminiPool = geminiPool.filter((s) => {
-    if (now - s.createdAt > SESSION_TTL_MS || s.process.killed) {
-      if (!s.process.killed) s.process.kill('SIGTERM')
+  pool = pool.filter((e) => {
+    if (now - e.createdAt > SESSION_TTL_MS && !e.busy) {
+      e.process.kill('SIGTERM')
       return false
     }
-    return true
+    return !e.process.killed
   })
 }
 
-/** Pre-warm Gemini pool on server start */
+/** Pre-warm pool on server start */
 export function warmGeminiPool(model?: string): void {
-  cleanPool()
-  while (geminiPool.length < MAX_POOL_SIZE) {
-    const session = spawnGeminiSession(model)
-    if (!session) break
-    geminiPool.push(session)
-    console.log(`[CliPool] Gemini session pre-warmed (pool: ${geminiPool.length}/${MAX_POOL_SIZE})`)
+  cleanExpired()
+  while (pool.length < MAX_POOL_SIZE) {
+    const entry = spawnWarm(model)
+    if (!entry) break
+    pool.push(entry)
+    console.log(`[CliPool] Pre-warmed (pool: ${pool.length}/${MAX_POOL_SIZE})`)
   }
 }
 
 /**
- * Send a prompt to a pooled Gemini session and stream responses.
- * Uses interactive mode — stdin stays open, process is reused.
+ * Stream a prompt through a pooled Gemini process.
+ * Writes prompt to stdin, closes stdin, streams stdout lines.
+ * Process exits after response → auto-replenished.
  */
 export async function* streamGeminiPooled(
   prompt: string,
   model?: string,
 ): AsyncGenerator<StreamEvent> {
-  cleanPool()
+  cleanExpired()
 
-  // Find an idle session with matching model
-  let session = geminiPool.find((s) => !s.busy && !s.process.killed && s.model === model)
-  if (!session) {
-    // Try any idle session (model mismatch = spawn new)
-    session = geminiPool.find((s) => !s.busy && !s.process.killed)
+  // Acquire an idle process
+  let entry = pool.find((e) => !e.busy && !e.process.killed)
+  if (!entry) {
+    // No idle process — spawn on demand (cold start)
+    entry = spawnWarm(model)
+    if (entry) pool.push(entry)
   }
-  if (!session) {
-    session = spawnGeminiSession(model)
-    if (session) geminiPool.push(session)
-  }
-  if (!session) {
+  if (!entry) {
     yield { type: 'error', content: 'Gemini CLI not found or pool exhausted.' }
     return
   }
 
-  session.busy = true
+  entry.busy = true
+  const child = entry.process
+  console.log(`[CliPool] Using pid=${child.pid}, prompt=${prompt.length} chars`)
+
+  // Write prompt and close stdin → triggers Gemini to process
+  if (child.stdin?.writable) {
+    child.stdin.write(prompt)
+    child.stdin.end()
+  } else {
+    yield { type: 'error', content: 'Gemini process stdin not writable.' }
+    return
+  }
+
+  // Stream stdout line by line
+  let buffer = ''
+  const timeoutMs = 5 * 60 * 1000
+
+  const timer = setTimeout(() => {
+    child.kill('SIGTERM')
+  }, timeoutMs)
 
   try {
-    // Send prompt via stdin (interactive mode accepts newline-terminated input)
-    if (!session.process.stdin?.writable) {
-      yield { type: 'error', content: 'Gemini session stdin closed.' }
-      return
-    }
-
-    // Set up line-by-line response collection
-    const lineQueue: string[] = []
-    let resolveWait: (() => void) | null = null
-    let done = false
-
-    session.onLine = (line: string) => {
-      lineQueue.push(line)
-      if (resolveWait) {
-        const fn = resolveWait
-        resolveWait = null
-        fn()
-      }
-    }
-
-    // Send the prompt
-    session.process.stdin.write(prompt + '\n')
-
-    // Read lines until we see a 'result' event
-    const timeout = setTimeout(() => {
-      done = true
-      if (resolveWait) {
-        const fn = resolveWait
-        resolveWait = null
-        fn()
-      }
-    }, 5 * 60 * 1000) // 5 min max
-
-    while (!done) {
-      if (lineQueue.length === 0) {
-        await new Promise<void>((resolve) => { resolveWait = resolve })
-        continue
-      }
-
-      const line = lineQueue.shift()!
-      if (!line.startsWith('{')) continue
-
-      let parsed: Record<string, unknown>
-      try {
-        parsed = JSON.parse(line)
-      } catch { continue }
-
-      const type = typeof parsed.type === 'string' ? parsed.type : ''
-
-      if (type === 'message' && parsed.role === 'assistant') {
-        const content = typeof parsed.content === 'string' ? parsed.content : ''
-        if (content) yield { type: 'text', content }
-      } else if (type === 'tool_use') {
-        const toolName = typeof parsed.tool_name === 'string' ? parsed.tool_name : 'tool'
-        yield { type: 'thinking', content: `Using tool: ${toolName}` }
-      } else if (type === 'tool_result') {
-        yield { type: 'thinking', content: 'Tool completed' }
-      } else if (type === 'result') {
-        if (parsed.status === 'error' && parsed.error) {
-          const errObj = parsed.error as Record<string, unknown>
-          const msg = typeof errObj.message === 'string' ? errObj.message : 'Unknown error'
-          yield { type: 'error', content: msg }
+    for await (const chunk of child.stdout!) {
+      buffer += chunk.toString('utf-8')
+      let idx = buffer.indexOf('\n')
+      while (idx >= 0) {
+        const line = buffer.slice(0, idx).trim()
+        buffer = buffer.slice(idx + 1)
+        if (line) {
+          const event = parseLine(line)
+          if (event) {
+            yield event
+            if (event.type === 'done' || event.type === 'error') {
+              clearTimeout(timer)
+              return
+            }
+          }
         }
-        done = true
-      } else if (type === 'error') {
-        const content = typeof parsed.message === 'string' ? parsed.message : 'Unknown error'
-        yield { type: 'error', content }
-        done = true
+        idx = buffer.indexOf('\n')
       }
     }
 
-    clearTimeout(timeout)
+    // Flush remaining
+    const tail = buffer.trim()
+    if (tail) {
+      const event = parseLine(tail)
+      if (event) yield event
+    }
+
     yield { type: 'done', content: '' }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Stream error'
+    yield { type: 'error', content: msg }
   } finally {
-    session.onLine = undefined
-    session.busy = false
+    clearTimeout(timer)
+    // Process will exit after stdin closed → auto-replenish via 'exit' handler
+  }
+}
 
-    // Replenish pool
-    const idleCount = geminiPool.filter((s) => !s.busy && !s.process.killed).length
-    if (idleCount < 1) {
-      const replacement = spawnGeminiSession(model)
-      if (replacement) {
-        geminiPool.push(replacement)
-        console.log(`[CliPool] Gemini session replenished (pool: ${geminiPool.length})`)
-      }
+function parseLine(line: string): StreamEvent | null {
+  if (!line.startsWith('{')) return null
+
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(line)
+  } catch { return null }
+
+  const type = typeof parsed.type === 'string' ? parsed.type : ''
+
+  if (type === 'message' && parsed.role === 'assistant') {
+    const content = typeof parsed.content === 'string' ? parsed.content : ''
+    if (content) return { type: 'text', content }
+  }
+
+  if (type === 'tool_use') {
+    const toolName = typeof parsed.tool_name === 'string' ? parsed.tool_name : 'tool'
+    return { type: 'thinking', content: `Using tool: ${toolName}` }
+  }
+  if (type === 'tool_result') {
+    return { type: 'thinking', content: 'Tool completed' }
+  }
+
+  if (type === 'result') {
+    if (parsed.status === 'error' && parsed.error) {
+      const errObj = parsed.error as Record<string, unknown>
+      const msg = typeof errObj.message === 'string' ? errObj.message : 'Unknown error'
+      return { type: 'error', content: msg }
     }
+    return { type: 'done', content: '' }
   }
+
+  if (type === 'error') {
+    const content = typeof parsed.message === 'string' ? parsed.message : 'Unknown error'
+    return { type: 'error', content }
+  }
+
+  return null
 }
 
-/** Get pool status */
-export function getPoolStatus(): { gemini: { total: number; idle: number; busy: number } } {
-  const alive = geminiPool.filter((s) => !s.process.killed)
+export function getPoolStatus(): { total: number; idle: number; busy: number } {
+  const alive = pool.filter((e) => !e.process.killed)
   return {
-    gemini: {
-      total: alive.length,
-      idle: alive.filter((s) => !s.busy).length,
-      busy: alive.filter((s) => s.busy).length,
-    },
+    total: alive.length,
+    idle: alive.filter((e) => !e.busy).length,
+    busy: alive.filter((e) => e.busy).length,
   }
 }
 
-/** Shutdown all pooled sessions */
 export function shutdownPool(): void {
-  for (const s of geminiPool) {
-    if (!s.process.killed) s.process.kill('SIGTERM')
+  for (const e of pool) {
+    if (!e.process.killed) e.process.kill('SIGTERM')
   }
-  geminiPool = []
+  pool = []
 }
