@@ -159,7 +159,7 @@ const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
   openai: 'gpt-5.4',
   opencode: 'anthropic/claude-sonnet-4-6',
   copilot: 'claude-sonnet-4.5',
-  gemini: 'gemini-2.5-pro',
+  gemini: 'gemini-3-flash-preview',
 }
 
 /** Model prefix patterns that belong to each provider */
