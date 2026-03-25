@@ -309,7 +309,10 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // - With attachments: Read tool for image/file analysis
         // - Without attachments: no tools, pure text output (design JSON)
         const agentTools = hasAttachments ? ['Read'] : []
-        const agentPermission = hasAttachments ? 'default' : 'plan'
+        // Always use 'default' — 'plan' causes the agent to write plan files
+        // instead of outputting design JSON. With tools=[], default mode
+        // just outputs text (no tool use possible).
+        const agentPermission = 'default'
 
         const runQuery = async () => {
           const q = query({
