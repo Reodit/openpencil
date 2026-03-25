@@ -143,9 +143,8 @@ export function useChatHandlers() {
       let accumulated = ''
       let thinkingContent = ''
       let appliedCount = 0
-      let inJsonBlock = false
-      let jsonBuffer = ''
-      let streamingDesignStarted = false
+      let lastProcessedLength = 0
+      let generationStarted = false
 
       const abortController = new AbortController()
       useAIStore.getState().setAbortController(abortController)
@@ -180,49 +179,14 @@ export function useChatHandlers() {
           } else if (chunk.type === 'text') {
             accumulated += chunk.content
 
-            // Real-time JSON detection during streaming
-            const newText = chunk.content
-            for (const char of newText) {
-              if (!inJsonBlock) {
-                // Detect start of ```json block
-                if (accumulated.endsWith('```json\n') || accumulated.endsWith('```json\r\n')) {
-                  inJsonBlock = true
-                  jsonBuffer = ''
-                  if (!streamingDesignStarted) {
-                    resetGenerationRemapping()
-                    streamingDesignStarted = true
-                  }
-                }
-              } else {
-                // Inside JSON block
-                if (accumulated.endsWith('```') && jsonBuffer.length > 0) {
-                  // End of JSON block — process remaining buffer
-                  inJsonBlock = false
-                  // Remove trailing ``` from jsonBuffer
-                  jsonBuffer = jsonBuffer.slice(0, -3)
-                } else {
-                  jsonBuffer += char
-                  // Try to parse complete JSONL lines
-                  if (char === '\n' && jsonBuffer.trim()) {
-                    const lines = jsonBuffer.split('\n')
-                    jsonBuffer = lines.pop() ?? ''
-                    for (const line of lines) {
-                      const trimmed = line.trim()
-                      if (!trimmed || !trimmed.startsWith('{')) continue
-                      try {
-                        const node = JSON.parse(trimmed)
-                        if (node.type) {
-                          const parentId = node._parent ?? null
-                          delete node._parent
-                          insertStreamingNode(node, parentId)
-                          appliedCount++
-                        }
-                      } catch { /* incomplete JSON line, skip */ }
-                    }
-                  }
-                }
-              }
-            }
+            // Real-time JSONL extraction: scan accumulated text for complete lines
+            // inside ```json blocks and insert nodes as they arrive
+            const result = extractAndInsertStreamingNodes(
+              accumulated, lastProcessedLength, generationStarted, appliedCount,
+            )
+            lastProcessedLength = result.processedUpTo
+            appliedCount = result.totalApplied
+            generationStarted = result.generationStarted
 
             const thinkingPrefix = thinkingContent
               ? `<step title="Thinking">${thinkingContent}</step>\n`
@@ -276,6 +240,62 @@ export function useChatHandlers() {
  * Try to extract and apply PenNode JSON from agent response.
  * Returns the number of nodes applied.
  */
+/**
+ * Scan accumulated text for complete JSONL lines inside ```json blocks.
+ * Insert nodes to canvas in real-time as they stream in.
+ */
+function extractAndInsertStreamingNodes(
+  accumulated: string,
+  processedUpTo: number,
+  generationStarted: boolean,
+  totalApplied: number,
+): { processedUpTo: number; totalApplied: number; generationStarted: boolean } {
+  // Find ```json block boundaries in the accumulated text
+  const jsonStart = accumulated.indexOf('```json\n')
+  if (jsonStart < 0) return { processedUpTo, totalApplied, generationStarted }
+
+  const contentStart = jsonStart + '```json\n'.length
+  const jsonEnd = accumulated.indexOf('\n```', contentStart)
+
+  // Determine the range to scan for new lines
+  const scanFrom = Math.max(contentStart, processedUpTo)
+  const scanTo = jsonEnd > 0 ? jsonEnd : accumulated.length
+
+  if (scanFrom >= scanTo) return { processedUpTo: scanFrom, totalApplied, generationStarted }
+
+  const newContent = accumulated.slice(scanFrom, scanTo)
+  const lines = newContent.split('\n')
+
+  // Don't process the last line unless the block is closed (it may be incomplete)
+  const linesToProcess = jsonEnd > 0 ? lines : lines.slice(0, -1)
+
+  for (const line of linesToProcess) {
+    const trimmed = line.trim()
+    if (!trimmed || !trimmed.startsWith('{')) continue
+    try {
+      const node = JSON.parse(trimmed)
+      if (node.type && node.id) {
+        if (!generationStarted) {
+          resetGenerationRemapping()
+          generationStarted = true
+        }
+        const parentId = node._parent ?? null
+        delete node._parent
+        insertStreamingNode(node, parentId)
+        totalApplied++
+      }
+    } catch {
+      // Incomplete JSON line — will be retried next chunk
+    }
+  }
+
+  // Update processedUpTo to avoid re-processing
+  const lastNewline = accumulated.lastIndexOf('\n', scanTo - 1)
+  const newProcessedUpTo = jsonEnd > 0 ? jsonEnd : (lastNewline > scanFrom ? lastNewline + 1 : scanFrom)
+
+  return { processedUpTo: newProcessedUpTo, totalApplied, generationStarted }
+}
+
 function tryApplyDesignFromResponse(response: string): number {
   const jsonBlocks = extractJsonBlocks(response)
   let totalApplied = 0
