@@ -18,17 +18,10 @@ export interface StreamEvent {
   content: string
 }
 
-interface PrewarmedProcess {
-  process: ChildProcess
-  model: string | undefined
-  busy: boolean
-  createdAt: number
-}
-
-const MAX_POOL_SIZE = 3
-const SESSION_TTL_MS = 5 * 60 * 1000 // 5 min (before the process gets stale)
-
-let pool: PrewarmedProcess[] = []
+// Gemini CLI processes are spawned per-request with -p flag.
+// No persistent pool needed — each process handles one request then exits.
+// stdin stays open for multi-turn tool use.
+// Parallel requests = parallel processes (no limit beyond system resources).
 
 function filterGeminiEnv(): Record<string, string | undefined> {
   const allowlist = new Set([
@@ -46,10 +39,12 @@ function filterGeminiEnv(): Record<string, string | undefined> {
 }
 
 /**
- * Spawn a Gemini CLI process that waits for stdin input.
- * `-p ' '` makes it non-interactive but stdin piped content becomes the prompt.
+ * Spawn a Gemini CLI process with a specific prompt via -p flag.
+ * stdin stays open so the CLI can run tools (multi-turn).
+ * Process exits after responding → auto-replenish not needed since
+ * each request gets a fresh process.
  */
-function spawnWarm(model?: string): PrewarmedProcess | null {
+function spawnWithPrompt(prompt: string, model?: string): ChildProcess | null {
   const binPath = resolveGeminiCli()
   if (!binPath) return null
 
@@ -57,6 +52,7 @@ function spawnWarm(model?: string): PrewarmedProcess | null {
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
     '--sandbox',
+    '-p', prompt,
   ]
   if (model && model !== 'default') {
     args.push('-m', model)
@@ -69,88 +65,31 @@ function spawnWarm(model?: string): PrewarmedProcess | null {
   })
 
   child.stderr?.on('data', () => { /* discard */ })
-
-  const entry: PrewarmedProcess = {
-    process: child,
-    model,
-    busy: false,
-    createdAt: Date.now(),
-  }
-
-  child.on('exit', () => {
-    pool = pool.filter((e) => e !== entry)
-    // Auto-replenish
-    if (pool.filter((e) => !e.busy).length < 1) {
-      const replacement = spawnWarm(model)
-      if (replacement) {
-        pool.push(replacement)
-        console.log(`[CliPool] Replenished (pool: ${pool.length})`)
-      }
-    }
-  })
-
-  return entry
+  return child
 }
 
-function cleanExpired(): void {
-  const now = Date.now()
-  pool = pool.filter((e) => {
-    if (now - e.createdAt > SESSION_TTL_MS && !e.busy) {
-      e.process.kill('SIGTERM')
-      return false
-    }
-    return !e.process.killed
-  })
-}
-
-/** Pre-warm pool on server start */
-export function warmGeminiPool(model?: string): void {
-  cleanExpired()
-  while (pool.length < MAX_POOL_SIZE) {
-    const entry = spawnWarm(model)
-    if (!entry) break
-    pool.push(entry)
-    console.log(`[CliPool] Pre-warmed (pool: ${pool.length}/${MAX_POOL_SIZE})`)
-  }
+/** No-op — kept for backward compat with cli-pool plugin */
+export function warmGeminiPool(_model?: string): void {
+  console.log('[CliPool] Gemini uses per-request spawn with -p flag (no pre-warm needed)')
 }
 
 /**
- * Stream a prompt through a pooled Gemini process.
- * Writes prompt to stdin, closes stdin, streams stdout lines.
- * Process exits after response → auto-replenished.
+ * Stream a prompt through Gemini CLI.
+ * Uses -p flag for prompt delivery so stdin stays open for tool use.
+ * Concurrency: multiple calls run in parallel (separate processes).
  */
 export async function* streamGeminiPooled(
   prompt: string,
   model?: string,
 ): AsyncGenerator<StreamEvent> {
-  cleanExpired()
-
-  // Acquire an idle process
-  let entry = pool.find((e) => !e.busy && !e.process.killed)
-  if (!entry) {
-    // No idle process — spawn on demand (cold start)
-    entry = spawnWarm(model)
-    if (entry) pool.push(entry)
-  }
-  if (!entry) {
-    yield { type: 'error', content: 'Gemini CLI not found or pool exhausted.' }
+  const child = spawnWithPrompt(prompt, model)
+  if (!child) {
+    yield { type: 'error', content: 'Gemini CLI not found.' }
     return
   }
 
-  entry.busy = true
-  const child = entry.process
-  console.log(`[CliPool] Using pid=${child.pid}, prompt=${prompt.length} chars`)
+  console.log(`[CliPool] Gemini spawned pid=${child.pid}, prompt=${prompt.length} chars`)
 
-  // Write prompt and close stdin → triggers Gemini to process
-  if (child.stdin?.writable) {
-    child.stdin.write(prompt)
-    child.stdin.end()
-  } else {
-    yield { type: 'error', content: 'Gemini process stdin not writable.' }
-    return
-  }
-
-  // Stream stdout line by line
   let buffer = ''
   const timeoutMs = 5 * 60 * 1000
 
@@ -179,7 +118,6 @@ export async function* streamGeminiPooled(
       }
     }
 
-    // Flush remaining
     const tail = buffer.trim()
     if (tail) {
       const event = parseLine(tail)
@@ -192,7 +130,7 @@ export async function* streamGeminiPooled(
     yield { type: 'error', content: msg }
   } finally {
     clearTimeout(timer)
-    // Process will exit after stdin closed → auto-replenish via 'exit' handler
+    if (!child.killed) child.kill('SIGTERM')
   }
 }
 
@@ -236,18 +174,10 @@ function parseLine(line: string): StreamEvent | null {
   return null
 }
 
-export function getPoolStatus(): { total: number; idle: number; busy: number } {
-  const alive = pool.filter((e) => !e.process.killed)
-  return {
-    total: alive.length,
-    idle: alive.filter((e) => !e.busy).length,
-    busy: alive.filter((e) => e.busy).length,
-  }
+export function getPoolStatus(): { info: string } {
+  return { info: 'Per-request spawn mode (no persistent pool)' }
 }
 
 export function shutdownPool(): void {
-  for (const e of pool) {
-    if (!e.process.killed) e.process.kill('SIGTERM')
-  }
-  pool = []
+  // No persistent pool to shut down
 }
