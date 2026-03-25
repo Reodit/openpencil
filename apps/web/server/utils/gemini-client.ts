@@ -127,9 +127,8 @@ export function streamGeminiExec(
 
   args.push('-p', ' ')
 
-  // Pass prompt via -p flag instead of stdin to avoid child_process hang
-  // (see: https://github.com/google-gemini/gemini-cli/issues/6715)
-  // Remove the placeholder -p ' ' and add the actual prompt
+  // Pass prompt via -p flag. Keep stdin as pipe but don't write to it —
+  // Gemini CLI needs stdin open for tool I/O but we don't use it for prompt.
   const pIdx = args.indexOf('-p')
   if (pIdx >= 0) {
     args[pIdx + 1] = prompt
@@ -137,9 +136,10 @@ export function streamGeminiExec(
 
   const child = spawn(binPath, args, {
     env: { ...process.env },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['pipe', 'pipe', 'pipe'],
     ...(process.platform === 'win32' && { shell: true }),
   })
+  // Don't write to or close stdin — leave it open for Gemini's internal tool use
 
   const timeoutMs = options.timeoutMs ?? DEFAULT_GEMINI_TIMEOUT_MS
   const timer = setTimeout(() => {
