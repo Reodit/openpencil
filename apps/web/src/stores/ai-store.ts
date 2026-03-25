@@ -160,7 +160,7 @@ export const useAIStore = create<AIState>((set, get) => ({
   generationProgress: null,
   pendingAttachments: [],
   abortController: null,
-  planMode: true,
+  planMode: false,
   planStatus: 'idle',
   pendingPlan: null,
 
