@@ -57,7 +57,6 @@ function spawnWarm(model?: string): PrewarmedProcess | null {
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
     '--sandbox',
-    '-p', ' ',
   ]
   if (model && model !== 'default') {
     args.push('-m', model)
