@@ -70,6 +70,7 @@ export async function runGeminiExec(
   const args = [
     '-o', 'json',
     '--approval-mode', 'yolo',
+    '-y',
   ]
 
   if (options.model && options.model !== 'default') {
@@ -115,11 +116,11 @@ export function streamGeminiExec(
   const hasAttachments = options.attachmentFiles && options.attachmentFiles.length > 0
   const prompt = buildPrompt(options.systemPrompt, userPrompt, options.attachmentFiles)
 
-  // Use 'yolo' mode for tool access (shell, file read, web search)
-  // without interactive approval prompts.
+  // Use 'yolo' mode with -y flag for tool access without approval prompts
   const args = [
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
+    '-y',
   ]
 
   if (options.model && options.model !== 'default') {
