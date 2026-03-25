@@ -52,7 +52,6 @@ function spawnGemini(prompt: string, model?: string): ChildProcess | null {
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
     '--sandbox',
-    '-p', ' ',
   ]
   if (model && model !== 'default') {
     args.push('-m', model)
