@@ -798,6 +798,7 @@ function streamViaCopilot(body: ChatBody, model?: string) {
       }, KEEPALIVE_INTERVAL_MS)
 
       let copilotClient: { stop(): Promise<unknown> } | undefined
+      let attachTempDir: string | undefined
       try {
         const { CopilotClient, approveAll } = await import('@github/copilot-sdk')
         // Use standalone copilot binary to avoid Bun's node:sqlite issue
@@ -810,6 +811,15 @@ function streamViaCopilot(body: ChatBody, model?: string) {
         copilotClient = client
         await client.start()
 
+        // Save attachments to temp files for Copilot to access
+        const attachments = getLastUserAttachments(body)
+        let fileAttachments: Array<{ type: 'file'; path: string }>  = []
+        if (attachments.length > 0) {
+          const saved = await saveAttachmentsToTempFiles(attachments, true)
+          attachTempDir = saved.tempDir
+          fileAttachments = saved.files.map((f) => ({ type: 'file' as const, path: f }))
+        }
+
         const session = await client.createSession({
           ...(model ? { model } : {}),
           streaming: true,
@@ -819,7 +829,18 @@ function streamViaCopilot(body: ChatBody, model?: string) {
         })
 
         const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user')
-        const prompt = lastUserMsg?.content ?? ''
+        let prompt = lastUserMsg?.content ?? ''
+
+        // Add file references to prompt for Copilot to read
+        if (fileAttachments.length > 0) {
+          const refs = fileAttachments.map((a) => {
+            const isImage = /\.(png|jpe?g|gif|webp)$/i.test(a.path)
+            return isImage
+              ? `Read the image at "${a.path}".`
+              : `Read the file at "${a.path}".`
+          }).join('\n')
+          prompt = refs + '\n\n' + prompt
+        }
 
         // Subscribe to streaming deltas
         session.on('assistant.message_delta', (event) => {
@@ -833,8 +854,12 @@ function streamViaCopilot(body: ChatBody, model?: string) {
           }
         })
 
-        // Wait for completion
-        await session.sendAndWait({ prompt }, 120_000)
+        // Send with file attachments if available
+        const sendOptions: Record<string, unknown> = { prompt }
+        if (fileAttachments.length > 0) {
+          sendOptions.attachments = fileAttachments
+        }
+        await session.sendAndWait(sendOptions as any, 120_000)
         await session.destroy()
 
         controller.enqueue(
@@ -847,6 +872,9 @@ function streamViaCopilot(body: ChatBody, model?: string) {
         )
       } finally {
         clearInterval(pingTimer)
+        if (attachTempDir) {
+          rm(attachTempDir, { recursive: true, force: true }).catch(() => {})
+        }
         if (copilotClient) {
           copilotClient.stop().catch(() => {})
         }
