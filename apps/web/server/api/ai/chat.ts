@@ -156,10 +156,10 @@ export default defineEventHandler(async (event) => {
 /** Default models per provider — used when the selected model doesn't match the provider */
 const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
   anthropic: 'claude-sonnet-4-6',
-  openai: 'o3-pro',
+  openai: 'gpt-5.4',
   opencode: 'anthropic/claude-sonnet-4-6',
   copilot: 'claude-sonnet-4.5',
-  gemini: 'gemini-2.5-pro',
+  gemini: 'gemini-3.1-pro',
 }
 
 /** Model prefix patterns that belong to each provider */
@@ -167,7 +167,7 @@ const PROVIDER_MODEL_PREFIXES: Record<string, string[]> = {
   anthropic: ['claude-', 'claude_'],
   openai: ['gpt-', 'o1', 'o3', 'o4', 'codex-'],
   gemini: ['gemini-'],
-  copilot: ['gpt-', 'claude-', 'o3', 'o4'],
+  copilot: ['gpt-', 'claude-', 'o3', 'o4', 'gemini-'],
   opencode: ['/'], // opencode uses "provider/model" format
 }
 
