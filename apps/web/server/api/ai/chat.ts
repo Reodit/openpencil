@@ -761,7 +761,7 @@ function mapCopilotReasoningEffort(
   return effort
 }
 
-/** Stream via Gemini CLI (`gemini -p -o stream-json`) — CLI handles its own auth */
+/** Stream via Gemini CLI — uses session pool for fast response */
 function streamViaGemini(body: ChatBody, model?: string) {
   const stream = new ReadableStream({
     async start(controller) {
@@ -774,27 +774,31 @@ function streamViaGemini(body: ChatBody, model?: string) {
 
       let attachTempDir: string | undefined
       try {
-        const { streamGeminiExec } = await import('../../utils/gemini-client')
+        const { streamGeminiPooled } = await import('../../utils/cli-pool')
 
         const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user')
-        const prompt = lastUserMsg?.content ?? ''
+        let prompt = lastUserMsg?.content ?? ''
 
         // Save attachments to temp files for Gemini agent to read
         const attachments = getLastUserAttachments(body)
-        let attachmentFiles: string[] | undefined
         if (attachments.length > 0) {
           const saved = await saveAttachmentsToTempFiles(attachments, true)
           attachTempDir = saved.tempDir
-          attachmentFiles = saved.files
+          const fileRefs = saved.files.map((f) => {
+            const isImage = /\.(png|jpe?g|gif|webp)$/i.test(f)
+            return isImage
+              ? `Read the image file at "${f}" to view it.`
+              : `Read the file at "${f}" for additional context.`
+          }).join('\n')
+          prompt = fileRefs + '\n\n' + prompt
         }
 
-        const { stream: geminiStream } = streamGeminiExec(prompt, {
-          model,
-          systemPrompt: body.system,
-          attachmentFiles,
-        })
+        // Prepend system prompt
+        if (body.system?.trim()) {
+          prompt = `--- GUIDELINES ---\n${body.system.trim()}\n\n--- TASK ---\n${prompt}`
+        }
 
-        for await (const event of geminiStream) {
+        for await (const event of streamGeminiPooled(prompt, model)) {
           if (event.type === 'text') {
             clearInterval(pingTimer)
             const data = JSON.stringify({ type: 'text', content: event.content })
@@ -802,7 +806,6 @@ function streamViaGemini(body: ChatBody, model?: string) {
               controller.enqueue(encoder.encode(`data: ${data}\n\n`))
             } catch { /* stream closed */ }
           } else if (event.type === 'thinking') {
-            // Forward tool events as thinking to prevent client timeout
             const data = JSON.stringify({ type: 'thinking', content: event.content })
             try {
               controller.enqueue(encoder.encode(`data: ${data}\n\n`))
@@ -810,6 +813,8 @@ function streamViaGemini(body: ChatBody, model?: string) {
           } else if (event.type === 'error') {
             const data = JSON.stringify({ type: 'error', content: event.content })
             controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+          } else if (event.type === 'done') {
+            // done handled below
           }
         }
 
