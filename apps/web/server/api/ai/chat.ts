@@ -795,9 +795,15 @@ function streamViaGemini(body: ChatBody, model?: string) {
         })
 
         for await (const event of geminiStream) {
-          clearInterval(pingTimer)
           if (event.type === 'text') {
+            clearInterval(pingTimer)
             const data = JSON.stringify({ type: 'text', content: event.content })
+            try {
+              controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+            } catch { /* stream closed */ }
+          } else if (event.type === 'thinking') {
+            // Forward tool events as thinking to prevent client timeout
+            const data = JSON.stringify({ type: 'thinking', content: event.content })
             try {
               controller.enqueue(encoder.encode(`data: ${data}\n\n`))
             } catch { /* stream closed */ }

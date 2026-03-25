@@ -370,7 +370,7 @@ function friendlyGeminiApiError(raw: string): string {
 
 function parseStreamJsonLine(
   line: string,
-): { type: 'text' | 'error' | 'done'; content: string } | null {
+): { type: 'text' | 'error' | 'done' | 'thinking'; content: string } | null {
   // Skip non-JSON lines (e.g. "Loaded cached credentials.")
   if (!line.startsWith('{')) return null
 
@@ -386,6 +386,15 @@ function parseStreamJsonLine(
   if (type === 'message' && parsed.role === 'assistant') {
     const content = typeof parsed.content === 'string' ? parsed.content : ''
     if (content) return { type: 'text', content }
+  }
+
+  // Forward tool events as thinking so client knows work is happening
+  if (type === 'tool_use') {
+    const toolName = typeof parsed.tool_name === 'string' ? parsed.tool_name : 'tool'
+    return { type: 'thinking', content: `Using tool: ${toolName}` }
+  }
+  if (type === 'tool_result') {
+    return { type: 'thinking', content: 'Tool completed' }
   }
 
   if (type === 'result') {
