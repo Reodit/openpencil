@@ -169,3 +169,16 @@ export interface SubAgentResult {
   rawResponse: string
   error?: string
 }
+
+// ---------------------------------------------------------------------------
+// Plan Mode types — agent creates plan, user approves before execution
+// ---------------------------------------------------------------------------
+
+export interface PlanStep {
+  id: string
+  title: string
+  description?: string
+  status: 'pending' | 'active' | 'done' | 'error' | 'skipped'
+}
+
+export type PlanStatus = 'idle' | 'planning' | 'awaiting' | 'executing' | 'done'

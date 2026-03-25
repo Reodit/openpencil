@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Plus, ChevronDown, ChevronUp, Check, MessageSquare, Loader2, Paperclip, X, Square, Zap } from 'lucide-react'
+import { Send, Plus, ChevronDown, ChevronUp, Check, MessageSquare, Loader2, Paperclip, X, Square, Zap, ListChecks } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
@@ -64,6 +64,34 @@ function resolveNextModel(
   if (models.some((m) => m.value === currentModel)) return currentModel
   if (models.some((m) => m.value === preferredModel)) return preferredModel
   return models[0].value
+}
+
+/**
+ * Plan mode toggle — switches between direct execution and plan-first mode.
+ */
+function PlanModeToggle() {
+  const planMode = useAIStore((s) => s.planMode)
+  const setPlanMode = useAIStore((s) => s.setPlanMode)
+  const isStreaming = useAIStore((s) => s.isStreaming)
+
+  return (
+    <button
+      type="button"
+      disabled={isStreaming}
+      onClick={() => setPlanMode(!planMode)}
+      className={cn(
+        'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all shrink-0',
+        planMode
+          ? 'bg-primary/15 text-primary border border-primary/30'
+          : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-secondary/50',
+        isStreaming && 'opacity-50 cursor-not-allowed',
+      )}
+      title={planMode ? 'Plan mode: ON' : 'Plan mode: OFF'}
+    >
+      <ListChecks size={10} />
+      <span>Plan</span>
+    </button>
+  )
 }
 
 /**
@@ -650,6 +678,8 @@ export default function AIChatPanel() {
           </button>
 
           <div className="flex items-center gap-1 w-full">
+            {/* Plan mode toggle */}
+            <PlanModeToggle />
             {/* Concurrency selector */}
             <ConcurrencyButton />
 

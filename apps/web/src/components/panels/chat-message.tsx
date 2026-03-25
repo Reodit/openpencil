@@ -2,7 +2,9 @@ import React, { useState, useMemo, type ReactNode } from 'react'
 import { Copy, Check, Wand2, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import type { ChatAttachment } from '@/services/ai/ai-types'
+import type { ChatAttachment, PlanStep } from '@/services/ai/ai-types'
+import { useAIStore } from '@/stores/ai-store'
+import PlanCard from './plan-card'
 
 interface ChatMessageProps {
   role: 'user' | 'assistant'
@@ -46,6 +48,30 @@ function stripToolCallXml(text: string): string {
   // Collapse leftover blank lines into at most one
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n')
   return cleaned.trim()
+}
+
+/** Parse <plan> blocks from assistant messages into PlanStep[] */
+function parsePlanBlock(text: string): PlanStep[] | null {
+  const planMatch = text.match(/<plan>([\s\S]*?)<\/plan>/)
+  if (!planMatch) return null
+
+  const steps: PlanStep[] = []
+  const stepRegex = /<step\s+id="([^"]*)"\s+title="([^"]*)">([\s\S]*?)<\/step>/g
+  let match
+  while ((match = stepRegex.exec(planMatch[1])) !== null) {
+    steps.push({
+      id: match[1],
+      title: match[2],
+      description: match[3].trim() || undefined,
+      status: 'pending',
+    })
+  }
+  return steps.length > 0 ? steps : null
+}
+
+/** Strip <plan> blocks from display text */
+function stripPlanBlocks(text: string): string {
+  return text.replace(/<plan>[\s\S]*?<\/plan>/g, '').trim()
 }
 
 export interface ParsedStep {
@@ -618,17 +644,28 @@ export default function ChatMessage({
     [role, content],
   )
 
-
   const isUser = role === 'user'
   // Strip raw tool-call XML that the model may emit (should never be visible)
   const displayContent = isUser ? content : stripToolCallXml(content)
+
+  // Detect <plan> blocks
+  const planSteps = useMemo(
+    () => (isUser ? null : parsePlanBlock(displayContent)),
+    [isUser, displayContent],
+  )
+  const pendingPlan = useAIStore((s) => s.pendingPlan)
+  const planStatus = useAIStore((s) => s.planStatus)
+
+  // If this message contains a plan and it was stored, use the store version (has live status updates)
+  const activePlan = pendingPlan && planSteps ? pendingPlan : planSteps
+
   const steps = useMemo(
     () => (isUser ? [] : parseStepBlocks(displayContent, isStreaming)),
     [isUser, displayContent, isStreaming],
   )
   const hasFlow = !isUser && steps.length > 0
   const contentWithoutSteps = useMemo(
-    () => (isUser ? displayContent : stripStepBlocks(displayContent)),
+    () => (isUser ? displayContent : stripPlanBlocks(stripStepBlocks(displayContent))),
     [isUser, displayContent],
   )
   const isEmpty = !contentWithoutSteps.trim() && !hasFlow
@@ -682,6 +719,27 @@ export default function ChatMessage({
             </div>
           ) : (
             <>
+              {/* Plan Card — shown when agent outputs a <plan> block */}
+              {activePlan && activePlan.length > 0 && (
+                <PlanCard
+                  steps={activePlan}
+                  status={pendingPlan ? planStatus : 'awaiting'}
+                  onApprove={() => {
+                    // Store the plan and trigger execution
+                    if (!pendingPlan && planSteps) {
+                      useAIStore.getState().setPendingPlan(planSteps)
+                    }
+                    useAIStore.getState().setPlanStatus('executing')
+                  }}
+                  onCancel={() => {
+                    useAIStore.getState().setPendingPlan(null)
+                    useAIStore.getState().setPlanStatus('idle')
+                  }}
+                  onSkipStep={(stepId) => {
+                    useAIStore.getState().updatePlanStep(stepId, 'skipped')
+                  }}
+                />
+              )}
               {hasFlow && (
                 <div className="mb-2">
                   <ActionSteps steps={steps} isStreaming={isStreaming} />

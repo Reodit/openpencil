@@ -5,7 +5,7 @@ import { useCanvasStore } from '@/stores/canvas-store'
 import { useDocumentStore } from '@/stores/document-store'
 import { useDesignMdStore } from '@/stores/design-md-store'
 import { streamChat } from '@/services/ai/ai-service'
-import { buildAgentSystemPrompt } from '@/services/ai/agent-prompt'
+import { buildAgentSystemPrompt, buildPlanSystemPrompt, buildExecutePlanSystemPrompt } from '@/services/ai/agent-prompt'
 import {
   animateNodesToCanvas,
   extractAndApplyDesignModification,
@@ -150,9 +150,27 @@ export function useChatHandlers() {
       useAIStore.getState().setAbortController(abortController)
 
       try {
-        // Build agent system prompt (auto-detects needed sections)
         const designMd = useDesignMdStore.getState().designMd
-        const agentPrompt = buildAgentSystemPrompt(messageText, designMd)
+        const planMode = useAIStore.getState().planMode
+        const existingPlan = useAIStore.getState().pendingPlan
+        const planStatus = useAIStore.getState().planStatus
+
+        // If plan was approved (status=executing), use execute prompt with plan steps
+        // If plan mode is on and no pending plan, create a plan first
+        // Otherwise, direct agent mode
+        let agentPrompt: string
+        if (planStatus === 'executing' && existingPlan) {
+          // Execute approved plan
+          agentPrompt = buildExecutePlanSystemPrompt(existingPlan)
+          useAIStore.getState().setPlanStatus('executing')
+        } else if (planMode && !existingPlan) {
+          // Create a plan first
+          agentPrompt = buildPlanSystemPrompt()
+          useAIStore.getState().setPlanStatus('planning')
+        } else {
+          // Direct mode (no plan)
+          agentPrompt = buildAgentSystemPrompt(messageText, designMd)
+        }
 
         // Trim history to prevent context overflow
         const trimmedHistory = trimChatHistory(chatHistory)
@@ -198,7 +216,29 @@ export function useChatHandlers() {
           }
         }
 
-        // After streaming — apply any remaining design JSON not caught during streaming
+        // After streaming — check if this was a plan response
+        const currentPlanStatus = useAIStore.getState().planStatus
+        if (currentPlanStatus === 'planning') {
+          // Parse plan from response and store it
+          const planMatch = accumulated.match(/<plan>([\s\S]*?)<\/plan>/)
+          if (planMatch) {
+            const steps: import('@/services/ai/ai-types').PlanStep[] = []
+            const stepRegex = /<step\s+id="([^"]*)"\s+title="([^"]*)">([\s\S]*?)<\/step>/g
+            let m
+            while ((m = stepRegex.exec(planMatch[1])) !== null) {
+              steps.push({ id: m[1], title: m[2], description: m[3].trim() || undefined, status: 'pending' })
+            }
+            if (steps.length > 0) {
+              useAIStore.getState().setPendingPlan(steps)
+              useAIStore.getState().setPlanStatus('awaiting')
+            }
+          }
+        } else if (currentPlanStatus === 'executing') {
+          // Plan execution complete
+          useAIStore.getState().setPlanStatus('done')
+        }
+
+        // Apply any remaining design JSON not caught during streaming
         if (appliedCount === 0) {
           appliedCount = tryApplyDesignFromResponse(accumulated)
         }

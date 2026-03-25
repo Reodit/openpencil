@@ -105,7 +105,14 @@ interface AIState {
   concurrency: number
   pendingAttachments: ChatAttachment[]
   abortController: AbortController | null
+  planMode: boolean
+  planStatus: import('@/services/ai/ai-types').PlanStatus
+  pendingPlan: import('@/services/ai/ai-types').PlanStep[] | null
 
+  setPlanMode: (v: boolean) => void
+  setPlanStatus: (s: import('@/services/ai/ai-types').PlanStatus) => void
+  setPendingPlan: (plan: import('@/services/ai/ai-types').PlanStep[] | null) => void
+  updatePlanStep: (id: string, status: import('@/services/ai/ai-types').PlanStep['status']) => void
   setConcurrency: (n: number) => void
   setChatTitle: (title: string) => void
   setGenerationProgress: (progress: { current: number; total: number } | null) => void
@@ -153,7 +160,21 @@ export const useAIStore = create<AIState>((set, get) => ({
   generationProgress: null,
   pendingAttachments: [],
   abortController: null,
+  planMode: true,
+  planStatus: 'idle',
+  pendingPlan: null,
 
+  setPlanMode: (v) => set({ planMode: v }),
+  setPlanStatus: (s) => set({ planStatus: s }),
+  setPendingPlan: (plan) => set({ pendingPlan: plan }),
+  updatePlanStep: (id, status) => set((s) => {
+    if (!s.pendingPlan) return s
+    return {
+      pendingPlan: s.pendingPlan.map((step) =>
+        step.id === id ? { ...step, status } : step,
+      ),
+    }
+  }),
   setConcurrency: (n) => {
     const clamped = Math.max(1, Math.min(6, n))
     writeStoredConcurrency(clamped)
