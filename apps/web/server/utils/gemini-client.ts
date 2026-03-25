@@ -70,7 +70,6 @@ export async function runGeminiExec(
   const args = [
     '-o', 'json',
     '--approval-mode', 'yolo',
-    '--sandbox',
   ]
 
   if (options.model && options.model !== 'default') {
@@ -100,7 +99,7 @@ export function streamGeminiExec(
   userPrompt: string,
   options: GeminiExecOptions = {},
 ): {
-  stream: AsyncGenerator<{ type: 'text' | 'error' | 'done'; content: string }>
+  stream: AsyncGenerator<{ type: 'text' | 'error' | 'done' | 'thinking'; content: string }>
   kill: () => void
 } {
   const binPath = resolveGeminiCli()
@@ -116,12 +115,11 @@ export function streamGeminiExec(
   const hasAttachments = options.attachmentFiles && options.attachmentFiles.length > 0
   const prompt = buildPrompt(options.systemPrompt, userPrompt, options.attachmentFiles)
 
-  // Use 'yolo' mode with sandbox for tool access (shell, file read, web search)
-  // without interactive approval prompts. Safe via --sandbox flag.
+  // Use 'yolo' mode for tool access (shell, file read, web search)
+  // without interactive approval prompts.
   const args = [
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
-    '--sandbox',
   ]
 
   if (options.model && options.model !== 'default') {
