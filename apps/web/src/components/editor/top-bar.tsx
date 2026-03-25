@@ -407,7 +407,8 @@ export default function TopBar() {
 
         <div className="w-px h-3.5 bg-border/60 mx-1" />
 
-        <WebsiteExportButton />
+        {/* TODO: Website export — AI-enhanced HTML generation (paused) */}
+        {/* <WebsiteExportButton /> */}
       </div>
 
       {/* Center section — file name */}
