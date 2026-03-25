@@ -62,6 +62,34 @@ export function buildContextString(): string {
 }
 
 /**
+ * Clean message content for chat history.
+ * Replace large JSON blocks with summaries, strip internal markers.
+ */
+function cleanMessageForHistory(content: string, role: string): string {
+  let cleaned = content
+
+  // Strip <!-- APPLIED --> marker
+  cleaned = cleaned.replace(/<!-- APPLIED -->/g, '')
+
+  // Strip <step> tags (thinking content)
+  cleaned = cleaned.replace(/<step[^>]*>[\s\S]*?<\/step>/g, '')
+
+  // Replace ```json blocks with summary (keep the conversation context, not raw JSON)
+  cleaned = cleaned.replace(/```json\s*\n[\s\S]*?```/g, (match) => {
+    const lineCount = match.split('\n').length - 2
+    return `[Design JSON: ${lineCount} nodes generated]`
+  })
+
+  // Replace <plan> blocks with summary
+  cleaned = cleaned.replace(/<plan>[\s\S]*?<\/plan>/g, '[Design plan created]')
+
+  // Collapse excessive whitespace
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
+
+  return cleaned
+}
+
+/**
  * Unified agent chat handler.
  *
  * No classification step — the agent decides autonomously what to do:
@@ -124,10 +152,11 @@ export function useChatHandlers() {
         useAIStore.getState().setChatTitle(title || 'New Chat')
       }
 
-      // Build chat history
+      // Build chat history — clean up design JSON and internal markers
+      // to keep context focused on the conversation
       const chatHistory = messages.map((m) => ({
         role: m.role,
-        content: m.content,
+        content: cleanMessageForHistory(m.content, m.role),
         ...(m.attachments?.length ? { attachments: m.attachments } : {}),
       }))
       chatHistory.push({
