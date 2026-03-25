@@ -204,6 +204,9 @@ export function useChatHandlers() {
         // Trim history to prevent context overflow
         const trimmedHistory = trimChatHistory(chatHistory)
 
+        // Get existing session ID for conversation continuity
+        const currentSessionId = useAIStore.getState().sessionId ?? undefined
+
         // Single streaming call — agent decides what to do
         for await (const chunk of streamChat(
           agentPrompt,
@@ -215,11 +218,15 @@ export function useChatHandlers() {
             maxTurns: 15,
             firstTextTimeoutMs: 180_000,
             hardTimeoutMs: 600_000,
+            sessionId: currentSessionId,
           },
           currentProvider,
           abortController.signal,
         )) {
-          if (chunk.type === 'thinking') {
+          if (chunk.type === 'session_id') {
+            // Store session ID for conversation continuity
+            useAIStore.getState().setSessionId(chunk.content)
+          } else if (chunk.type === 'thinking') {
             thinkingContent += chunk.content
             const thinkingStep = `<step title="Thinking">${thinkingContent}</step>`
             updateLastMessage(thinkingStep + (accumulated ? '\n' + accumulated : ''))

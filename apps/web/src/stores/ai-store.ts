@@ -105,10 +105,13 @@ interface AIState {
   concurrency: number
   pendingAttachments: ChatAttachment[]
   abortController: AbortController | null
+  /** Agent SDK session ID for conversation continuity */
+  sessionId: string | null
   planMode: boolean
   planStatus: import('@/services/ai/ai-types').PlanStatus
   pendingPlan: import('@/services/ai/ai-types').PlanStep[] | null
 
+  setSessionId: (id: string | null) => void
   setPlanMode: (v: boolean) => void
   setPlanStatus: (s: import('@/services/ai/ai-types').PlanStatus) => void
   setPendingPlan: (plan: import('@/services/ai/ai-types').PlanStep[] | null) => void
@@ -160,10 +163,12 @@ export const useAIStore = create<AIState>((set, get) => ({
   generationProgress: null,
   pendingAttachments: [],
   abortController: null,
+  sessionId: null,
   planMode: false,
   planStatus: 'idle',
   pendingPlan: null,
 
+  setSessionId: (id) => set({ sessionId: id }),
   setPlanMode: (v) => set({ planMode: v }),
   setPlanStatus: (s) => set({ planStatus: s }),
   setPendingPlan: (plan) => set({ pendingPlan: plan }),
@@ -238,7 +243,7 @@ export const useAIStore = create<AIState>((set, get) => ({
   setAvailableModels: (availableModels) => set({ availableModels }),
   setModelGroups: (modelGroups) => set({ modelGroups }),
   setLoadingModels: (isLoadingModels) => set({ isLoadingModels }),
-  clearMessages: () => set({ messages: [], chatTitle: 'New Chat' }),
+  clearMessages: () => set({ messages: [], chatTitle: 'New Chat', sessionId: null, pendingPlan: null, planStatus: 'idle' }),
 
   setPanelCorner: (panelCorner) => {
     set({ panelCorner })

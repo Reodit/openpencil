@@ -40,6 +40,8 @@ interface StreamChatOptions {
   effort?: 'low' | 'medium' | 'high' | 'max'
   /** Max turns for Agent SDK (overrides server default). */
   maxTurns?: number
+  /** Session ID for conversation continuity */
+  sessionId?: string
 }
 
 /**
@@ -126,6 +128,7 @@ export async function* streamChat(
         thinkingBudgetTokens: options?.thinkingBudgetTokens,
         effort: options?.effort,
         ...(options?.maxTurns != null ? { maxTurns: options.maxTurns } : {}),
+        ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
       }),
       signal: fetchSignal,
     })

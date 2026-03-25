@@ -58,6 +58,8 @@ interface ChatBody {
   thinkingBudgetTokens?: number
   effort?: 'low' | 'medium' | 'high' | 'max'
   maxTurns?: number
+  /** Session ID for conversation continuity (Claude Agent SDK) */
+  sessionId?: string
 }
 
 async function readDebugTail(path?: string, maxLines = 40): Promise<string[] | undefined> {
@@ -325,7 +327,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               tools: agentTools,
               plugins: [],
               permissionMode: agentPermission,
-              persistSession: false,
+              persistSession: true,
+              ...(body.sessionId ? { resume: body.sessionId } : {}),
               ...(body.effort ? { effort: body.effort } : {}),
               ...(thinking ? { thinking } : {}),
               env,
@@ -337,7 +340,15 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
 
           try {
             for await (const message of q) {
-              if (message.type === 'stream_event') {
+              if (message.type === 'system') {
+                // Extract session_id from system message and send to client
+                const sid = (message as any).session_id
+                if (sid) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ type: 'session_id', content: sid })}\n\n`),
+                  )
+                }
+              } else if (message.type === 'stream_event') {
                 const ev = message.event
                 if (ev.type === 'content_block_delta') {
                   if (ev.delta.type === 'text_delta') {
