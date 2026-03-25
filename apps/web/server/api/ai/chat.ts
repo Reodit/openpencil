@@ -137,18 +137,59 @@ export default defineEventHandler(async (event) => {
   }
   logToFile('chat-request', JSON.stringify(logBody, null, 2)).catch(() => {})
 
+  // Resolve effective model — use provider default when model doesn't match
+  const effectiveModel = resolveModelForProvider(body.model, body.provider)
+
   setResponseHeaders(event, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
   })
 
-  if (body.provider === 'anthropic') return streamViaAgentSDK(body, body.model)
-  if (body.provider === 'opencode') return streamViaOpenCode(body, body.model)
-  if (body.provider === 'copilot') return streamViaCopilot(body, body.model)
-  if (body.provider === 'gemini') return streamViaGemini(body, body.model)
-  return streamViaCodex(body, body.model)
+  if (body.provider === 'anthropic') return streamViaAgentSDK(body, effectiveModel)
+  if (body.provider === 'opencode') return streamViaOpenCode(body, effectiveModel)
+  if (body.provider === 'copilot') return streamViaCopilot(body, effectiveModel)
+  if (body.provider === 'gemini') return streamViaGemini(body, effectiveModel)
+  return streamViaCodex(body, effectiveModel)
 })
+
+/** Default models per provider — used when the selected model doesn't match the provider */
+const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
+  anthropic: 'claude-sonnet-4-5-20250929',
+  openai: 'o3-mini',
+  opencode: 'anthropic/claude-sonnet-4-5-20250929',
+  copilot: 'claude-sonnet-4.5',
+  gemini: 'gemini-2.5-pro',
+}
+
+/** Model prefix patterns that belong to each provider */
+const PROVIDER_MODEL_PREFIXES: Record<string, string[]> = {
+  anthropic: ['claude-', 'claude_'],
+  openai: ['gpt-', 'o1', 'o3', 'o4', 'codex-'],
+  gemini: ['gemini-'],
+  copilot: ['gpt-', 'claude-', 'o3', 'o4'],
+  opencode: ['/'], // opencode uses "provider/model" format
+}
+
+function resolveModelForProvider(model: string, provider: string): string {
+  if (!model || model === 'default') {
+    return PROVIDER_DEFAULT_MODELS[provider] ?? model
+  }
+
+  // Check if model matches the provider
+  const prefixes = PROVIDER_MODEL_PREFIXES[provider]
+  if (prefixes) {
+    const matches = prefixes.some((p) =>
+      p === '/' ? model.includes('/') : model.toLowerCase().startsWith(p),
+    )
+    if (!matches) {
+      // Model doesn't match provider — use provider default
+      return PROVIDER_DEFAULT_MODELS[provider] ?? model
+    }
+  }
+
+  return model
+}
 
 // Keep-alive ping interval (ms) — prevents client timeout while waiting for API TTFT
 const KEEPALIVE_INTERVAL_MS = 15_000
