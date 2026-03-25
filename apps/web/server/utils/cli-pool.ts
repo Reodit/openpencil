@@ -39,12 +39,12 @@ function filterGeminiEnv(): Record<string, string | undefined> {
 }
 
 /**
- * Spawn a Gemini CLI process with a specific prompt via -p flag.
- * stdin stays open so the CLI can run tools (multi-turn).
- * Process exits after responding → auto-replenish not needed since
- * each request gets a fresh process.
+ * Spawn a Gemini CLI process.
+ * Prompt is piped via stdin (avoids shell arg length limits + escaping issues).
+ * `-p ' '` tells CLI to run in non-interactive mode; stdin content is the actual prompt.
+ * stdin stays open after writing prompt so the CLI can run multi-turn tools.
  */
-function spawnWithPrompt(prompt: string, model?: string): ChildProcess | null {
+function spawnGemini(prompt: string, model?: string): ChildProcess | null {
   const binPath = resolveGeminiCli()
   if (!binPath) return null
 
@@ -52,7 +52,7 @@ function spawnWithPrompt(prompt: string, model?: string): ChildProcess | null {
     '-o', 'stream-json',
     '--approval-mode', 'yolo',
     '--sandbox',
-    '-p', prompt,
+    '-p', ' ',
   ]
   if (model && model !== 'default') {
     args.push('-m', model)
@@ -65,6 +65,14 @@ function spawnWithPrompt(prompt: string, model?: string): ChildProcess | null {
   })
 
   child.stderr?.on('data', () => { /* discard */ })
+
+  // Write prompt to stdin — Gemini CLI prepends stdin content to -p value
+  // Do NOT close stdin — keep open for multi-turn tool I/O
+  if (child.stdin?.writable) {
+    child.stdin.write(prompt)
+    // Don't end stdin — Gemini needs it open for tools
+  }
+
   return child
 }
 
@@ -82,7 +90,7 @@ export async function* streamGeminiPooled(
   prompt: string,
   model?: string,
 ): AsyncGenerator<StreamEvent> {
-  const child = spawnWithPrompt(prompt, model)
+  const child = spawnGemini(prompt, model)
   if (!child) {
     yield { type: 'error', content: 'Gemini CLI not found.' }
     return
