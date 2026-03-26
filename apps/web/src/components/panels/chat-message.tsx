@@ -706,6 +706,24 @@ export default function ChatMessage({
     () => (isUser ? displayContent : stripPlanBlocks(stripStepBlocks(displayContent))),
     [isUser, displayContent],
   )
+
+  // Parse plan follow-up text and choices for PlanCard
+  const afterPlanText = useMemo(
+    () => (!isUser && planSteps ? getTextAfterPlan(displayContent) : ''),
+    [isUser, planSteps, displayContent],
+  )
+  const parsedChoices = useMemo(
+    () => (afterPlanText ? parseChoices(afterPlanText) : []),
+    [afterPlanText],
+  )
+  const planFollowUp = useMemo(
+    () => {
+      if (!afterPlanText) return undefined
+      const text = afterPlanText.split(/\*\*\d+\.\s+/)[0].trim()
+      return text || undefined
+    },
+    [afterPlanText],
+  )
   const isEmpty = !contentWithoutSteps.trim() && !hasFlow
 
   // Don't render an empty non-streaming assistant message
@@ -757,43 +775,33 @@ export default function ChatMessage({
             </div>
           ) : (
             <>
-              {/* Plan Card — shown when agent outputs a <plan> block */}
-              {activePlan && activePlan.length > 0 && (() => {
-                const afterPlanText = getTextAfterPlan(displayContent)
-                const parsedChoices = afterPlanText ? parseChoices(afterPlanText) : []
-                // Strip choices from follow-up text to avoid double display
-                const cleanFollowUp = afterPlanText
-                  ? afterPlanText.split(/\*\*\d+\.\s+/)[0].trim()
-                  : undefined
-                return (
-                  <PlanCard
-                    steps={activePlan}
-                    status={pendingPlan ? planStatus : 'awaiting'}
-                    followUpText={cleanFollowUp || undefined}
-                    choices={parsedChoices.length > 0 ? parsedChoices : undefined}
-                    onApprove={() => {
-                      if (!pendingPlan && planSteps) {
-                        useAIStore.getState().setPendingPlan(planSteps)
-                      }
-                      useAIStore.getState().setPlanStatus('executing')
-                      onExecutePlan?.()
-                    }}
-                    onCancel={() => {
-                      useAIStore.getState().setPendingPlan(null)
-                      useAIStore.getState().setPlanStatus('idle')
-                    }}
-                    onSkipStep={(stepId) => {
-                      useAIStore.getState().updatePlanStep(stepId, 'skipped')
-                    }}
-                    onFeedback={(feedback) => {
-                      // Reset plan and send feedback to regenerate
-                      useAIStore.getState().setPendingPlan(null)
-                      useAIStore.getState().setPlanStatus('idle')
-                      onPlanFeedback?.(feedback)
-                    }}
-                  />
-                )
-              })()
+              {/* Plan Card */}
+              {activePlan && activePlan.length > 0 && (
+                <PlanCard
+                  steps={activePlan}
+                  status={pendingPlan ? planStatus : 'awaiting'}
+                  followUpText={planFollowUp}
+                  choices={parsedChoices.length > 0 ? parsedChoices : undefined}
+                  onApprove={() => {
+                    if (!pendingPlan && planSteps) {
+                      useAIStore.getState().setPendingPlan(planSteps)
+                    }
+                    useAIStore.getState().setPlanStatus('executing')
+                    onExecutePlan?.()
+                  }}
+                  onCancel={() => {
+                    useAIStore.getState().setPendingPlan(null)
+                    useAIStore.getState().setPlanStatus('idle')
+                  }}
+                  onSkipStep={(stepId) => {
+                    useAIStore.getState().updatePlanStep(stepId, 'skipped')
+                  }}
+                  onFeedback={(feedback) => {
+                    useAIStore.getState().setPendingPlan(null)
+                    useAIStore.getState().setPlanStatus('idle')
+                    onPlanFeedback?.(feedback)
+                  }}
+                />
               )}
               {hasFlow && (
                 <div className="mb-2">
