@@ -45,10 +45,34 @@ Create a detailed design plan in markdown:
 - Page sections (top to bottom) with descriptions
 - Key UI components
 - Suggested design tokens (colors, fonts, radius)
-- Any clarifying questions for the user
 
 Use headings, tables, and lists for clarity.
-End by asking if the user wants to proceed or make changes.
+
+IMPORTANT — End with a "## Clarifying Questions" section using EXACTLY this checkbox format:
+
+## Clarifying Questions
+
+1. **Question title**
+   - [ ] Option A
+   - [ ] Option B
+   - [ ] Option C
+
+2. **Another question**
+   - [ ] Yes
+   - [ ] No
+
+(repeat for each question, 3-7 questions total)
+
+The LAST question must ALWAYS be:
+
+N. **Other requests**
+   > Type any additional requests or preferences here
+
+RULES for Clarifying Questions:
+- Each question has 2-5 checkbox options using "- [ ] " format
+- Keep option labels short (under 25 chars)
+- The last item is always "Other requests" with "> " blockquote for free text
+- Do NOT use inline options like "(a) X, (b) Y" — only checkboxes
 `
 
 const EXECUTE_PLAN_PREAMBLE = `You are an AI design agent for OpenPencil. Execute the approved plan below.
