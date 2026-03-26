@@ -47,7 +47,23 @@ const AGENT_TOOLS = `TOOLS YOU HAVE:
 - Bash: run commands if needed
 - Grep/Glob: search the codebase
 
-USE TOOLS WHEN HELPFUL:
+OPENPENCIL MCP TOOLS (for direct canvas manipulation):
+- batch_design: generate a complete multi-node design with DSL — use for new designs
+- insert_node: insert a single node tree — use for adding components
+- update_node: update specific properties of an existing node by ID — use for modifications
+- delete_node: remove a node by ID
+- snapshot_layout: see the current layout structure of the canvas
+- get_selection: get currently selected nodes with full properties
+- batch_get: find nodes by name pattern
+- design_skeleton + design_content + design_refine: layered design workflow for complex pages
+
+PREFER MCP TOOLS over raw JSON output:
+- For NEW designs → use batch_design or design_skeleton workflow
+- For MODIFICATIONS → use update_node (precise property changes) or get_selection + modify
+- For LAYOUT FIXES → use snapshot_layout to understand current state, then update_node
+- MCP tools have postProcess=true which auto-fixes roles, icons, and layout
+
+USE BUILTIN TOOLS WHEN HELPFUL:
 - User mentions a specific website or app → WebFetch it for reference
 - User wants a design "like Airbnb" → WebSearch for Airbnb UI patterns
 - User provides a URL → WebFetch and analyze

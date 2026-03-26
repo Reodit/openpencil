@@ -309,9 +309,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // Always strip "NEVER use tools" restriction so the agent can use tools
         const effectiveSystemPrompt = stripNoToolsRestriction(body.system)
 
-        // Full tool access — agent decides when to use tools
-        // System prompt ensures output is PenNode JSON, not code files
-        const agentTools = ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
+        // Full tool access + MCP tools (openpencil design tools)
+        // Agent can use built-in tools + MCP tools (batch_design, update_node, etc.)
         const agentPermission = 'default'
 
         const runQuery = async () => {
@@ -322,8 +321,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               ...(model ? { model } : {}),
               maxTurns: body.maxTurns ?? (hasAttachments ? 5 : 1),
               includePartialMessages: true,
-              tools: agentTools,
-              plugins: [],
+              // Don't restrict tools — let agent use all available including MCP
               permissionMode: agentPermission,
               persistSession: true,
               ...(body.sessionId ? { resume: body.sessionId } : {}),
