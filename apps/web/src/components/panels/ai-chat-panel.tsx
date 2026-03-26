@@ -339,19 +339,18 @@ export default function AIChatPanel() {
     const containerRect = container.getBoundingClientRect()
     const panelRect = panel.getBoundingClientRect()
 
+    // Update corner for width-resize handle direction (left/right)
     const centerX = panelRect.left + panelRect.width / 2 - containerRect.left
     const centerY = panelRect.top + panelRect.height / 2 - containerRect.top
-
     const isLeft = centerX < containerRect.width / 2
     const isTop = centerY < containerRect.height / 2
-
     const corner: PanelCorner = isLeft
       ? isTop ? 'top-left' : 'bottom-left'
       : isTop ? 'top-right' : 'bottom-right'
-
     setPanelCorner(corner)
+
+    // Keep free position (don't snap back to corner)
     dragRef.current = null
-    setDragStyle(null)
   }, [setPanelCorner])
 
 
