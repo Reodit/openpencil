@@ -898,8 +898,8 @@ export default function ChatMessage({
                 </div>
               ) : null}
               {/* Clarifying questions with clickable options */}
-              {!isUser && !isStreaming && contentWithoutSteps && hasClarifyingQuestions(contentWithoutSteps) && onAnswer && (
-                <ClarifyingQuestionsBlock content={contentWithoutSteps} onAnswer={onAnswer} />
+              {!isUser && !isStreaming && hasClarifyingQuestions(displayContent) && onAnswer && (
+                <ClarifyingQuestionsBlock content={displayContent} onAnswer={onAnswer} />
               )}
             </>
           )}
