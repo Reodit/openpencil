@@ -219,21 +219,24 @@ export function useChatHandlers() {
         const existingPlan = useAIStore.getState().pendingPlan
         const planStatus = useAIStore.getState().planStatus
 
-        // If plan was approved (status=executing), use execute prompt with plan steps
-        // If plan mode is on and no pending plan, create a plan first
-        // Otherwise, direct agent mode
+        // Route to correct prompt based on plan state:
+        // - executing + plan → execute the approved plan
+        // - idle + planMode + no plan → create a new plan
+        // - awaiting → user is responding to plan questions, use agent mode
+        // - everything else → direct agent mode
         let agentPrompt: string
         if (planStatus === 'executing' && existingPlan) {
-          // Execute approved plan
           agentPrompt = buildExecutePlanSystemPrompt(existingPlan)
-          useAIStore.getState().setPlanStatus('executing')
-        } else if (planMode && !existingPlan) {
-          // Create a plan first
+        } else if (planStatus === 'idle' && planMode && !existingPlan) {
           agentPrompt = buildPlanSystemPrompt()
           useAIStore.getState().setPlanStatus('planning')
         } else {
-          // Direct mode (no plan)
+          // Agent mode: user feedback, follow-up, or direct generation
           agentPrompt = buildAgentSystemPrompt(messageText, designMd)
+          // Reset plan status if we were awaiting (user answered questions)
+          if (planStatus === 'awaiting') {
+            useAIStore.getState().setPlanStatus('idle')
+          }
         }
 
         // Trim history to prevent context overflow
