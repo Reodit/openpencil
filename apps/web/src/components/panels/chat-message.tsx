@@ -414,6 +414,77 @@ function parseMarkdown(
       continue
     }
 
+    // Headings
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)/)
+    if (headingMatch) {
+      const level = headingMatch[1].length
+      const Tag = `h${level}` as keyof JSX.IntrinsicElements
+      const sizes: Record<number, string> = {
+        1: 'text-base font-bold mt-3 mb-1',
+        2: 'text-sm font-bold mt-2.5 mb-1',
+        3: 'text-xs font-semibold mt-2 mb-0.5',
+        4: 'text-xs font-semibold mt-1.5 mb-0.5',
+        5: 'text-[11px] font-medium mt-1',
+        6: 'text-[11px] font-medium mt-1',
+      }
+      parts.push(
+        <Tag key={`h-${blockKey++}`} className={`${sizes[level] ?? sizes[3]} text-foreground`}>
+          {parseInlineMarkdown(headingMatch[2])}
+        </Tag>,
+      )
+      continue
+    }
+
+    // Horizontal rule
+    if (/^---+$/.test(line.trim())) {
+      parts.push(<hr key={`hr-${blockKey++}`} className="my-2 border-border/50" />)
+      continue
+    }
+
+    // Table row
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      // Skip separator rows (|---|---|)
+      if (/^\|[\s\-:|]+\|$/.test(line.trim())) continue
+      const cells = line.trim().slice(1, -1).split('|').map(c => c.trim())
+      const isHeader = lines[lines.indexOf(line) + 1]?.trim().match(/^\|[\s\-:|]+\|$/)
+      parts.push(
+        <div key={`tr-${blockKey++}`} className={`flex gap-2 text-[10px] py-0.5 ${isHeader ? 'font-semibold border-b border-border/30' : 'text-muted-foreground'}`}>
+          {cells.map((cell, ci) => (
+            <span key={ci} className="flex-1 min-w-0 truncate">{parseInlineMarkdown(cell)}</span>
+          ))}
+        </div>,
+      )
+      continue
+    }
+
+    // Checkbox list item
+    if (line.match(/^-\s+\[[ x]\]\s+/)) {
+      const checked = line.includes('[x]')
+      const text = line.replace(/^-\s+\[[ x]\]\s+/, '')
+      parts.push(
+        <div key={`cb-${blockKey++}`} className="flex items-start gap-1.5 text-[11px] py-0.5">
+          <span className={`mt-0.5 w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 ${checked ? 'bg-primary/20 border-primary/50 text-primary' : 'border-border'}`}>
+            {checked && <Check size={8} />}
+          </span>
+          <span className={checked ? 'line-through text-muted-foreground' : 'text-foreground'}>{parseInlineMarkdown(text)}</span>
+        </div>,
+      )
+      continue
+    }
+
+    // Unordered list item
+    if (line.match(/^[-*]\s+/)) {
+      const text = line.replace(/^[-*]\s+/, '')
+      parts.push(
+        <div key={`li-${blockKey++}`} className="flex items-start gap-1.5 text-[11px] py-0.5 pl-1">
+          <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/50 shrink-0" />
+          <span>{parseInlineMarkdown(text)}</span>
+        </div>,
+      )
+      continue
+    }
+
+    // Default: inline markdown
     parts.push(
       <span key={`line-${blockKey++}`}>
         {parseInlineMarkdown(line)}
