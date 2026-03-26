@@ -110,6 +110,9 @@ interface AIState {
   /** Saved chat sessions for history */
   chatSessions: Array<{ id: string; title: string; timestamp: number; sessionId?: string }>
   panelWidth: number
+  /** Selected design platform preset (e.g. 'iphone', 'web') */
+  designPlatform: string | null
+  setDesignPlatform: (p: string | null) => void
   planMode: boolean
   planStatus: import('@/services/ai/ai-types').PlanStatus
   pendingPlan: import('@/services/ai/ai-types').PlanStep[] | null
@@ -176,6 +179,8 @@ export const useAIStore = create<AIState>((set, get) => ({
   sessionId: null,
   chatSessions: [],
   panelWidth: 380,
+  designPlatform: null,
+  setDesignPlatform: (p) => set({ designPlatform: p }),
   planMode: false,
   planStatus: 'idle',
   pendingPlan: null,

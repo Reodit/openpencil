@@ -94,43 +94,82 @@ function PlanModeToggle() {
   )
 }
 
+const PLATFORM_PRESETS = [
+  { id: 'iphone', label: 'iPhone', icon: Smartphone, size: '393×852' },
+  { id: 'android', label: 'Android', icon: Smartphone, size: '360×800' },
+  { id: 'ipad', label: 'iPad', icon: Smartphone, size: '1024×1366' },
+  { id: 'desktop', label: 'Desktop', icon: Globe, size: '1440×900' },
+  { id: 'web', label: 'Web', icon: Globe, size: '1200×auto' },
+  { id: 'component', label: 'Component', icon: Square, size: 'auto' },
+] as const
+
+type PlatformPresetId = typeof PLATFORM_PRESETS[number]['id']
+
 /**
- * Design platform quick selectors — App (mobile 390x844) or Web (1200px).
- * Appends platform hint to the next message for the agent.
+ * Design platform preset dropdown.
+ * Selecting a preset hints the agent about target size.
  */
-function DesignPlatformButtons() {
-  const [platform, setPlatform] = useState<'app' | 'web' | null>(null)
+function DesignPlatformSelector() {
+  const selected = useAIStore((s) => s.designPlatform) as PlatformPresetId | null
+  const setSelected = useAIStore((s) => s.setDesignPlatform)
+  const [open, setOpen] = useState(false)
+
+  const current = PLATFORM_PRESETS.find((p) => p.id === selected)
+  const Icon = current?.icon ?? Globe
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="relative">
       <button
         type="button"
-        onClick={() => setPlatform(platform === 'app' ? null : 'app')}
+        onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-all',
-          platform === 'app'
+          'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all shrink-0',
+          selected
             ? 'bg-primary/15 text-primary border border-primary/30'
             : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/50',
         )}
-        title="Mobile app (390×844)"
+        title={current ? `${current.label} (${current.size})` : 'Select platform'}
       >
-        <Smartphone size={9} />
-        <span>App</span>
+        <Icon size={9} />
+        <span>{current?.label ?? 'Platform'}</span>
+        <ChevronUp size={8} />
       </button>
-      <button
-        type="button"
-        onClick={() => setPlatform(platform === 'web' ? null : 'web')}
-        className={cn(
-          'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-all',
-          platform === 'web'
-            ? 'bg-primary/15 text-primary border border-primary/30'
-            : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/50',
-        )}
-        title="Web page (1200px)"
-      >
-        <Globe size={9} />
-        <span>Web</span>
-      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-0 mb-1 z-[60] rounded-lg border border-border bg-card shadow-xl py-1 min-w-[160px]">
+          {/* None option */}
+          <button
+            type="button"
+            onClick={() => { setSelected(null); setOpen(false) }}
+            className={cn(
+              'w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors',
+              !selected ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+          >
+            <span className="w-3 text-center">—</span>
+            <span>Auto</span>
+          </button>
+          {PLATFORM_PRESETS.map((preset) => {
+            const PIcon = preset.icon
+            const isSelected = selected === preset.id
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => { setSelected(preset.id); setOpen(false) }}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors',
+                  isSelected ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+              >
+                <PIcon size={11} className="shrink-0" />
+                <span className="flex-1 text-left">{preset.label}</span>
+                <span className="text-[9px] text-muted-foreground/60">{preset.size}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -806,8 +845,8 @@ export default function AIChatPanel() {
           <div className="flex items-center gap-1 w-full">
             {/* Plan mode toggle */}
             <PlanModeToggle />
-            {/* Platform presets */}
-            <DesignPlatformButtons />
+            {/* Platform preset */}
+            <DesignPlatformSelector />
 
             {/* Action icons */}
             <div className="ml-auto flex items-center gap-0.5">

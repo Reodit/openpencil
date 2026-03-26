@@ -61,6 +61,19 @@ export function buildContextString(): string {
   return parts.length > 0 ? `\n\n[Canvas context: ${parts.join('. ')}]` : ''
 }
 
+const PLATFORM_HINTS: Record<string, string> = {
+  iphone: '\n[Platform: iPhone — root frame 393×852, mobile UI]',
+  android: '\n[Platform: Android — root frame 360×800, mobile UI]',
+  ipad: '\n[Platform: iPad — root frame 1024×1366, tablet UI]',
+  desktop: '\n[Platform: Desktop — root frame 1440×900, desktop UI]',
+  web: '\n[Platform: Web — root frame 1200×auto, responsive web page]',
+  component: '\n[Platform: Component — auto-sized, standalone component]',
+}
+
+function getPlatformHint(platform: string): string {
+  return PLATFORM_HINTS[platform] ?? ''
+}
+
 /**
  * Clean message content for chat history.
  * Replace large JSON blocks with summaries, strip internal markers.
@@ -119,9 +132,11 @@ export function useChatHandlers() {
       setInput('')
       useAIStore.getState().clearPendingAttachments()
 
-      // Build context
+      // Build context with platform preset
       const context = buildContextString()
-      const fullUserMessage = messageText + context
+      const designPlatform = useAIStore.getState().designPlatform
+      const platformHint = designPlatform ? getPlatformHint(designPlatform) : ''
+      const fullUserMessage = messageText + platformHint + context
 
       // Add user message
       const userMsg: ChatMessageType = {
