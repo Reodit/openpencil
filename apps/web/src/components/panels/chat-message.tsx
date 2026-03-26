@@ -11,6 +11,7 @@ interface ChatMessageProps {
   content: string
   isStreaming?: boolean
   onApplyDesign?: (json: string) => void
+  onExecutePlan?: () => void
   attachments?: ChatAttachment[]
 }
 
@@ -637,6 +638,7 @@ export default function ChatMessage({
   content,
   isStreaming,
   onApplyDesign,
+  onExecutePlan,
   attachments,
 }: ChatMessageProps) {
   const isApplied = useMemo(
@@ -730,6 +732,8 @@ export default function ChatMessage({
                       useAIStore.getState().setPendingPlan(planSteps)
                     }
                     useAIStore.getState().setPlanStatus('executing')
+                    // Trigger execution via parent callback
+                    onExecutePlan?.()
                   }}
                   onCancel={() => {
                     useAIStore.getState().setPendingPlan(null)
