@@ -4,8 +4,13 @@ import { useAIStore } from '@/stores/ai-store'
 import { useCanvasStore } from '@/stores/canvas-store'
 import { useDocumentStore } from '@/stores/document-store'
 import { useDesignMdStore } from '@/stores/design-md-store'
-import { streamChat } from '@/services/ai/ai-service'
-import { buildAgentSystemPrompt, buildPlanSystemPrompt, buildExecutePlanSystemPrompt } from '@/services/ai/agent-prompt'
+import { streamChat, generateCompletion } from '@/services/ai/ai-service'
+import {
+  buildGeneratePrompt, buildModifyPrompt, buildChatPrompt,
+  buildPlanSystemPrompt, buildExecutePlanSystemPrompt,
+  getDecisionPrompt,
+  type AgentMode,
+} from '@/services/ai/agent-prompt'
 import {
   animateNodesToCanvas,
   extractAndApplyDesignModification,
@@ -18,8 +23,8 @@ import { trimChatHistory } from '@/services/ai/context-optimizer'
 import type { ChatMessage as ChatMessageType } from '@/services/ai/ai-types'
 
 /**
- * Build canvas context string for the agent.
- * Provides the agent with current document state so it can make informed decisions.
+ * Build canvas context string for decision routing.
+ * Lightweight summary for the decision LLM call.
  */
 export function buildContextString(): string {
   const selectedIds = useCanvasStore.getState().selection.selectedIds
@@ -59,6 +64,62 @@ export function buildContextString(): string {
   }
 
   return parts.length > 0 ? `\n\n[Canvas context: ${parts.join('. ')}]` : ''
+}
+
+/**
+ * Build full context for MODIFY mode.
+ * Includes selected nodes as full JSON tree for the modifier prompt.
+ */
+function buildModifyContext(): string {
+  const selectedIds = useCanvasStore.getState().selection.selectedIds
+  if (selectedIds.length === 0) return ''
+
+  const selectedNodes = selectedIds
+    .map((id) => useDocumentStore.getState().getNodeById(id))
+    .filter(Boolean)
+
+  if (selectedNodes.length === 0) return ''
+
+  const json = JSON.stringify(selectedNodes, null, 2)
+  // Limit to ~8000 chars to avoid context overflow
+  const truncated = json.length > 8000 ? json.slice(0, 8000) + '\n... (truncated)' : json
+  return `\n\nCONTEXT NODES:\n${truncated}`
+}
+
+/**
+ * Decision call — route to generate/modify/chat.
+ */
+async function decideMode(
+  messageText: string,
+  contextString: string,
+  model: string,
+  provider?: string,
+): Promise<AgentMode> {
+  try {
+    const response = await generateCompletion(
+      getDecisionPrompt(),
+      messageText + contextString,
+      model,
+      provider,
+    )
+    const trimmed = response.trim()
+    // Parse JSON from response
+    const jsonMatch = trimmed.match(/\{[^}]+\}/)
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0])
+      const mode = parsed.mode
+      if (mode === 'generate' || mode === 'modify' || mode === 'chat') {
+        console.log(`[Decision] mode=${mode}, reason=${parsed.reason ?? ''}`)
+        return mode
+      }
+    }
+    // Fallback
+    console.log(`[Decision] Could not parse: ${trimmed.slice(0, 100)}, defaulting to generate`)
+    return 'generate'
+  } catch (e) {
+    console.log(`[Decision] Error: ${e}, defaulting to generate`)
+    return 'generate'
+  }
 }
 
 /** Try to parse tool input JSON and format key fields for display */
@@ -219,23 +280,42 @@ export function useChatHandlers() {
         const existingPlan = useAIStore.getState().pendingPlan
         const planStatus = useAIStore.getState().planStatus
 
-        // Route to correct prompt based on plan state:
-        // - executing + plan → execute the approved plan
-        // - idle + planMode + no plan → create a new plan
-        // - awaiting → user is responding to plan questions, use agent mode
-        // - everything else → direct agent mode
+        // Route to correct prompt based on plan state or decision
         let agentPrompt: string
+        let userMessageForLLM = fullUserMessage
+
         if (planStatus === 'executing' && existingPlan) {
+          // Execute approved plan
           agentPrompt = buildExecutePlanSystemPrompt(existingPlan)
         } else if (planStatus === 'idle' && planMode && !existingPlan) {
+          // Create a plan first
           agentPrompt = buildPlanSystemPrompt()
           useAIStore.getState().setPlanStatus('planning')
         } else {
-          // Agent mode: user feedback, follow-up, or direct generation
-          agentPrompt = buildAgentSystemPrompt(messageText, designMd)
-          // Reset plan status if we were awaiting (user answered questions)
+          // Reset plan status if answering questions
           if (planStatus === 'awaiting') {
             useAIStore.getState().setPlanStatus('idle')
+          }
+
+          // Decision call — route to generate/modify/chat
+          const mode = await decideMode(messageText, context, model, currentProvider)
+
+          if (mode === 'modify') {
+            agentPrompt = buildModifyPrompt()
+            // Append full selected nodes JSON for modification
+            userMessageForLLM = fullUserMessage + buildModifyContext()
+          } else if (mode === 'chat') {
+            agentPrompt = buildChatPrompt()
+          } else {
+            agentPrompt = buildGeneratePrompt()
+          }
+        }
+
+        // Update last user message with mode-specific context (e.g., CONTEXT NODES for modify)
+        if (chatHistory.length > 0) {
+          const last = chatHistory[chatHistory.length - 1]
+          if (last.role === 'user') {
+            last.content = userMessageForLLM
           }
         }
 
