@@ -760,6 +760,7 @@ export default function AIChatPanel() {
               onApplyDesign={handleApplyDesign}
               onExecutePlan={() => handleSend('Execute the approved plan now.')}
               onPlanFeedback={(feedback) => handleSend(feedback)}
+              onAnswer={(answer) => handleSend(answer)}
               attachments={msg.attachments}
             />
           ))

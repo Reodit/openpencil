@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import type { ChatAttachment, PlanStep } from '@/services/ai/ai-types'
 import { useAIStore } from '@/stores/ai-store'
 import PlanCard from './plan-card'
+import ClarifyingQuestions, { parseClarifyingQuestions, hasClarifyingQuestions } from './clarifying-questions'
 
 interface ChatMessageProps {
   role: 'user' | 'assistant'
@@ -13,6 +14,7 @@ interface ChatMessageProps {
   onApplyDesign?: (json: string) => void
   onExecutePlan?: () => void
   onPlanFeedback?: (feedback: string) => void
+  onAnswer?: (answer: string) => void
   attachments?: ChatAttachment[]
 }
 
@@ -746,6 +748,7 @@ export default function ChatMessage({
   onApplyDesign,
   onExecutePlan,
   onPlanFeedback,
+  onAnswer,
   attachments,
 }: ChatMessageProps) {
   const isApplied = useMemo(
@@ -889,10 +892,20 @@ export default function ChatMessage({
                   )}
                 </div>
               ) : null}
+              {/* Clarifying questions with clickable options */}
+              {!isUser && !isStreaming && contentWithoutSteps && hasClarifyingQuestions(contentWithoutSteps) && onAnswer && (
+                <ClarifyingQuestionsBlock content={contentWithoutSteps} onAnswer={onAnswer} />
+              )}
             </>
           )}
         </div>
       )}
     </div>
   )
+}
+
+function ClarifyingQuestionsBlock({ content, onAnswer }: { content: string; onAnswer: (answer: string) => void }) {
+  const questions = useMemo(() => parseClarifyingQuestions(content), [content])
+  if (questions.length === 0) return null
+  return <ClarifyingQuestions questions={questions} onSubmit={onAnswer} />
 }
