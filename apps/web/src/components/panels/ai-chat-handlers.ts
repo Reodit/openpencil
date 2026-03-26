@@ -82,8 +82,7 @@ function buildModifyContext(): string {
 
   const json = JSON.stringify(selectedNodes, null, 2)
   // Limit to ~8000 chars to avoid context overflow
-  const truncated = json.length > 8000 ? json.slice(0, 8000) + '\n... (truncated)' : json
-  return `\n\nCONTEXT NODES:\n${truncated}`
+  return `\n\nCONTEXT NODES:\n${json}`
 }
 
 /**
