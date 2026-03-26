@@ -355,6 +355,14 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
                     controller.enqueue(encoder.encode(`data: ${data}\n\n`))
                   }
                 } else if (ev.type === 'content_block_delta') {
+                  // Tool input JSON delta — accumulate and send
+                  if (ev.delta.type === 'input_json_delta') {
+                    const partial = (ev.delta as any).partial_json ?? ''
+                    if (partial) {
+                      const data = JSON.stringify({ type: 'tool_input', content: partial })
+                      controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                    }
+                  }
                   if (ev.delta.type === 'text_delta') {
                     clearInterval(pingTimer)
                     const data = JSON.stringify({ type: 'text', content: ev.delta.text })

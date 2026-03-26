@@ -234,7 +234,7 @@ export async function* streamChat(
               sawText = true
               clearFirstTextTimeout()
               resetActivityTimeout()
-            } else if (chunk.type === 'session_id' || chunk.type === 'tool_use') {
+            } else if (chunk.type === 'session_id' || chunk.type === 'tool_use' || chunk.type === 'tool_input') {
               // Session/tool = connection active. Reset timeouts.
               clearFirstTextTimeout()
               resetActivityTimeout()

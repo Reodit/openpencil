@@ -61,6 +61,24 @@ export function buildContextString(): string {
   return parts.length > 0 ? `\n\n[Canvas context: ${parts.join('. ')}]` : ''
 }
 
+/** Try to parse tool input JSON and format key fields for display */
+function tryFormatToolInput(raw: string): string {
+  if (!raw.trim()) return ''
+  try {
+    const obj = JSON.parse(raw)
+    const parts: string[] = []
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'string' && v.length > 0) {
+        parts.push(`${k}: ${v.length > 80 ? v.slice(0, 80) + '...' : v}`)
+      }
+    }
+    return parts.join('\n')
+  } catch {
+    // Partial JSON — show raw (truncated)
+    return raw.length > 100 ? raw.slice(0, 100) + '...' : raw
+  }
+}
+
 const PLATFORM_HINTS: Record<string, string> = {
   iphone: '\n[Platform: iPhone — root frame 393×852, mobile UI]',
   android: '\n[Platform: Android — root frame 360×800, mobile UI]',
@@ -189,6 +207,8 @@ export function useChatHandlers() {
       let appliedCount = 0
       let lastProcessedLength = 0
       let generationStarted = false
+      let currentToolName = ''
+      let currentToolInput = ''
 
       const abortController = new AbortController()
       useAIStore.getState().setAbortController(abortController)
@@ -241,14 +261,30 @@ export function useChatHandlers() {
           if (chunk.type === 'session_id') {
             useAIStore.getState().setSessionId(chunk.content)
           } else if (chunk.type === 'tool_use') {
-            // Show tool usage as a step in the message
-            accumulated += `\n<step title="Tool: ${chunk.content}"></step>\n`
-            updateLastMessage(accumulated)
+            // Flush previous tool step if exists
+            if (currentToolName) {
+              const input = tryFormatToolInput(currentToolInput)
+              accumulated += `\n<step title="Tool: ${currentToolName}">${input}</step>\n`
+            }
+            currentToolName = chunk.content
+            currentToolInput = ''
+            updateLastMessage(accumulated + `\n<step title="Tool: ${currentToolName}" status="streaming"></step>\n`)
+          } else if (chunk.type === 'tool_input') {
+            currentToolInput += chunk.content
+            const input = tryFormatToolInput(currentToolInput)
+            updateLastMessage(accumulated + `\n<step title="Tool: ${currentToolName}" status="streaming">${input}</step>\n`)
           } else if (chunk.type === 'thinking') {
             thinkingContent += chunk.content
             const thinkingStep = `<step title="Thinking">${thinkingContent}</step>`
             updateLastMessage(thinkingStep + (accumulated ? '\n' + accumulated : ''))
           } else if (chunk.type === 'text') {
+            // Flush pending tool step when text starts
+            if (currentToolName) {
+              const input = tryFormatToolInput(currentToolInput)
+              accumulated += `\n<step title="Tool: ${currentToolName}">${input}</step>\n`
+              currentToolName = ''
+              currentToolInput = ''
+            }
             accumulated += chunk.content
 
             // Real-time JSONL extraction: scan accumulated text for complete lines

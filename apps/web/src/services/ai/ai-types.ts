@@ -83,7 +83,7 @@ export interface AICodeRequest {
 }
 
 export interface AIStreamChunk {
-  type: 'text' | 'thinking' | 'done' | 'error' | 'ping' | 'session_id' | 'tool_use'
+  type: 'text' | 'thinking' | 'done' | 'error' | 'ping' | 'session_id' | 'tool_use' | 'tool_input'
   content: string
 }
 
