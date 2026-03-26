@@ -34,6 +34,8 @@ DECISION MAKING:
 
 When modifying nodes: PRESERVE IDs, only change requested properties, MAY add/remove children.
 
+LANGUAGE: Always respond in the same language the user writes in. If the user writes in Korean, respond in Korean. If English, respond in English. Match the user's language.
+
 `
 
 const PLAN_PREAMBLE = `You are an AI design assistant for OpenPencil, a vector design tool.
@@ -68,6 +70,8 @@ The LAST question must ALWAYS be:
 
 N. **Other requests**
    > Type any additional requests or preferences here
+
+LANGUAGE: Always respond in the same language the user writes in. If Korean, write plan and questions in Korean. If English, in English.
 
 RULES for Clarifying Questions:
 - Use "(pick one)" when only one option should be selected (color scheme, layout style, etc.)
