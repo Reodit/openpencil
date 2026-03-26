@@ -309,13 +309,9 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // Always strip "NEVER use tools" restriction so the agent can use tools
         const effectiveSystemPrompt = stripNoToolsRestriction(body.system)
 
-        // Tool configuration:
-        // - With attachments: Read tool for image/file analysis
-        // - Without attachments: no tools, pure text output (design JSON)
-        const agentTools = hasAttachments ? ['Read'] : []
-        // Always use 'default' — 'plan' causes the agent to write plan files
-        // instead of outputting design JSON. With tools=[], default mode
-        // just outputs text (no tool use possible).
+        // Full tool access — agent decides when to use tools
+        // System prompt ensures output is PenNode JSON, not code files
+        const agentTools = ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
         const agentPermission = 'default'
 
         const runQuery = async () => {
