@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "openpencil": {
+      "command": "node",
+      "args": ["../../out/mcp-server.cjs"]
+    }
+  }
+}
