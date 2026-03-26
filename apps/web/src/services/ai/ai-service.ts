@@ -224,13 +224,19 @@ export async function* streamChat(
               continue
             }
 
-            // Any non-empty text counts as activity; thinking only resets
-            // the timeout when thinkingResetsTimeout is true (default).
+            // Any non-empty text counts as activity
             if (chunk.type === 'text' && chunk.content.trim().length > 0) {
               sawText = true
               clearFirstTextTimeout()
               resetActivityTimeout()
-            } else if (chunk.type === 'thinking' && chunk.content.trim().length > 0 && thinkingResetsTimeout) {
+            } else if (chunk.type === 'thinking' && chunk.content.trim().length > 0) {
+              // Thinking = model is working. Reset ALL timeouts.
+              sawText = true
+              clearFirstTextTimeout()
+              resetActivityTimeout()
+            } else if (chunk.type === 'session_id') {
+              // Session established = connection working. Reset timeouts.
+              clearFirstTextTimeout()
               resetActivityTimeout()
             }
 
