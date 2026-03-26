@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Plus, ChevronDown, ChevronUp, Check, MessageSquare, Loader2, Paperclip, X, Square, Zap, ListChecks } from 'lucide-react'
+import { Send, Plus, ChevronDown, ChevronUp, Check, MessageSquare, Loader2, Paperclip, X, Square, Zap, ListChecks, Smartphone, Globe } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
@@ -91,6 +91,47 @@ function PlanModeToggle() {
       <ListChecks size={10} />
       <span>Plan</span>
     </button>
+  )
+}
+
+/**
+ * Design platform quick selectors — App (mobile 390x844) or Web (1200px).
+ * Appends platform hint to the next message for the agent.
+ */
+function DesignPlatformButtons() {
+  const [platform, setPlatform] = useState<'app' | 'web' | null>(null)
+
+  return (
+    <div className="flex items-center gap-0.5">
+      <button
+        type="button"
+        onClick={() => setPlatform(platform === 'app' ? null : 'app')}
+        className={cn(
+          'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-all',
+          platform === 'app'
+            ? 'bg-primary/15 text-primary border border-primary/30'
+            : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/50',
+        )}
+        title="Mobile app (390×844)"
+      >
+        <Smartphone size={9} />
+        <span>App</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setPlatform(platform === 'web' ? null : 'web')}
+        className={cn(
+          'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-all',
+          platform === 'web'
+            ? 'bg-primary/15 text-primary border border-primary/30'
+            : 'text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/50',
+        )}
+        title="Web page (1200px)"
+      >
+        <Globe size={9} />
+        <span>Web</span>
+      </button>
+    </div>
   )
 }
 
@@ -765,17 +806,8 @@ export default function AIChatPanel() {
           <div className="flex items-center gap-1 w-full">
             {/* Plan mode toggle */}
             <PlanModeToggle />
-            {/* Concurrency selector */}
-            <ConcurrencyButton />
-
-            <span
-              className={cn(
-                'ml-1 shrink-0 whitespace-nowrap text-[10px] select-none',
-                selectedIds.length > 0 ? 'text-muted-foreground/80' : 'text-muted-foreground/40',
-              )}
-            >
-              {t('common.selected', { count: selectedIds.length })}
-            </span>
+            {/* Platform presets */}
+            <DesignPlatformButtons />
 
             {/* Action icons */}
             <div className="ml-auto flex items-center gap-0.5">
