@@ -332,8 +332,10 @@ export function useChatHandlers() {
         }
 
         // Apply any remaining design JSON not caught during streaming
+        console.log(`[Design] Stream done. accumulated=${accumulated.length}ch, applied=${appliedCount}, hasJson=${accumulated.includes('\`\`\`json')}`)
+        console.log(`[Design] First 300ch: ${accumulated.slice(0, 300)}`)
         if (appliedCount === 0) {
-          console.log(`[Design] No streaming inserts, trying fallback. Has json: ${'```json' in accumulated}`)
+          console.log(`[Design] No streaming inserts, trying fallback.`)
           appliedCount = tryApplyDesignFromResponse(accumulated)
           console.log(`[Design] Fallback applied: ${appliedCount}`)
         } else {
