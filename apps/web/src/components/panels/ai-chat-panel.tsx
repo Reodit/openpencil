@@ -759,6 +759,7 @@ export default function AIChatPanel() {
               isStreaming={msg.isStreaming && isStreaming}
               onApplyDesign={handleApplyDesign}
               onExecutePlan={() => handleSend('Execute the approved plan now.')}
+              onPlanFeedback={(feedback) => handleSend(feedback)}
               attachments={msg.attachments}
             />
           ))

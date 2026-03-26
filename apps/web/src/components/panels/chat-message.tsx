@@ -12,6 +12,7 @@ interface ChatMessageProps {
   isStreaming?: boolean
   onApplyDesign?: (json: string) => void
   onExecutePlan?: () => void
+  onPlanFeedback?: (feedback: string) => void
   attachments?: ChatAttachment[]
 }
 
@@ -70,9 +71,43 @@ function parsePlanBlock(text: string): PlanStep[] | null {
   return steps.length > 0 ? steps : null
 }
 
-/** Strip <plan> blocks from display text */
+/** Get text after </plan> tag */
+function getTextAfterPlan(text: string): string {
+  const idx = text.indexOf('</plan>')
+  if (idx < 0) return ''
+  return text.slice(idx + 7).trim()
+}
+
+/** Parse choice questions from agent text (e.g. "- A) Option label") */
+function parseChoices(text: string): import('./plan-card').PlanChoice[] {
+  const choices: import('./plan-card').PlanChoice[] = []
+  // Split by numbered questions: **1. Title:** or **Title:**
+  const groups = text.split(/\*\*\d*\.?\s*/)
+  for (const g of groups) {
+    if (!g.trim()) continue
+    const lines = g.trim().split('\n')
+    const titleLine = lines[0].replace(/\*+/g, '').replace(/:$/, '').trim()
+    if (!titleLine) continue
+    const options: Array<{ key: string; label: string }> = []
+    for (const line of lines.slice(1)) {
+      const m = line.trim().match(/^-\s+([A-Z])\)\s+(.+)/)
+      if (m) options.push({ key: m[1], label: m[2] })
+    }
+    if (options.length > 0) {
+      choices.push({ question: titleLine, options })
+    }
+  }
+  return choices
+}
+
+/** Strip <plan> blocks and everything after from display text (shown in PlanCard instead) */
 function stripPlanBlocks(text: string): string {
-  return text.replace(/<plan>[\s\S]*?<\/plan>/g, '').trim()
+  const planIdx = text.indexOf('<plan>')
+  if (planIdx >= 0) {
+    // Remove everything from <plan> onwards (plan + choices shown in PlanCard)
+    return text.slice(0, planIdx).trim()
+  }
+  return text.trim()
 }
 
 export interface ParsedStep {
@@ -639,6 +674,7 @@ export default function ChatMessage({
   isStreaming,
   onApplyDesign,
   onExecutePlan,
+  onPlanFeedback,
   attachments,
 }: ChatMessageProps) {
   const isApplied = useMemo(
@@ -722,27 +758,42 @@ export default function ChatMessage({
           ) : (
             <>
               {/* Plan Card — shown when agent outputs a <plan> block */}
-              {activePlan && activePlan.length > 0 && (
-                <PlanCard
-                  steps={activePlan}
-                  status={pendingPlan ? planStatus : 'awaiting'}
-                  onApprove={() => {
-                    // Store the plan and trigger execution
-                    if (!pendingPlan && planSteps) {
-                      useAIStore.getState().setPendingPlan(planSteps)
-                    }
-                    useAIStore.getState().setPlanStatus('executing')
-                    // Trigger execution via parent callback
-                    onExecutePlan?.()
-                  }}
-                  onCancel={() => {
-                    useAIStore.getState().setPendingPlan(null)
-                    useAIStore.getState().setPlanStatus('idle')
-                  }}
-                  onSkipStep={(stepId) => {
-                    useAIStore.getState().updatePlanStep(stepId, 'skipped')
-                  }}
-                />
+              {activePlan && activePlan.length > 0 && (() => {
+                const afterPlanText = getTextAfterPlan(displayContent)
+                const parsedChoices = afterPlanText ? parseChoices(afterPlanText) : []
+                // Strip choices from follow-up text to avoid double display
+                const cleanFollowUp = afterPlanText
+                  ? afterPlanText.split(/\*\*\d+\.\s+/)[0].trim()
+                  : undefined
+                return (
+                  <PlanCard
+                    steps={activePlan}
+                    status={pendingPlan ? planStatus : 'awaiting'}
+                    followUpText={cleanFollowUp || undefined}
+                    choices={parsedChoices.length > 0 ? parsedChoices : undefined}
+                    onApprove={() => {
+                      if (!pendingPlan && planSteps) {
+                        useAIStore.getState().setPendingPlan(planSteps)
+                      }
+                      useAIStore.getState().setPlanStatus('executing')
+                      onExecutePlan?.()
+                    }}
+                    onCancel={() => {
+                      useAIStore.getState().setPendingPlan(null)
+                      useAIStore.getState().setPlanStatus('idle')
+                    }}
+                    onSkipStep={(stepId) => {
+                      useAIStore.getState().updatePlanStep(stepId, 'skipped')
+                    }}
+                    onFeedback={(feedback) => {
+                      // Reset plan and send feedback to regenerate
+                      useAIStore.getState().setPendingPlan(null)
+                      useAIStore.getState().setPlanStatus('idle')
+                      onPlanFeedback?.(feedback)
+                    }}
+                  />
+                )
+              })()
               )}
               {hasFlow && (
                 <div className="mb-2">
