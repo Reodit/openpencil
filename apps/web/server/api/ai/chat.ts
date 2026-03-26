@@ -321,8 +321,13 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               ...(model ? { model } : {}),
               maxTurns: body.maxTurns ?? (hasAttachments ? 5 : 1),
               includePartialMessages: true,
-              // Don't restrict tools — let agent use all available including MCP
               permissionMode: agentPermission,
+              mcpServers: {
+                openpencil: {
+                  command: 'node',
+                  args: [join(process.cwd(), '..', '..', 'out', 'mcp-server.cjs')],
+                },
+              },
               persistSession: true,
               ...(body.sessionId ? { resume: body.sessionId } : {}),
               ...(body.effort ? { effort: body.effort } : {}),
