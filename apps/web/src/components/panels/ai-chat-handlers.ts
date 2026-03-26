@@ -251,7 +251,7 @@ export function useChatHandlers() {
           trimmedHistory,
           model,
           {
-            thinkingMode: 'enabled',
+            thinkingMode: useAIStore.getState().thinkingEnabled ? 'enabled' : 'disabled',
             effort: 'medium',
             maxTurns: 15,
             firstTextTimeoutMs: 180_000,

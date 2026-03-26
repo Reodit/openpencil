@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Plus, ChevronDown, ChevronUp, Check, MessageSquare, Loader2, Paperclip, X, Square, Zap, ListChecks, Smartphone, Globe } from 'lucide-react'
+import { Send, Plus, ChevronDown, ChevronUp, Check, MessageSquare, Loader2, Paperclip, X, Square, Zap, ListChecks, Smartphone, Globe, Brain } from 'lucide-react'
 import { nanoid } from 'nanoid'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
@@ -64,6 +64,34 @@ function resolveNextModel(
   if (models.some((m) => m.value === currentModel)) return currentModel
   if (models.some((m) => m.value === preferredModel)) return preferredModel
   return models[0].value
+}
+
+/**
+ * Thinking toggle — enables/disables extended thinking for faster responses.
+ */
+function ThinkingToggle() {
+  const enabled = useAIStore((s) => s.thinkingEnabled)
+  const setEnabled = useAIStore((s) => s.setThinkingEnabled)
+  const isStreaming = useAIStore((s) => s.isStreaming)
+
+  return (
+    <button
+      type="button"
+      disabled={isStreaming}
+      onClick={() => setEnabled(!enabled)}
+      className={cn(
+        'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all shrink-0',
+        enabled
+          ? 'bg-primary/15 text-primary border border-primary/30'
+          : 'text-muted-foreground/60 hover:text-muted-foreground hover:bg-secondary/50',
+        isStreaming && 'opacity-50 cursor-not-allowed',
+      )}
+      title={enabled ? 'Thinking: ON (slower, more accurate)' : 'Thinking: OFF (faster)'}
+    >
+      <Brain size={10} />
+      <span>Think</span>
+    </button>
+  )
 }
 
 /**
@@ -846,6 +874,8 @@ export default function AIChatPanel() {
           </button>
 
           <div className="flex items-center gap-1 w-full">
+            {/* Thinking toggle */}
+            <ThinkingToggle />
             {/* Plan mode toggle */}
             <PlanModeToggle />
             {/* Platform preset */}

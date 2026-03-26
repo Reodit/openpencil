@@ -113,6 +113,8 @@ interface AIState {
   /** Selected design platform preset (e.g. 'iphone', 'web') */
   designPlatform: string | null
   setDesignPlatform: (p: string | null) => void
+  thinkingEnabled: boolean
+  setThinkingEnabled: (v: boolean) => void
   planMode: boolean
   planStatus: import('@/services/ai/ai-types').PlanStatus
   pendingPlan: import('@/services/ai/ai-types').PlanStep[] | null
@@ -181,6 +183,8 @@ export const useAIStore = create<AIState>((set, get) => ({
   panelWidth: 380,
   designPlatform: null,
   setDesignPlatform: (p) => set({ designPlatform: p }),
+  thinkingEnabled: true,
+  setThinkingEnabled: (v) => set({ thinkingEnabled: v }),
   planMode: false,
   planStatus: 'idle',
   pendingPlan: null,
