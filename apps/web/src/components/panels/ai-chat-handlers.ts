@@ -242,7 +242,7 @@ export function useChatHandlers() {
             useAIStore.getState().setSessionId(chunk.content)
           } else if (chunk.type === 'tool_use') {
             // Show tool usage as a step in the message
-            accumulated += `\n<step title="🔧 ${chunk.content}"></step>\n`
+            accumulated += `\n<step title="Tool: ${chunk.content}"></step>\n`
             updateLastMessage(accumulated)
           } else if (chunk.type === 'thinking') {
             thinkingContent += chunk.content
