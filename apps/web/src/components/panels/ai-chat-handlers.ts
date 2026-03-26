@@ -342,10 +342,14 @@ function extractAndInsertStreamingNodes(
   totalApplied: number,
 ): { processedUpTo: number; totalApplied: number; generationStarted: boolean } {
   // Find ```json block boundaries in the accumulated text
-  const jsonStart = accumulated.indexOf('```json\n')
+  // Handle both ```json\n and ```json\r\n
+  let jsonStart = accumulated.indexOf('```json\n')
+  if (jsonStart < 0) jsonStart = accumulated.indexOf('```json\r\n')
   if (jsonStart < 0) return { processedUpTo, totalApplied, generationStarted }
 
-  const contentStart = jsonStart + '```json\n'.length
+  const markerEnd = accumulated.indexOf('\n', jsonStart + 3)
+  const contentStart = markerEnd >= 0 ? markerEnd + 1 : jsonStart + 8
+  // Find closing ``` (must be on its own or after newline)
   const jsonEnd = accumulated.indexOf('\n```', contentStart)
 
   // Determine the range to scan for new lines
@@ -407,15 +411,48 @@ function tryApplyDesignFromResponse(response: string): number {
   return totalApplied
 }
 
+/** Convert flat JSONL nodes with _parent fields into a tree structure with children */
+function flatToTree(flatNodes: Array<Record<string, unknown>>): import('@/types/pen').PenNode[] {
+  const nodeMap = new Map<string, Record<string, unknown>>()
+  const roots: Record<string, unknown>[] = []
+
+  // Index all nodes
+  for (const node of flatNodes) {
+    nodeMap.set(node.id as string, { ...node })
+  }
+
+  // Build tree
+  for (const node of flatNodes) {
+    const parentId = node._parent as string | null
+    const current = nodeMap.get(node.id as string)!
+    delete current._parent
+
+    if (!parentId) {
+      roots.push(current)
+    } else {
+      const parent = nodeMap.get(parentId)
+      if (parent) {
+        if (!Array.isArray(parent.children)) parent.children = []
+        ;(parent.children as unknown[]).push(current)
+      } else {
+        roots.push(current) // orphan → treat as root
+      }
+    }
+  }
+
+  return roots as import('@/types/pen').PenNode[]
+}
+
 function tryApplyJsonBlock(block: string): number {
   try {
     // Try as JSONL (flat format with _parent)
     const lines = block.split('\n').filter(l => l.trim().startsWith('{'))
     if (lines.length > 1 && lines[0].includes('"_parent"')) {
-      const nodes = lines.map(l => JSON.parse(l))
-      if (nodes.length > 0) {
-        animateNodesToCanvas(nodes)
-        return nodes.length
+      const flatNodes = lines.map(l => JSON.parse(l))
+      if (flatNodes.length > 0) {
+        const tree = flatToTree(flatNodes)
+        animateNodesToCanvas(tree)
+        return flatNodes.length
       }
     }
 
