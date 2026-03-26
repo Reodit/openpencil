@@ -333,7 +333,11 @@ export function useChatHandlers() {
 
         // Apply any remaining design JSON not caught during streaming
         if (appliedCount === 0) {
+          console.log(`[Design] No streaming inserts, trying fallback. Has json: ${'```json' in accumulated}`)
           appliedCount = tryApplyDesignFromResponse(accumulated)
+          console.log(`[Design] Fallback applied: ${appliedCount}`)
+        } else {
+          console.log(`[Design] Streaming inserted ${appliedCount} nodes`)
         }
 
       } catch (error) {
@@ -418,6 +422,7 @@ function extractAndInsertStreamingNodes(
         }
         const parentId = node._parent ?? null
         delete node._parent
+        console.log(`[StreamInsert] ${node.type}:${node.name ?? node.id} parent=${parentId}`)
         insertStreamingNode(node, parentId)
         totalApplied++
       }
