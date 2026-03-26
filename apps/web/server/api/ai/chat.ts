@@ -348,7 +348,13 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
                 }
               } else if (message.type === 'stream_event') {
                 const ev = message.event
-                if (ev.type === 'content_block_delta') {
+                if (ev.type === 'content_block_start') {
+                  const block = (ev as any).content_block
+                  if (block?.type === 'tool_use' && block.name) {
+                    const data = JSON.stringify({ type: 'tool_use', content: block.name })
+                    controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                  }
+                } else if (ev.type === 'content_block_delta') {
                   if (ev.delta.type === 'text_delta') {
                     clearInterval(pingTimer)
                     const data = JSON.stringify({ type: 'text', content: ev.delta.text })

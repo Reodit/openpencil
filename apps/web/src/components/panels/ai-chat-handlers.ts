@@ -239,8 +239,11 @@ export function useChatHandlers() {
           abortController.signal,
         )) {
           if (chunk.type === 'session_id') {
-            // Store session ID for conversation continuity
             useAIStore.getState().setSessionId(chunk.content)
+          } else if (chunk.type === 'tool_use') {
+            // Show tool usage as a step in the message
+            accumulated += `\n<step title="🔧 ${chunk.content}"></step>\n`
+            updateLastMessage(accumulated)
           } else if (chunk.type === 'thinking') {
             thinkingContent += chunk.content
             const thinkingStep = `<step title="Thinking">${thinkingContent}</step>`
