@@ -174,6 +174,12 @@ export default function AIChatPanel() {
   const isMinimized = useAIStore((s) => s.isMinimized)
   const setPanelCorner = useAIStore((s) => s.setPanelCorner)
   const chatTitle = useAIStore((s) => s.chatTitle)
+  const panelWidth = useAIStore((s) => s.panelWidth)
+  const setPanelWidth = useAIStore((s) => s.setPanelWidth)
+  const newChat = useAIStore((s) => s.newChat)
+  const chatSessions = useAIStore((s) => s.chatSessions)
+  const switchSession = useAIStore((s) => s.switchSession)
+  const deleteSession = useAIStore((s) => s.deleteSession)
   const selectedIds = useCanvasStore((s) => s.selection.selectedIds)
   const stopStreaming = useAIStore((s) => s.stopStreaming)
   const toggleMinimize = useAIStore((s) => s.toggleMinimize)
@@ -195,6 +201,8 @@ export default function AIChatPanel() {
   const removePendingAttachment = useAIStore((s) => s.removePendingAttachment)
   const { input, setInput, handleSend } = useChatHandlers()
   const noAvailableModels = !isLoadingModels && availableModels.length === 0
+  const [showSessions, setShowSessions] = useState(false)
+  const widthResizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const canUseModel = !isLoadingModels && availableModels.length > 0
   const canSendMessage = canUseModel && !isStreaming && (!!input.trim() || pendingAttachments.length > 0)
   const quickActionsDisabled = !canUseModel || isStreaming
@@ -363,7 +371,7 @@ export default function AIChatPanel() {
       setDragStyle({
         left: rect.left - container.left,
         top: rect.top - container.top,
-        width: 320,
+        width: panelWidth,
         height: rect.height,
       })
     }
@@ -414,6 +422,31 @@ export default function AIChatPanel() {
     e.preventDefault()
     e.stopPropagation()
     resizeRef.current = null
+    e.currentTarget.releasePointerCapture(e.pointerId)
+  }, [])
+
+  /* --- Width resize handlers --- */
+  const handleWidthResizeStart = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    widthResizeRef.current = { startX: e.clientX, startWidth: panelWidth }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }, [panelWidth])
+
+  const handleWidthResizeMove = useCallback((e: React.PointerEvent) => {
+    if (!widthResizeRef.current) return
+    e.preventDefault()
+    const isRightSide = panelCorner.includes('left')
+    const delta = e.clientX - widthResizeRef.current.startX
+    const newWidth = isRightSide
+      ? widthResizeRef.current.startWidth + delta
+      : widthResizeRef.current.startWidth - delta
+    setPanelWidth(newWidth)
+  }, [panelCorner, setPanelWidth])
+
+  const handleWidthResizeEnd = useCallback((e: React.PointerEvent) => {
+    if (!widthResizeRef.current) return
+    widthResizeRef.current = null
     e.currentTarget.releasePointerCapture(e.pointerId)
   }, [])
 
@@ -510,10 +543,10 @@ export default function AIChatPanel() {
     <div
       ref={panelRef}
       className={cn(
-        'absolute z-50 flex w-[320px] flex-col overflow-hidden rounded-xl border border-border bg-card/95 shadow-2xl backdrop-blur-sm',
+        'absolute z-50 flex flex-col overflow-hidden rounded-xl border border-border bg-card/95 shadow-2xl backdrop-blur-sm',
         !dragStyle && CORNER_CLASSES[panelCorner],
       )}
-        style={{ ...dragStyle, height: panelHeight }}
+        style={{ ...dragStyle, height: panelHeight, width: panelWidth }}
     >
       {/* --- Resize Handle (Top Edge) --- */}
       <div
@@ -542,20 +575,73 @@ export default function AIChatPanel() {
           >
             <ChevronDown size={14} />
           </Button>
-          <span className="text-sm font-medium text-foreground max-w-[100px] truncate overflow-hidden text-ellipsis" title={chatTitle}>
+          <button
+            className="text-sm font-medium text-foreground max-w-[140px] truncate overflow-hidden text-ellipsis hover:text-primary transition-colors"
+            title={chatTitle}
+            onClick={() => setShowSessions(!showSessions)}
+          >
             {chatTitle}
-          </span>
+          </button>
           {isStreaming && <Loader2 size={13} className="animate-spin text-muted-foreground ml-2" />}
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={clearMessages}
-          title={t('ai.newChat')}
-        >
-          <Plus size={14} />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          {chatSessions.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setShowSessions(!showSessions)}
+              title="Chat history"
+            >
+              <MessageSquare size={13} />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={newChat}
+            title={t('ai.newChat')}
+            disabled={messages.length === 0}
+          >
+            <Plus size={14} />
+          </Button>
+        </div>
       </div>
+
+      {/* --- Session List (dropdown) --- */}
+      {showSessions && chatSessions.length > 0 && (
+        <div className="border-b border-border bg-secondary/30 max-h-48 overflow-y-auto">
+          {chatSessions.map((session, idx) => (
+            <div
+              key={session.id}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-secondary/50 cursor-pointer group"
+              onClick={() => { switchSession(idx); setShowSessions(false) }}
+            >
+              <MessageSquare size={11} className="text-muted-foreground/50 shrink-0" />
+              <span className="text-[11px] text-foreground truncate flex-1">{session.title}</span>
+              <span className="text-[9px] text-muted-foreground/40">
+                {new Date(session.timestamp).toLocaleDateString()}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); deleteSession(idx) }}
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-opacity"
+              >
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* --- Width resize handle (side edge) --- */}
+      <div
+        className={cn(
+          'absolute top-0 bottom-0 w-2 cursor-ew-resize z-50 hover:bg-primary/20 transition-colors',
+          panelCorner.includes('left') ? '-right-1' : '-left-1',
+        )}
+        onPointerDown={handleWidthResizeStart}
+        onPointerMove={handleWidthResizeMove}
+        onPointerUp={handleWidthResizeEnd}
+      />
 
       {/* --- Messages --- */}
       <div className="min-h-0 flex-1 overflow-y-auto rounded-b-xl bg-background/80 px-3.5 py-3">
