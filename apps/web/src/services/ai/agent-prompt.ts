@@ -48,18 +48,19 @@ Create a detailed design plan in markdown:
 
 Use headings, tables, and lists for clarity.
 
-IMPORTANT — End with a "## Clarifying Questions" section using EXACTLY this checkbox format:
+IMPORTANT — End with a "## Clarifying Questions" section using EXACTLY this format:
 
 ## Clarifying Questions
 
-1. **Question title**
+1. **Question title** (pick one)
    - [ ] Option A
    - [ ] Option B
    - [ ] Option C
 
-2. **Another question**
-   - [ ] Yes
-   - [ ] No
+2. **Another question** (pick any)
+   - [ ] Option X
+   - [ ] Option Y
+   - [ ] Option Z
 
 (repeat for each question, 3-7 questions total)
 
@@ -69,7 +70,9 @@ N. **Other requests**
    > Type any additional requests or preferences here
 
 RULES for Clarifying Questions:
-- Each question has 2-5 checkbox options using "- [ ] " format
+- Use "(pick one)" when only one option should be selected (color scheme, layout style, etc.)
+- Use "(pick any)" when multiple options can be combined (social logins, features to include, etc.)
+- Each question has 2-5 options using "- [ ] " format
 - Keep option labels short (under 25 chars)
 - The last item is always "Other requests" with "> " blockquote for free text
 - Do NOT use inline options like "(a) X, (b) Y" — only checkboxes

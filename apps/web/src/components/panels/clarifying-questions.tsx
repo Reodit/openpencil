@@ -7,6 +7,8 @@ export interface ParsedQuestion {
   title: string
   options: string[]
   isTextInput: boolean
+  /** 'single' = radio (pick one), 'multi' = checkbox (pick any) */
+  selectionMode: 'single' | 'multi'
 }
 
 interface ClarifyingQuestionsProps {
@@ -36,8 +38,12 @@ export function parseClarifyingQuestions(text: string): ParsedQuestion[] {
     if (!titleMatch) continue
     const title = titleMatch[1].trim()
 
+    // Detect selection mode from "(pick one)" or "(pick any)"
+    const isMulti = /\(pick any\)/i.test(block)
+    const selectionMode = isMulti ? 'multi' as const : 'single' as const
+
     if (block.includes('> ')) {
-      questions.push({ title, options: [], isTextInput: true })
+      questions.push({ title, options: [], isTextInput: true, selectionMode })
       continue
     }
 
@@ -49,7 +55,7 @@ export function parseClarifyingQuestions(text: string): ParsedQuestion[] {
     }
 
     if (options.length > 0) {
-      questions.push({ title, options, isTextInput: false })
+      questions.push({ title, options, isTextInput: false, selectionMode })
     }
   }
 
@@ -74,10 +80,17 @@ export default function ClarifyingQuestions({ questions, onSubmit }: ClarifyingQ
   const hasAnswer = currentSelections.size > 0 || currentCustom.trim().length > 0
 
   const toggleOption = (option: string) => {
+    const isSingle = current?.selectionMode === 'single'
     setSelections(prev => {
       const s = new Set(prev[currentIdx] ?? [])
-      if (s.has(option)) s.delete(option)
-      else s.add(option)
+      if (isSingle) {
+        // Radio: clear others, toggle this one
+        if (s.has(option)) { s.clear() } else { s.clear(); s.add(option) }
+      } else {
+        // Checkbox: toggle individually
+        if (s.has(option)) s.delete(option)
+        else s.add(option)
+      }
       return { ...prev, [currentIdx]: s }
     })
   }
@@ -120,9 +133,16 @@ export default function ClarifyingQuestions({ questions, onSubmit }: ClarifyingQ
     <div className="mt-3 rounded-lg border border-border bg-card/50 overflow-hidden">
       {/* Header with progress */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-b border-border">
-        <span className="text-[11px] font-semibold text-foreground">
-          {current.title}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-semibold text-foreground">
+            {current.title}
+          </span>
+          {!current.isTextInput && (
+            <span className="text-[9px] text-muted-foreground/60">
+              {current.selectionMode === 'single' ? 'pick one' : 'pick any'}
+            </span>
+          )}
+        </div>
         <span className="text-[10px] text-muted-foreground">
           {currentIdx + 1} / {total}
         </span>
@@ -154,10 +174,14 @@ export default function ClarifyingQuestions({ questions, onSubmit }: ClarifyingQ
                   )}
                 >
                   <div className={cn(
-                    'w-4 h-4 rounded border flex items-center justify-center shrink-0',
+                    'w-4 h-4 border flex items-center justify-center shrink-0',
+                    current.selectionMode === 'single' ? 'rounded-full' : 'rounded',
                     isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/30',
                   )}>
-                    {isSelected && <Check size={10} className="text-primary-foreground" />}
+                    {isSelected && (current.selectionMode === 'single'
+                      ? <div className="w-2 h-2 rounded-full bg-primary-foreground" />
+                      : <Check size={10} className="text-primary-foreground" />
+                    )}
                   </div>
                   {opt}
                 </button>
