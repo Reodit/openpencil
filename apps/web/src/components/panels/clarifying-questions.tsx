@@ -110,8 +110,8 @@ export default function ClarifyingQuestions({ questions, onSubmit }: ClarifyingQ
       }
     }
     onSubmit(answers.length > 0
-      ? 'My answers:\n' + answers.join('\n') + '\n\nProceed with these choices.'
-      : 'Proceed with your suggested defaults.')
+      ? 'My answers:\n' + answers.join('\n') + '\n\nNow generate the design based on the plan and my choices above. Output PenNode JSONL.'
+      : 'Proceed with your suggested defaults and generate the design now. Output PenNode JSONL.')
   }
 
   if (!current) return null
