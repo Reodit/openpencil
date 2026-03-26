@@ -1,4 +1,4 @@
-import { Check, Circle, Loader2, Play, X, SkipForward } from 'lucide-react'
+import { Check, Circle, Loader2, Play, X, SkipForward, ListChecks, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import type { PlanStep, PlanStatus } from '@/services/ai/ai-types'
@@ -37,7 +37,7 @@ export default function PlanCard({ steps, status, onApprove, onCancel, onSkipSte
             isDone ? 'bg-emerald-500/10 text-emerald-500' :
             'bg-secondary text-muted-foreground',
           )}>
-            {isDone ? '✓' : isExecuting ? '▶' : '📋'}
+            {isDone ? <Check size={10} /> : isExecuting ? <ChevronRight size={10} /> : <ListChecks size={10} />}
           </div>
           <span className="text-[11px] font-semibold text-foreground">
             {isDone ? 'Plan Complete' : isExecuting ? 'Executing Plan' : 'Design Plan'}
