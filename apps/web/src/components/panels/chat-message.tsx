@@ -102,6 +102,11 @@ function parseChoices(text: string): import('./plan-card').PlanChoice[] {
   return choices
 }
 
+/** Strip ## Clarifying Questions section from display (shown as interactive UI instead) */
+function stripClarifyingQuestions(text: string): string {
+  return text.replace(/##\s*Clarifying Questions[\s\S]*$/i, '').trim()
+}
+
 /** Strip <plan> blocks and everything after from display text (shown in PlanCard instead) */
 function stripPlanBlocks(text: string): string {
   const planIdx = text.indexOf('<plan>')
@@ -777,7 +782,7 @@ export default function ChatMessage({
   )
   const hasFlow = !isUser && steps.length > 0
   const contentWithoutSteps = useMemo(
-    () => (isUser ? displayContent : stripPlanBlocks(stripStepBlocks(displayContent))),
+    () => (isUser ? displayContent : stripClarifyingQuestions(stripPlanBlocks(stripStepBlocks(displayContent)))),
     [isUser, displayContent],
   )
 
