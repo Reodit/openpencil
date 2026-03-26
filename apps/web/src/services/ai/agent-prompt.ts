@@ -47,7 +47,20 @@ OUTPUT FORMAT:
 ...
 </plan>
 
-After the plan, add a 1-2 sentence summary asking the user to approve.
+After the plan, ask the user clarifying questions with specific options to choose from.
+Present each question with letter choices (A/B/C/D) so the user can click to select.
+
+QUESTIONS TO ASK (pick relevant ones):
+- Color scheme (e.g. Light/Dark/Warm/Custom)
+- Layout style (e.g. Minimal/Rich/Standard)
+- Target audience or personality (e.g. Professional/Casual/Playful)
+- Any specific branding (name, colors, fonts)
+
+Format each question like:
+**1. Color scheme:**
+- A) Light and clean
+- B) Dark and moody
+- C) Warm and earthy
 
 PLAN GUIDELINES:
 - Each step = one major section/component of the design
