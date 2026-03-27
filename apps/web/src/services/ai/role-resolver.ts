@@ -207,6 +207,10 @@ export function resolveTreePostPass(
     normalizeInputTrailingIconAlignment(root, children)
   }
 
+  // --- CJK font family auto-correction ---
+  // Must run BEFORE text height estimation so metrics use the correct font.
+  fixCjkFontFamilies(children, updateNode)
+
   // --- Text height estimation ---
   if (root.layout && root.layout !== 'none') {
     fixTextHeights(root, children, canvasWidth)
@@ -421,6 +425,76 @@ function fixTextHeights(
     // clipping (height too small) or wasted space (height too large).
     if (typeof child.height === 'number' && child.textGrowth !== 'fixed-width-height') {
       delete (child as { height?: unknown }).height
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CJK font family auto-correction
+// ---------------------------------------------------------------------------
+
+function hasHangul(text: string): boolean {
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0
+    if (code >= 0xAC00 && code <= 0xD7AF) return true // Hangul syllables
+    if (code >= 0x1100 && code <= 0x11FF) return true // Hangul Jamo
+    if (code >= 0x3130 && code <= 0x318F) return true // Hangul Compatibility Jamo
+  }
+  return false
+}
+
+function hasJapanese(text: string): boolean {
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0
+    if (code >= 0x3040 && code <= 0x309F) return true // Hiragana
+    if (code >= 0x30A0 && code <= 0x30FF) return true // Katakana
+  }
+  return false
+}
+
+/** Pick the right CJK font based on detected script */
+function pickCjkFont(text: string): string | null {
+  if (hasHangul(text)) return 'Noto Sans KR'
+  if (hasJapanese(text)) return 'Noto Sans JP'
+  if (hasCjkText(text)) return 'Noto Sans SC' // Chinese fallback
+  return null
+}
+
+function isCjkCompatibleFont(fontFamily: string): boolean {
+  const lower = fontFamily.toLowerCase().trim()
+  return lower.includes('noto sans') || lower.includes('pingfang')
+    || lower.includes('hiragino') || lower.includes('microsoft yahei')
+    || lower.includes('simhei') || lower.includes('simsun')
+    || lower.includes('malgun') || lower.includes('apple sd')
+    || lower.includes('yu gothic') || lower.includes('meiryo')
+}
+
+/**
+ * Fix font families on text nodes that contain CJK characters
+ * but use a Latin-only font. This prevents font metric mismatches
+ * between text height estimation and actual CanvasKit rendering.
+ */
+function fixCjkFontFamilies(
+  children: PenNode[],
+  updateNode?: (id: string, updates: Partial<PenNode>) => void,
+): void {
+  for (const child of children) {
+    if (child.type !== 'text') continue
+    const text = getTextContentForNode(child)
+    if (!text || !hasCjkText(text)) continue
+
+    const currentFont = (child as unknown as Record<string, unknown>).fontFamily
+    if (typeof currentFont !== 'string') continue
+    if (isCjkCompatibleFont(currentFont)) continue
+
+    // Current font is Latin-only or unknown — pick a CJK font
+    const cjkFont = pickCjkFont(text)
+    if (!cjkFont) continue
+
+    if (updateNode) {
+      updateNode(child.id, { fontFamily: cjkFont } as Partial<PenNode>)
+    } else {
+      ;(child as unknown as Record<string, unknown>).fontFamily = cjkFont
     }
   }
 }

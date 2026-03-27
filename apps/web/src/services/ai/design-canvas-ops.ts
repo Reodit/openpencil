@@ -13,7 +13,7 @@ import {
   createPhonePlaceholderDataUri,
   estimateNodeIntrinsicHeight,
 } from './generation-utils'
-import { defaultLineHeight } from '@/canvas/canvas-text-measure'
+import { defaultLineHeight, hasCjkText } from '@/canvas/canvas-text-measure'
 import { applyIconPathResolution, applyNoEmojiIconHeuristic, resolveAsyncIcons, resolveAllPendingIcons } from './icon-resolver'
 import {
   resolveNodeRole,
@@ -219,6 +219,26 @@ export function insertStreamingNode(
       // Default lineHeight based on text role (heading vs body)
       if (!node.lineHeight) {
         node.lineHeight = defaultLineHeight(node.fontSize ?? 16)
+      }
+      // CJK font auto-correction: if text contains Korean/Chinese/Japanese
+      // but uses a Latin-only font, replace with a CJK-compatible font.
+      // This prevents font metric mismatch between estimation and rendering.
+      if (content && hasCjkText(content)) {
+        const fontLower = (node.fontFamily ?? '').toLowerCase()
+        const isCjkFont = fontLower.includes('noto sans') || fontLower.includes('pingfang')
+          || fontLower.includes('apple sd') || fontLower.includes('malgun')
+        if (!isCjkFont) {
+          // Detect specific script
+          const hasKorean = content.split('').some(ch => {
+            const c = ch.codePointAt(0) ?? 0
+            return (c >= 0xAC00 && c <= 0xD7AF) || (c >= 0x1100 && c <= 0x11FF)
+          })
+          const hasJapanese = content.split('').some(ch => {
+            const c = ch.codePointAt(0) ?? 0
+            return (c >= 0x3040 && c <= 0x309F) || (c >= 0x30A0 && c <= 0x30FF)
+          })
+          node.fontFamily = hasKorean ? 'Noto Sans KR' : hasJapanese ? 'Noto Sans JP' : 'Noto Sans SC'
+        }
       }
     }
   }
