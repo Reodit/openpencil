@@ -2,13 +2,19 @@ import React, { useState, useMemo, type ReactNode } from 'react'
 import { Copy, Check, Wand2, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import type { ChatAttachment } from '@/services/ai/ai-types'
+import type { ChatAttachment, PlanStep } from '@/services/ai/ai-types'
+import { useAIStore } from '@/stores/ai-store'
+import PlanCard from './plan-card'
+import ClarifyingQuestions, { parseClarifyingQuestions, hasClarifyingQuestions } from './clarifying-questions'
 
 interface ChatMessageProps {
   role: 'user' | 'assistant'
   content: string
   isStreaming?: boolean
   onApplyDesign?: (json: string) => void
+  onExecutePlan?: () => void
+  onPlanFeedback?: (feedback: string) => void
+  onAnswer?: (answer: string) => void
   attachments?: ChatAttachment[]
 }
 
@@ -46,6 +52,69 @@ function stripToolCallXml(text: string): string {
   // Collapse leftover blank lines into at most one
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n')
   return cleaned.trim()
+}
+
+/** Parse <plan> blocks from assistant messages into PlanStep[] */
+function parsePlanBlock(text: string): PlanStep[] | null {
+  const planMatch = text.match(/<plan>([\s\S]*?)<\/plan>/)
+  if (!planMatch) return null
+
+  const steps: PlanStep[] = []
+  const stepRegex = /<step\s+id="([^"]*)"\s+title="([^"]*)">([\s\S]*?)<\/step>/g
+  let match
+  while ((match = stepRegex.exec(planMatch[1])) !== null) {
+    steps.push({
+      id: match[1],
+      title: match[2],
+      description: match[3].trim() || undefined,
+      status: 'pending',
+    })
+  }
+  return steps.length > 0 ? steps : null
+}
+
+/** Get text after </plan> tag */
+function getTextAfterPlan(text: string): string {
+  const idx = text.indexOf('</plan>')
+  if (idx < 0) return ''
+  return text.slice(idx + 7).trim()
+}
+
+/** Parse choice questions from agent text (e.g. "- A) Option label") */
+function parseChoices(text: string): import('./plan-card').PlanChoice[] {
+  const choices: import('./plan-card').PlanChoice[] = []
+  // Split by numbered questions: **1. Title:** or **Title:**
+  const groups = text.split(/\*\*\d*\.?\s*/)
+  for (const g of groups) {
+    if (!g.trim()) continue
+    const lines = g.trim().split('\n')
+    const titleLine = lines[0].replace(/\*+/g, '').replace(/:$/, '').trim()
+    if (!titleLine) continue
+    const options: Array<{ key: string; label: string }> = []
+    for (const line of lines.slice(1)) {
+      const m = line.trim().match(/^-\s+([A-Z])\)\s+(.+)/)
+      if (m) options.push({ key: m[1], label: m[2] })
+    }
+    if (options.length > 0) {
+      choices.push({ question: titleLine, options })
+    }
+  }
+  return choices
+}
+
+/** Strip ## Clarifying Questions section from display (shown as interactive UI instead) */
+function stripClarifyingQuestions(text: string): string {
+  return text.replace(/##\s*Clarifying Questions[\s\S]*$/i, '').trim()
+}
+
+/** Strip <plan> blocks and everything after from display text (shown in PlanCard instead) */
+function stripPlanBlocks(text: string): string {
+  const planIdx = text.indexOf('<plan>')
+  if (planIdx >= 0) {
+    // Remove everything from <plan> onwards (plan + choices shown in PlanCard)
+    return text.slice(0, planIdx).trim()
+  }
+  return text.trim()
 }
 
 export interface ParsedStep {
@@ -352,6 +421,77 @@ function parseMarkdown(
       continue
     }
 
+    // Headings
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)/)
+    if (headingMatch) {
+      const level = headingMatch[1].length
+      const Tag = `h${level}` as keyof JSX.IntrinsicElements
+      const sizes: Record<number, string> = {
+        1: 'text-base font-bold mt-3 mb-1',
+        2: 'text-sm font-bold mt-2.5 mb-1',
+        3: 'text-xs font-semibold mt-2 mb-0.5',
+        4: 'text-xs font-semibold mt-1.5 mb-0.5',
+        5: 'text-[11px] font-medium mt-1',
+        6: 'text-[11px] font-medium mt-1',
+      }
+      parts.push(
+        <Tag key={`h-${blockKey++}`} className={`${sizes[level] ?? sizes[3]} text-foreground`}>
+          {parseInlineMarkdown(headingMatch[2])}
+        </Tag>,
+      )
+      continue
+    }
+
+    // Horizontal rule
+    if (/^---+$/.test(line.trim())) {
+      parts.push(<hr key={`hr-${blockKey++}`} className="my-2 border-border/50" />)
+      continue
+    }
+
+    // Table row
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      // Skip separator rows (|---|---|)
+      if (/^\|[\s\-:|]+\|$/.test(line.trim())) continue
+      const cells = line.trim().slice(1, -1).split('|').map(c => c.trim())
+      const isHeader = lines[lines.indexOf(line) + 1]?.trim().match(/^\|[\s\-:|]+\|$/)
+      parts.push(
+        <div key={`tr-${blockKey++}`} className={`flex gap-2 text-[10px] py-0.5 ${isHeader ? 'font-semibold border-b border-border/30' : 'text-muted-foreground'}`}>
+          {cells.map((cell, ci) => (
+            <span key={ci} className="flex-1 min-w-0 truncate">{parseInlineMarkdown(cell)}</span>
+          ))}
+        </div>,
+      )
+      continue
+    }
+
+    // Checkbox list item
+    if (line.match(/^-\s+\[[ x]\]\s+/)) {
+      const checked = line.includes('[x]')
+      const text = line.replace(/^-\s+\[[ x]\]\s+/, '')
+      parts.push(
+        <div key={`cb-${blockKey++}`} className="flex items-start gap-1.5 text-[11px] py-0.5">
+          <span className={`mt-0.5 w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 ${checked ? 'bg-primary/20 border-primary/50 text-primary' : 'border-border'}`}>
+            {checked && <Check size={8} />}
+          </span>
+          <span className={checked ? 'line-through text-muted-foreground' : 'text-foreground'}>{parseInlineMarkdown(text)}</span>
+        </div>,
+      )
+      continue
+    }
+
+    // Unordered list item
+    if (line.match(/^[-*]\s+/)) {
+      const text = line.replace(/^[-*]\s+/, '')
+      parts.push(
+        <div key={`li-${blockKey++}`} className="flex items-start gap-1.5 text-[11px] py-0.5 pl-1">
+          <span className="mt-1.5 w-1 h-1 rounded-full bg-muted-foreground/50 shrink-0" />
+          <span>{parseInlineMarkdown(text)}</span>
+        </div>,
+      )
+      continue
+    }
+
+    // Default: inline markdown
     parts.push(
       <span key={`line-${blockKey++}`}>
         {parseInlineMarkdown(line)}
@@ -611,6 +751,9 @@ export default function ChatMessage({
   content,
   isStreaming,
   onApplyDesign,
+  onExecutePlan,
+  onPlanFeedback,
+  onAnswer,
   attachments,
 }: ChatMessageProps) {
   const isApplied = useMemo(
@@ -618,18 +761,47 @@ export default function ChatMessage({
     [role, content],
   )
 
-
   const isUser = role === 'user'
   // Strip raw tool-call XML that the model may emit (should never be visible)
   const displayContent = isUser ? content : stripToolCallXml(content)
+
+  // Detect <plan> blocks
+  const planSteps = useMemo(
+    () => (isUser ? null : parsePlanBlock(displayContent)),
+    [isUser, displayContent],
+  )
+  const pendingPlan = useAIStore((s) => s.pendingPlan)
+  const planStatus = useAIStore((s) => s.planStatus)
+
+  // If this message contains a plan and it was stored, use the store version (has live status updates)
+  const activePlan = pendingPlan && planSteps ? pendingPlan : planSteps
+
   const steps = useMemo(
     () => (isUser ? [] : parseStepBlocks(displayContent, isStreaming)),
     [isUser, displayContent, isStreaming],
   )
   const hasFlow = !isUser && steps.length > 0
   const contentWithoutSteps = useMemo(
-    () => (isUser ? displayContent : stripStepBlocks(displayContent)),
+    () => (isUser ? displayContent : stripClarifyingQuestions(stripPlanBlocks(stripStepBlocks(displayContent)))),
     [isUser, displayContent],
+  )
+
+  // Parse plan follow-up text and choices for PlanCard
+  const afterPlanText = useMemo(
+    () => (!isUser && planSteps ? getTextAfterPlan(displayContent) : ''),
+    [isUser, planSteps, displayContent],
+  )
+  const parsedChoices = useMemo(
+    () => (afterPlanText ? parseChoices(afterPlanText) : []),
+    [afterPlanText],
+  )
+  const planFollowUp = useMemo(
+    () => {
+      if (!afterPlanText) return undefined
+      const text = afterPlanText.split(/\*\*\d+\.\s+/)[0].trim()
+      return text || undefined
+    },
+    [afterPlanText],
   )
   const isEmpty = !contentWithoutSteps.trim() && !hasFlow
 
@@ -682,6 +854,34 @@ export default function ChatMessage({
             </div>
           ) : (
             <>
+              {/* Plan Card */}
+              {activePlan && activePlan.length > 0 && (
+                <PlanCard
+                  steps={activePlan}
+                  status={pendingPlan ? planStatus : 'awaiting'}
+                  followUpText={planFollowUp}
+                  choices={parsedChoices.length > 0 ? parsedChoices : undefined}
+                  onApprove={() => {
+                    if (!pendingPlan && planSteps) {
+                      useAIStore.getState().setPendingPlan(planSteps)
+                    }
+                    useAIStore.getState().setPlanStatus('executing')
+                    onExecutePlan?.()
+                  }}
+                  onCancel={() => {
+                    useAIStore.getState().setPendingPlan(null)
+                    useAIStore.getState().setPlanStatus('idle')
+                  }}
+                  onSkipStep={(stepId) => {
+                    useAIStore.getState().updatePlanStep(stepId, 'skipped')
+                  }}
+                  onFeedback={(feedback) => {
+                    useAIStore.getState().setPendingPlan(null)
+                    useAIStore.getState().setPlanStatus('idle')
+                    onPlanFeedback?.(feedback)
+                  }}
+                />
+              )}
               {hasFlow && (
                 <div className="mb-2">
                   <ActionSteps steps={steps} isStreaming={isStreaming} />
@@ -697,10 +897,20 @@ export default function ChatMessage({
                   )}
                 </div>
               ) : null}
+              {/* Clarifying questions with clickable options */}
+              {!isUser && !isStreaming && hasClarifyingQuestions(displayContent) && onAnswer && (
+                <ClarifyingQuestionsBlock content={displayContent} onAnswer={onAnswer} />
+              )}
             </>
           )}
         </div>
       )}
     </div>
   )
+}
+
+function ClarifyingQuestionsBlock({ content, onAnswer }: { content: string; onAnswer: (answer: string) => void }) {
+  const questions = useMemo(() => parseClarifyingQuestions(content), [content])
+  if (questions.length === 0) return null
+  return <ClarifyingQuestions questions={questions} onSubmit={onAnswer} />
 }

@@ -83,7 +83,7 @@ export interface AICodeRequest {
 }
 
 export interface AIStreamChunk {
-  type: 'text' | 'thinking' | 'done' | 'error' | 'ping'
+  type: 'text' | 'thinking' | 'done' | 'error' | 'ping' | 'session_id' | 'tool_use' | 'tool_input'
   content: string
 }
 
@@ -169,3 +169,16 @@ export interface SubAgentResult {
   rawResponse: string
   error?: string
 }
+
+// ---------------------------------------------------------------------------
+// Plan Mode types — agent creates plan, user approves before execution
+// ---------------------------------------------------------------------------
+
+export interface PlanStep {
+  id: string
+  title: string
+  description?: string
+  status: 'pending' | 'active' | 'done' | 'error' | 'skipped'
+}
+
+export type PlanStatus = 'idle' | 'planning' | 'awaiting' | 'executing' | 'done'

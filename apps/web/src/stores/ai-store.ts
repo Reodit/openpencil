@@ -105,7 +105,32 @@ interface AIState {
   concurrency: number
   pendingAttachments: ChatAttachment[]
   abortController: AbortController | null
+  /** Agent SDK session ID for conversation continuity */
+  sessionId: string | null
+  /** Saved chat sessions for history */
+  chatSessions: Array<{ id: string; title: string; timestamp: number; sessionId?: string }>
+  panelWidth: number
+  /** Selected design platform preset (e.g. 'iphone', 'web') */
+  designPlatform: string | null
+  setDesignPlatform: (p: string | null) => void
+  thinkingEnabled: boolean
+  setThinkingEnabled: (v: boolean) => void
+  planMode: boolean
+  planStatus: import('@/services/ai/ai-types').PlanStatus
+  pendingPlan: import('@/services/ai/ai-types').PlanStep[] | null
 
+  setSessionId: (id: string | null) => void
+  setPanelWidth: (w: number) => void
+  /** Start a new chat session, saving the current one to history */
+  newChat: () => void
+  /** Switch to a saved session */
+  switchSession: (sessionIdx: number) => void
+  /** Delete a saved session */
+  deleteSession: (sessionIdx: number) => void
+  setPlanMode: (v: boolean) => void
+  setPlanStatus: (s: import('@/services/ai/ai-types').PlanStatus) => void
+  setPendingPlan: (plan: import('@/services/ai/ai-types').PlanStep[] | null) => void
+  updatePlanStep: (id: string, status: import('@/services/ai/ai-types').PlanStep['status']) => void
   setConcurrency: (n: number) => void
   setChatTitle: (title: string) => void
   setGenerationProgress: (progress: { current: number; total: number } | null) => void
@@ -153,7 +178,85 @@ export const useAIStore = create<AIState>((set, get) => ({
   generationProgress: null,
   pendingAttachments: [],
   abortController: null,
+  sessionId: null,
+  chatSessions: [],
+  panelWidth: 380,
+  designPlatform: null,
+  setDesignPlatform: (p) => set({ designPlatform: p }),
+  thinkingEnabled: true,
+  setThinkingEnabled: (v) => set({ thinkingEnabled: v }),
+  planMode: false,
+  planStatus: 'idle',
+  pendingPlan: null,
 
+  setSessionId: (id) => set({ sessionId: id }),
+  setPanelWidth: (w) => set({ panelWidth: Math.max(320, Math.min(800, w)) }),
+  newChat: () => {
+    const s = get()
+    // Save current session if it has messages
+    if (s.messages.length > 0) {
+      const session = {
+        id: s.sessionId || `local-${Date.now()}`,
+        title: s.chatTitle || 'Untitled',
+        timestamp: Date.now(),
+        sessionId: s.sessionId ?? undefined,
+      }
+      set({
+        chatSessions: [session, ...s.chatSessions].slice(0, 20), // Keep last 20
+        messages: [],
+        chatTitle: 'New Chat',
+        sessionId: null,
+        pendingPlan: null,
+        planStatus: 'idle' as const,
+      })
+    }
+  },
+  switchSession: (idx) => {
+    const s = get()
+    const target = s.chatSessions[idx]
+    if (!target) return
+    // Save current session first
+    if (s.messages.length > 0) {
+      const current = {
+        id: s.sessionId || `local-${Date.now()}`,
+        title: s.chatTitle || 'Untitled',
+        timestamp: Date.now(),
+        sessionId: s.sessionId ?? undefined,
+      }
+      const sessions = [current, ...s.chatSessions.filter((_, i) => i !== idx)].slice(0, 20)
+      set({
+        chatSessions: sessions,
+        messages: [],
+        chatTitle: target.title,
+        sessionId: target.sessionId ?? null,
+        pendingPlan: null,
+        planStatus: 'idle' as const,
+      })
+    } else {
+      set({
+        chatSessions: s.chatSessions.filter((_, i) => i !== idx),
+        messages: [],
+        chatTitle: target.title,
+        sessionId: target.sessionId ?? null,
+        pendingPlan: null,
+        planStatus: 'idle' as const,
+      })
+    }
+  },
+  deleteSession: (idx) => set((s) => ({
+    chatSessions: s.chatSessions.filter((_, i) => i !== idx),
+  })),
+  setPlanMode: (v) => set({ planMode: v }),
+  setPlanStatus: (s) => set({ planStatus: s }),
+  setPendingPlan: (plan) => set({ pendingPlan: plan }),
+  updatePlanStep: (id, status) => set((s) => {
+    if (!s.pendingPlan) return s
+    return {
+      pendingPlan: s.pendingPlan.map((step) =>
+        step.id === id ? { ...step, status } : step,
+      ),
+    }
+  }),
   setConcurrency: (n) => {
     const clamped = Math.max(1, Math.min(6, n))
     writeStoredConcurrency(clamped)
@@ -217,7 +320,7 @@ export const useAIStore = create<AIState>((set, get) => ({
   setAvailableModels: (availableModels) => set({ availableModels }),
   setModelGroups: (modelGroups) => set({ modelGroups }),
   setLoadingModels: (isLoadingModels) => set({ isLoadingModels }),
-  clearMessages: () => set({ messages: [], chatTitle: 'New Chat' }),
+  clearMessages: () => set({ messages: [], chatTitle: 'New Chat', sessionId: null, pendingPlan: null, planStatus: 'idle' }),
 
   setPanelCorner: (panelCorner) => {
     set({ panelCorner })

@@ -40,6 +40,8 @@ interface StreamChatOptions {
   effort?: 'low' | 'medium' | 'high' | 'max'
   /** Max turns for Agent SDK (overrides server default). */
   maxTurns?: number
+  /** Session ID for conversation continuity */
+  sessionId?: string
 }
 
 /**
@@ -126,6 +128,7 @@ export async function* streamChat(
         thinkingBudgetTokens: options?.thinkingBudgetTokens,
         effort: options?.effort,
         ...(options?.maxTurns != null ? { maxTurns: options.maxTurns } : {}),
+        ...(options?.sessionId ? { sessionId: options.sessionId } : {}),
       }),
       signal: fetchSignal,
     })
@@ -221,13 +224,19 @@ export async function* streamChat(
               continue
             }
 
-            // Any non-empty text counts as activity; thinking only resets
-            // the timeout when thinkingResetsTimeout is true (default).
+            // Any non-empty text counts as activity
             if (chunk.type === 'text' && chunk.content.trim().length > 0) {
               sawText = true
               clearFirstTextTimeout()
               resetActivityTimeout()
-            } else if (chunk.type === 'thinking' && chunk.content.trim().length > 0 && thinkingResetsTimeout) {
+            } else if (chunk.type === 'thinking' && chunk.content.trim().length > 0) {
+              // Thinking = model is working. Reset ALL timeouts.
+              sawText = true
+              clearFirstTextTimeout()
+              resetActivityTimeout()
+            } else if (chunk.type === 'session_id' || chunk.type === 'tool_use' || chunk.type === 'tool_input') {
+              // Session/tool = connection active. Reset timeouts.
+              clearFirstTextTimeout()
               resetActivityTimeout()
             }
 

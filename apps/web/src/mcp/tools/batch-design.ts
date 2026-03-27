@@ -63,10 +63,21 @@ export async function handleBatchDesign(
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith('//'))
 
+  // Log operations to file for debugging
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const os = await import('node:os')
+  const logDir = path.join(os.homedir(), '.openpencil')
+  try { fs.mkdirSync(logDir, { recursive: true }) } catch {}
+  const ts = new Date().toISOString().replace(/[:.]/g, '-')
+  fs.writeFileSync(path.join(logDir, `batch-design-${ts}.log`), params.operations, 'utf-8')
+
   for (const line of lines) {
     try {
       await executeLine(line, doc, bindings, results, pageId)
     } catch (err) {
+      // Log failing line
+      fs.writeFileSync(path.join(logDir, `batch-design-error-${ts}.log`), `FAILED LINE:\n${line}\n\nERROR:\n${err instanceof Error ? err.message : String(err)}\n\nALL OPERATIONS:\n${params.operations}`, 'utf-8')
       throw new Error(
         `Error executing "${line}": ${err instanceof Error ? err.message : String(err)}`,
       )

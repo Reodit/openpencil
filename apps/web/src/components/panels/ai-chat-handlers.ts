@@ -4,68 +4,30 @@ import { useAIStore } from '@/stores/ai-store'
 import { useCanvasStore } from '@/stores/canvas-store'
 import { useDocumentStore } from '@/stores/document-store'
 import { useDesignMdStore } from '@/stores/design-md-store'
-import { getActivePageChildren } from '@/stores/document-tree-utils'
-import { streamChat } from '@/services/ai/ai-service'
-import { buildChatSystemPrompt } from '@/services/ai/ai-prompts'
-import { detectSections } from '@/services/ai/ai-prompt-sections'
+import { streamChat, generateCompletion } from '@/services/ai/ai-service'
 import {
-  generateDesign,
-  generateDesignModification,
+  buildGeneratePrompt, buildModifyPrompt, buildChatPrompt,
+  buildPlanSystemPrompt, buildExecutePlanSystemPrompt,
+  getDecisionPrompt,
+  type AgentMode,
+} from '@/services/ai/agent-prompt'
+import {
   animateNodesToCanvas,
   extractAndApplyDesignModification,
 } from '@/services/ai/design-generator'
+import {
+  insertStreamingNode,
+  resetGenerationRemapping,
+  applyPostStreamingTreeHeuristics,
+  adjustRootFrameHeightToContent,
+} from '@/services/ai/design-canvas-ops'
 import { trimChatHistory } from '@/services/ai/context-optimizer'
 import type { ChatMessage as ChatMessageType } from '@/services/ai/ai-types'
-import { CHAT_STREAM_THINKING_CONFIG } from '@/services/ai/ai-runtime-config'
 
-/** Intent classification prompt — lightweight LLM call to determine message routing */
-const CLASSIFY_PROMPT = `You are a UI design tool assistant. Classify the user's message intent.
-Reply with EXACTLY one of these tags, nothing else:
-- DESIGN_NEW — user wants to create or generate a NEW design, screen, page, or component from scratch
-- DESIGN_MODIFY — user wants to modify, adjust, refine, or iterate on an EXISTING design (e.g. change colors, resize, restyle, add/remove elements)
-- CHAT — user is asking a question, seeking help, or having a conversation`
-
-type DesignIntent = 'new' | 'modify' | 'chat'
-
-/** Classify user intent via a lightweight LLM call instead of hardcoded keyword matching */
-async function classifyIntent(
-  text: string,
-  model: string,
-  provider?: string,
-): Promise<{ intent: DesignIntent }> {
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8_000)
-
-    const response = await fetch('/api/ai/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system: CLASSIFY_PROMPT,
-        message: text,
-        model,
-        provider,
-      }),
-      signal: controller.signal,
-    })
-    clearTimeout(timeout)
-
-    if (!response.ok) throw new Error('classify failed')
-    const data = await response.json()
-    const upper = (data.text ?? '').trim().toUpperCase()
-
-    if (upper.includes('DESIGN_MODIFY')) return { intent: 'modify' }
-    if (upper.includes('DESIGN_NEW') || upper.includes('DESIGN')) return { intent: 'new' }
-    if (upper.includes('CHAT')) return { intent: 'chat' }
-
-    // Fallback: in a design tool, default to new design mode
-    return { intent: 'new' }
-  } catch {
-    // Fallback: in a design tool, default to new design mode
-    return { intent: 'new' }
-  }
-}
-
+/**
+ * Build canvas context string for decision routing.
+ * Lightweight summary for the decision LLM call.
+ */
 export function buildContextString(): string {
   const selectedIds = useCanvasStore.getState().selection.selectedIds
   const { getFlatNodes, document: doc } = useDocumentStore.getState()
@@ -96,7 +58,6 @@ export function buildContextString(): string {
     parts.push(`Selected: ${selectedSummary}`)
   }
 
-  // Include variable summary so chat mode also knows about design tokens
   if (doc.variables && Object.keys(doc.variables).length > 0) {
     const varNames = Object.entries(doc.variables)
       .map(([n, d]) => `$${n}(${d.type})`)
@@ -107,7 +68,129 @@ export function buildContextString(): string {
   return parts.length > 0 ? `\n\n[Canvas context: ${parts.join('. ')}]` : ''
 }
 
-/** Shared chat logic hook */
+/**
+ * Build full context for MODIFY mode.
+ * Includes selected nodes as full JSON tree for the modifier prompt.
+ */
+function buildModifyContext(): string {
+  const selectedIds = useCanvasStore.getState().selection.selectedIds
+  if (selectedIds.length === 0) return ''
+
+  const selectedNodes = selectedIds
+    .map((id) => useDocumentStore.getState().getNodeById(id))
+    .filter(Boolean)
+
+  if (selectedNodes.length === 0) return ''
+
+  const json = JSON.stringify(selectedNodes, null, 2)
+  // Limit to ~8000 chars to avoid context overflow
+  return `\n\nCONTEXT NODES:\n${json}`
+}
+
+/**
+ * Decision call — route to generate/modify/chat.
+ */
+async function decideMode(
+  messageText: string,
+  contextString: string,
+  model: string,
+  provider?: string,
+): Promise<AgentMode> {
+  try {
+    const response = await generateCompletion(
+      getDecisionPrompt(),
+      messageText + contextString,
+      model,
+      provider,
+    )
+    const trimmed = response.trim()
+    // Parse JSON from response
+    const jsonMatch = trimmed.match(/\{[^}]+\}/)
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0])
+      const mode = parsed.mode
+      if (mode === 'generate' || mode === 'modify' || mode === 'chat') {
+        console.log(`[Decision] mode=${mode}, reason=${parsed.reason ?? ''}`)
+        return mode
+      }
+    }
+    // Fallback
+    console.log(`[Decision] Could not parse: ${trimmed.slice(0, 100)}, defaulting to generate`)
+    return 'generate'
+  } catch (e) {
+    console.log(`[Decision] Error: ${e}, defaulting to generate`)
+    return 'generate'
+  }
+}
+
+/** Try to parse tool input JSON and format key fields for display */
+function tryFormatToolInput(raw: string): string {
+  if (!raw.trim()) return ''
+  try {
+    const obj = JSON.parse(raw)
+    const parts: string[] = []
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'string' && v.length > 0) {
+        parts.push(`${k}: ${v.length > 80 ? v.slice(0, 80) + '...' : v}`)
+      }
+    }
+    return parts.join('\n')
+  } catch {
+    // Partial JSON — show raw (truncated)
+    return raw.length > 100 ? raw.slice(0, 100) + '...' : raw
+  }
+}
+
+const PLATFORM_HINTS: Record<string, string> = {
+  iphone: '\n[Platform: iPhone — root frame 393×852, mobile UI]',
+  android: '\n[Platform: Android — root frame 360×800, mobile UI]',
+  ipad: '\n[Platform: iPad — root frame 1024×1366, tablet UI]',
+  desktop: '\n[Platform: Desktop — root frame 1440×900, desktop UI]',
+  web: '\n[Platform: Web — root frame 1200×auto, responsive web page]',
+  component: '\n[Platform: Component — auto-sized, standalone component]',
+}
+
+function getPlatformHint(platform: string): string {
+  return PLATFORM_HINTS[platform] ?? ''
+}
+
+/**
+ * Clean message content for chat history.
+ * Replace large JSON blocks with summaries, strip internal markers.
+ */
+function cleanMessageForHistory(content: string, role: string): string {
+  let cleaned = content
+
+  // Strip <!-- APPLIED --> marker
+  cleaned = cleaned.replace(/<!-- APPLIED -->/g, '')
+
+  // Strip <step> tags (thinking content)
+  cleaned = cleaned.replace(/<step[^>]*>[\s\S]*?<\/step>/g, '')
+
+  // Replace ```json blocks with summary (keep the conversation context, not raw JSON)
+  cleaned = cleaned.replace(/```json\s*\n[\s\S]*?```/g, (match) => {
+    const lineCount = match.split('\n').length - 2
+    return `[Design JSON: ${lineCount} nodes generated]`
+  })
+
+  // Replace <plan> blocks with summary
+  cleaned = cleaned.replace(/<plan>[\s\S]*?<\/plan>/g, '[Design plan created]')
+
+  // Collapse excessive whitespace
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim()
+
+  return cleaned
+}
+
+/**
+ * Unified agent chat handler.
+ *
+ * No classification step — the agent decides autonomously what to do:
+ * create designs, modify nodes, generate code, or answer questions.
+ *
+ * The agent uses its built-in tools (Read, Bash, WebSearch, etc.)
+ * and outputs PenNode JSON when design work is needed.
+ */
 export function useChatHandlers() {
   const [input, setInput] = useState('')
   const messages = useAIStore((s) => s.messages)
@@ -118,6 +201,7 @@ export function useChatHandlers() {
   const addMessage = useAIStore((s) => s.addMessage)
   const updateLastMessage = useAIStore((s) => s.updateLastMessage)
   const setStreaming = useAIStore((s) => s.setStreaming)
+
   const handleSend = useCallback(
     async (text?: string) => {
       const messageText = text ?? input.trim()
@@ -128,13 +212,13 @@ export function useChatHandlers() {
       setInput('')
       useAIStore.getState().clearPendingAttachments()
 
-      // Determine context and mode
-      const selectedIds = useCanvasStore.getState().selection.selectedIds
-      const hasSelection = selectedIds.length > 0
-
+      // Build context with platform preset
       const context = buildContextString()
-      const fullUserMessage = messageText + context
+      const designPlatform = useAIStore.getState().designPlatform
+      const platformHint = designPlatform ? getPlatformHint(designPlatform) : ''
+      const fullUserMessage = messageText + platformHint + context
 
+      // Add user message
       const userMsg: ChatMessageType = {
         id: nanoid(),
         role: 'user',
@@ -144,6 +228,7 @@ export function useChatHandlers() {
       }
       addMessage(userMsg)
 
+      // Add empty assistant message for streaming
       const assistantMsg: ChatMessageType = {
         id: nanoid(),
         role: 'assistant',
@@ -154,185 +239,214 @@ export function useChatHandlers() {
       addMessage(assistantMsg)
       setStreaming(true)
 
-      // Set chat title if it's the first message
+      // Set chat title from first message
       if (messages.length === 0) {
-        // Simple heuristic: Take first ~4 words or up to 25 chars
         const cleanText = messageText.replace(/^(Design|Create|Generate|Make)\s+/i, '')
         const words = cleanText.split(' ').slice(0, 4).join(' ')
         const title = words.length > 30 ? words.slice(0, 30) + '...' : words
         useAIStore.getState().setChatTitle(title || 'New Chat')
       }
 
+      // Build chat history — clean up design JSON and internal markers
+      // to keep context focused on the conversation
       const chatHistory = messages.map((m) => ({
         role: m.role,
-        content: m.content,
+        content: cleanMessageForHistory(m.content, m.role),
         ...(m.attachments?.length ? { attachments: m.attachments } : {}),
       }))
+      chatHistory.push({
+        role: 'user',
+        content: fullUserMessage,
+        ...(hasAttachments ? { attachments: pendingAttachments } : {}),
+      })
+
       const currentProvider = useAIStore.getState().modelGroups.find((g) =>
         g.models.some((m) => m.value === model),
       )?.provider
 
       let accumulated = ''
+      let thinkingContent = ''
       let appliedCount = 0
-      let isDesign = false
+      let lastProcessedLength = 0
+      let generationStarted = false
+      let rootNodeId: string | null = null
+      let currentToolName = ''
+      let currentToolInput = ''
 
       const abortController = new AbortController()
       useAIStore.getState().setAbortController(abortController)
 
       try {
-        // Classify intent via lightweight LLM call (three-way: new / modify / chat)
-        const classified = await classifyIntent(
-          messageText, model, currentProvider,
-        )
-        let intent = classified.intent
+        const designMd = useDesignMdStore.getState().designMd
+        const planMode = useAIStore.getState().planMode
+        const existingPlan = useAIStore.getState().pendingPlan
+        const planStatus = useAIStore.getState().planStatus
 
-        // When LLM says "modify" but canvas is empty, degrade to new design
-        const { document: currentDoc } = useDocumentStore.getState()
-        const activePageId = useCanvasStore.getState().activePageId
-        const pageChildren = getActivePageChildren(currentDoc, activePageId)
-        if (intent === 'modify' && pageChildren.length === 0) {
-          intent = 'new'
-        }
+        // Route to correct prompt based on plan state or decision
+        let agentPrompt: string
+        let userMessageForLLM = fullUserMessage
 
-        isDesign = intent === 'new' || intent === 'modify'
-
-        // Determine modification target: explicit selection or auto-selected frame
-        const isModification = intent === 'modify' && (hasSelection || pageChildren.length > 0)
-
-        if (isDesign) {
-             if (isModification) {
-               // --- MODIFICATION MODE ---
-               const { getNodeById, document: modDoc } = useDocumentStore.getState()
-               let modTargets: any[]
-               if (hasSelection) {
-                 // User explicitly selected nodes
-                 modTargets = selectedIds.map(id => getNodeById(id)).filter(Boolean)
-               } else {
-                 // Auto-select: last top-level frame on the active page
-                 const frames = pageChildren.filter(n => n.type === 'frame')
-                 modTargets = frames.length > 0 ? [frames[frames.length - 1]] : [pageChildren[pageChildren.length - 1]]
-               }
-
-               // We update the UI to show we are working
-               accumulated = '<step title="Checking guidelines">Analyzing modification request...</step>'
-               updateLastMessage(accumulated)
-
-               const { rawResponse, nodes } = await generateDesignModification(modTargets, messageText, {
-                 variables: modDoc.variables,
-                 themes: modDoc.themes,
-                 designMd: useDesignMdStore.getState().designMd,
-                 model,
-                 provider: currentProvider,
-               }, abortController.signal)
-               accumulated = rawResponse
-               updateLastMessage(accumulated)
-
-               // Apply all changes
-               const count = extractAndApplyDesignModification(JSON.stringify(nodes))
-               appliedCount += count
-             } else {
-               // --- GENERATION MODE (animated) ---
-               const doc = useDocumentStore.getState().document
-               const concurrency = useAIStore.getState().concurrency
-               const { rawResponse, nodes } = await generateDesign({
-                 prompt: fullUserMessage,
-                 model,
-                 provider: currentProvider,
-                 concurrency,
-                 context: {
-                   canvasSize: { width: 1200, height: 800 },
-                   documentSummary: `Current selection: ${hasSelection ? selectedIds.length + ' items' : 'Empty'}`,
-                   variables: doc.variables,
-                   themes: doc.themes,
-                   designMd: useDesignMdStore.getState().designMd,
-                 },
-               }, {
-                 animated: true,
-                 onApplyPartial: (partialCount: number) => {
-                   appliedCount += partialCount
-                 },
-                 onTextUpdate: (text: string) => {
-                    accumulated = text
-                    updateLastMessage(text)
-                 },
-               }, abortController.signal)
-               // Ensure final text is captured
-               accumulated = rawResponse
-               if (appliedCount === 0 && nodes.length > 0) {
-                 animateNodesToCanvas(nodes)
-                 appliedCount += nodes.length
-               }
-             }
+        if (planStatus === 'executing' && existingPlan) {
+          // Execute approved plan
+          agentPrompt = buildExecutePlanSystemPrompt(existingPlan)
+        } else if (planStatus === 'idle' && planMode && !existingPlan) {
+          // Create a plan first
+          agentPrompt = buildPlanSystemPrompt()
+          useAIStore.getState().setPlanStatus('planning')
         } else {
-            // --- CHAT MODE ---
-            chatHistory.push({
-              role: 'user',
-              content: fullUserMessage,
-              ...(hasAttachments ? { attachments: pendingAttachments } : {}),
-            })
-            // Trim history to prevent unbounded context growth
-            const trimmedHistory = trimChatHistory(chatHistory)
-            // Progressive section loading: detect needed sections from user message
-            const chatDoc = useDocumentStore.getState().document
-            const chatDesignMd = useDesignMdStore.getState().designMd
-            const chatSections = detectSections(fullUserMessage, {
-              hasDesignMd: !!chatDesignMd,
-              hasVariables: !!chatDoc.variables && Object.keys(chatDoc.variables).length > 0,
-            })
-            const chatSystemPrompt = buildChatSystemPrompt(chatSections, chatDesignMd)
-            let chatThinking = ''
-            for await (const chunk of streamChat(
-              chatSystemPrompt,
-              trimmedHistory,
-              model,
-              CHAT_STREAM_THINKING_CONFIG,
-              currentProvider,
-              abortController.signal,
-            )) {
-               if (chunk.type === 'thinking') {
-                 chatThinking += chunk.content
-                 // Show thinking content as a collapsible step in the panel
-                 const thinkingStep = `<step title="Thinking">${chatThinking}</step>`
-                 updateLastMessage(thinkingStep + (accumulated ? '\n' + accumulated : ''))
-               } else if (chunk.type === 'text') {
-                 accumulated += chunk.content
-                 // Keep thinking step visible above text content
-                 const thinkingPrefix = chatThinking
-                   ? `<step title="Thinking">${chatThinking}</step>\n`
-                   : ''
-                 updateLastMessage(thinkingPrefix + accumulated)
-               } else if (chunk.type === 'error') {
-                 accumulated += `\n\n**Error:** ${chunk.content}`
-                 updateLastMessage(accumulated)
-               }
-            }
+          // Reset plan status if answering questions
+          if (planStatus === 'awaiting') {
+            useAIStore.getState().setPlanStatus('idle')
+          }
+
+          // Decision call — route to generate/modify/chat
+          const mode = await decideMode(messageText, context, model, currentProvider)
+
+          if (mode === 'modify') {
+            agentPrompt = buildModifyPrompt()
+            // Append full selected nodes JSON for modification
+            userMessageForLLM = fullUserMessage + buildModifyContext()
+          } else if (mode === 'chat') {
+            agentPrompt = buildChatPrompt()
+          } else {
+            agentPrompt = buildGeneratePrompt()
+          }
         }
+
+        // Update last user message with mode-specific context (e.g., CONTEXT NODES for modify)
+        if (chatHistory.length > 0) {
+          const last = chatHistory[chatHistory.length - 1]
+          if (last.role === 'user') {
+            last.content = userMessageForLLM
+          }
+        }
+
+        // Trim history to prevent context overflow
+        const trimmedHistory = trimChatHistory(chatHistory)
+
+        // Get existing session ID for conversation continuity
+        const currentSessionId = useAIStore.getState().sessionId ?? undefined
+
+        // Single streaming call — agent decides what to do
+        for await (const chunk of streamChat(
+          agentPrompt,
+          trimmedHistory,
+          model,
+          {
+            thinkingMode: useAIStore.getState().thinkingEnabled ? 'enabled' : 'disabled',
+            effort: 'medium',
+            maxTurns: 15,
+            firstTextTimeoutMs: 180_000,
+            hardTimeoutMs: 600_000,
+            sessionId: currentSessionId,
+          },
+          currentProvider,
+          abortController.signal,
+        )) {
+          if (chunk.type === 'session_id') {
+            useAIStore.getState().setSessionId(chunk.content)
+          } else if (chunk.type === 'tool_use') {
+            // Flush previous tool step if exists
+            if (currentToolName) {
+              const input = tryFormatToolInput(currentToolInput)
+              accumulated += `\n<step title="Tool: ${currentToolName}">${input}</step>\n`
+            }
+            currentToolName = chunk.content
+            currentToolInput = ''
+            updateLastMessage(accumulated + `\n<step title="Tool: ${currentToolName}" status="streaming"></step>\n`)
+          } else if (chunk.type === 'tool_input') {
+            currentToolInput += chunk.content
+            const input = tryFormatToolInput(currentToolInput)
+            updateLastMessage(accumulated + `\n<step title="Tool: ${currentToolName}" status="streaming">${input}</step>\n`)
+          } else if (chunk.type === 'thinking') {
+            thinkingContent += chunk.content
+            const thinkingStep = `<step title="Thinking">${thinkingContent}</step>`
+            updateLastMessage(thinkingStep + (accumulated ? '\n' + accumulated : ''))
+          } else if (chunk.type === 'text') {
+            // Flush pending tool step when text starts
+            if (currentToolName) {
+              const input = tryFormatToolInput(currentToolInput)
+              accumulated += `\n<step title="Tool: ${currentToolName}">${input}</step>\n`
+              currentToolName = ''
+              currentToolInput = ''
+            }
+            accumulated += chunk.content
+
+            // Real-time JSONL extraction: scan accumulated text for complete lines
+            // inside ```json blocks and insert nodes as they arrive
+            const result = extractAndInsertStreamingNodes(
+              accumulated, lastProcessedLength, generationStarted, appliedCount, rootNodeId,
+            )
+            lastProcessedLength = result.processedUpTo
+            appliedCount = result.totalApplied
+            generationStarted = result.generationStarted
+            rootNodeId = result.rootNodeId
+
+            const thinkingPrefix = thinkingContent
+              ? `<step title="Thinking">${thinkingContent}</step>\n`
+              : ''
+            updateLastMessage(thinkingPrefix + accumulated)
+          } else if (chunk.type === 'error') {
+            accumulated += `\n\n**Error:** ${chunk.content}`
+            updateLastMessage(accumulated)
+          }
+        }
+
+        // After streaming — check if this was a plan response
+        const currentPlanStatus = useAIStore.getState().planStatus
+        if (currentPlanStatus === 'planning') {
+          // Parse plan from response and store it
+          const planMatch = accumulated.match(/<plan>([\s\S]*?)<\/plan>/)
+          if (planMatch) {
+            const steps: import('@/services/ai/ai-types').PlanStep[] = []
+            const stepRegex = /<step\s+id="([^"]*)"\s+title="([^"]*)">([\s\S]*?)<\/step>/g
+            let m
+            while ((m = stepRegex.exec(planMatch[1])) !== null) {
+              steps.push({ id: m[1], title: m[2], description: m[3].trim() || undefined, status: 'pending' })
+            }
+            if (steps.length > 0) {
+              useAIStore.getState().setPendingPlan(steps)
+              useAIStore.getState().setPlanStatus('awaiting')
+            }
+          }
+        } else if (currentPlanStatus === 'executing') {
+          // Plan execution complete
+          useAIStore.getState().setPlanStatus('done')
+        }
+
+        // Apply any remaining design JSON not caught during streaming
+        // Post-streaming heuristics: fix layout, roles, icons on the completed tree
+        if (appliedCount > 0 && rootNodeId) {
+          applyPostStreamingTreeHeuristics(rootNodeId)
+          adjustRootFrameHeightToContent(rootNodeId)
+        }
+        if (appliedCount === 0) {
+          appliedCount = tryApplyDesignFromResponse(accumulated)
+        }
+
       } catch (error) {
-         // Silently handle user-initiated stop
-         if (abortController.signal.aborted) {
-           // Keep partial content, don't show error
-         } else {
-           const errMsg = error instanceof Error ? error.message : 'Unknown error'
-           accumulated += `\n\n**Error:** ${errMsg}`
-           updateLastMessage(accumulated)
-         }
+        if (!abortController.signal.aborted) {
+          const errMsg = error instanceof Error ? error.message : 'Unknown error'
+          accumulated += `\n\n**Error:** ${errMsg}`
+          updateLastMessage(accumulated)
+        }
       } finally {
-         useAIStore.getState().setAbortController(null)
-         setStreaming(false)
+        useAIStore.getState().setAbortController(null)
+        setStreaming(false)
       }
 
-      // Final update - mark as applied (hidden) so the "Apply" button doesn't show up
-      if (isDesign && appliedCount > 0) {
+      // Mark as applied if design was generated
+      if (appliedCount > 0) {
         accumulated += `\n\n<!-- APPLIED -->`
       }
 
-      // Force update the last message state to ensure sync
+      // Force update last message
       useAIStore.setState((s) => {
         const msgs = [...s.messages]
         const last = msgs.find(m => m.id === assistantMsg.id)
         if (last) {
-           last.content = accumulated
-           last.isStreaming = false
+          last.content = accumulated
+          last.isStreaming = false
         }
         return { messages: msgs }
       })
@@ -341,4 +455,193 @@ export function useChatHandlers() {
   )
 
   return { input, setInput, handleSend, isStreaming }
+}
+
+/**
+ * Try to extract and apply PenNode JSON from agent response.
+ * Returns the number of nodes applied.
+ */
+/**
+ * Scan accumulated text for complete JSONL lines inside ```json blocks.
+ * Insert nodes to canvas in real-time as they stream in.
+ */
+function extractAndInsertStreamingNodes(
+  accumulated: string,
+  processedUpTo: number,
+  generationStarted: boolean,
+  totalApplied: number,
+  rootNodeId: string | null,
+): { processedUpTo: number; totalApplied: number; generationStarted: boolean; rootNodeId: string | null } {
+  // Find ```json block boundaries in the accumulated text
+  // Handle both ```json\n and ```json\r\n
+  let jsonStart = accumulated.indexOf('```json\n')
+  if (jsonStart < 0) jsonStart = accumulated.indexOf('```json\r\n')
+  if (jsonStart < 0) return { processedUpTo, totalApplied, generationStarted, rootNodeId }
+
+  const markerEnd = accumulated.indexOf('\n', jsonStart + 3)
+  const contentStart = markerEnd >= 0 ? markerEnd + 1 : jsonStart + 8
+  // Find closing ``` (must be on its own or after newline)
+  const jsonEnd = accumulated.indexOf('\n```', contentStart)
+
+  // Determine the range to scan for new lines
+  const scanFrom = Math.max(contentStart, processedUpTo)
+  const scanTo = jsonEnd > 0 ? jsonEnd : accumulated.length
+
+  if (scanFrom >= scanTo) return { processedUpTo: scanFrom, totalApplied, generationStarted, rootNodeId }
+
+  const newContent = accumulated.slice(scanFrom, scanTo)
+  const lines = newContent.split('\n')
+
+  // Don't process the last line unless the block is closed (it may be incomplete)
+  const linesToProcess = jsonEnd > 0 ? lines : lines.slice(0, -1)
+
+  for (const line of linesToProcess) {
+    const trimmed = line.trim()
+    if (!trimmed || !trimmed.startsWith('{')) continue
+    try {
+      const node = JSON.parse(trimmed)
+      if (node.type && node.id) {
+        if (!generationStarted) {
+          resetGenerationRemapping()
+          generationStarted = true
+        }
+        const parentId = node._parent ?? null
+        delete node._parent
+        insertStreamingNode(node, parentId)
+        totalApplied++
+        // Track root node ID (first node with null parent)
+        if (parentId === null && !rootNodeId) {
+          rootNodeId = node.id
+        }
+      }
+    } catch {
+      // Incomplete JSON line — will be retried next chunk
+    }
+  }
+
+  // Update processedUpTo to avoid re-processing
+  const lastNewline = accumulated.lastIndexOf('\n', scanTo - 1)
+  const newProcessedUpTo = jsonEnd > 0 ? jsonEnd : (lastNewline > scanFrom ? lastNewline + 1 : scanFrom)
+
+  return { processedUpTo: newProcessedUpTo, totalApplied, generationStarted, rootNodeId }
+}
+
+function tryApplyDesignFromResponse(response: string): number {
+  const jsonBlocks = extractJsonBlocks(response)
+  let totalApplied = 0
+
+  for (const block of jsonBlocks) {
+    const count = tryApplyJsonBlock(block)
+    totalApplied += count
+  }
+
+  // Fallback: if no ```json blocks found, try to find raw JSON in the response
+  if (totalApplied === 0) {
+    const rawJson = extractRawJson(response)
+    if (rawJson) {
+      totalApplied += tryApplyJsonBlock(rawJson)
+    }
+  }
+
+  return totalApplied
+}
+
+/** Convert flat JSONL nodes with _parent fields into a tree structure with children */
+function flatToTree(flatNodes: Array<Record<string, unknown>>): import('@/types/pen').PenNode[] {
+  const nodeMap = new Map<string, Record<string, unknown>>()
+  const roots: Record<string, unknown>[] = []
+
+  // Index all nodes
+  for (const node of flatNodes) {
+    nodeMap.set(node.id as string, { ...node })
+  }
+
+  // Build tree
+  for (const node of flatNodes) {
+    const parentId = node._parent as string | null
+    const current = nodeMap.get(node.id as string)!
+    delete current._parent
+
+    if (!parentId) {
+      roots.push(current)
+    } else {
+      const parent = nodeMap.get(parentId)
+      if (parent) {
+        if (!Array.isArray(parent.children)) parent.children = []
+        ;(parent.children as unknown[]).push(current)
+      } else {
+        roots.push(current) // orphan → treat as root
+      }
+    }
+  }
+
+  return roots as import('@/types/pen').PenNode[]
+}
+
+function tryApplyJsonBlock(block: string): number {
+  try {
+    // Try as JSONL (flat format with _parent)
+    const lines = block.split('\n').filter(l => l.trim().startsWith('{'))
+    if (lines.length > 1 && lines[0].includes('"_parent"')) {
+      const flatNodes = lines.map(l => JSON.parse(l))
+      if (flatNodes.length > 0) {
+        const tree = flatToTree(flatNodes)
+        animateNodesToCanvas(tree)
+        return flatNodes.length
+      }
+    }
+
+    const parsed = JSON.parse(block)
+
+    // JSON array of nodes
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type) {
+      const count = extractAndApplyDesignModification(block)
+      return count
+    }
+
+    // Single node object (wrap in array)
+    if (parsed && typeof parsed === 'object' && parsed.type && !Array.isArray(parsed)) {
+      const wrapped = JSON.stringify([parsed])
+      const count = extractAndApplyDesignModification(wrapped)
+      return count
+    }
+  } catch {
+    // Not valid JSON
+  }
+  return 0
+}
+
+/** Extract all ```json code blocks from text */
+function extractJsonBlocks(text: string): string[] {
+  const blocks: string[] = []
+  const regex = /```json\s*\n([\s\S]*?)```/g
+  let match
+  while ((match = regex.exec(text)) !== null) {
+    blocks.push(match[1].trim())
+  }
+  return blocks
+}
+
+/** Try to find raw JSON (no code fences) in the response */
+function extractRawJson(text: string): string | null {
+  // Find first { that looks like a PenNode
+  const start = text.indexOf('{\n')
+  if (start < 0) return null
+
+  // Find matching closing }
+  let depth = 0
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '{') depth++
+    else if (text[i] === '}') {
+      depth--
+      if (depth === 0) {
+        const candidate = text.slice(start, i + 1)
+        try {
+          const parsed = JSON.parse(candidate)
+          if (parsed.type) return candidate
+        } catch { /* continue */ }
+      }
+    }
+  }
+  return null
 }

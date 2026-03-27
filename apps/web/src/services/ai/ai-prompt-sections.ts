@@ -16,10 +16,10 @@
  *   const knowledge = assembleSections(needed)
  */
 
-import { AVAILABLE_FEATHER_ICONS } from './icon-resolver'
+// Icon list imported from ai-prompts.ts — no longer using full 635-icon list
 import type { DesignMdSpec } from '@/types/design-md'
 
-const FEATHER_ICON_NAMES = AVAILABLE_FEATHER_ICONS.join(', ')
+const FEATHER_ICON_NAMES = 'search, bell, user, heart, star, plus, x, check, chevron-right, chevron-down, settings, home, menu, mail, lock, eye, arrow-right, phone, map-pin, clock, shopping-cart, trash, edit, copy, image, play, sun, moon, zap, shield, gift, tag, bookmark, share, send, filter, grid, list, globe, alert-triangle, info, help-circle, refresh-cw, more-horizontal, message-circle, credit-card, truck, package, coffee, utensils, pizza, etc.'
 
 // ---------------------------------------------------------------------------
 // Section type

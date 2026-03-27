@@ -537,7 +537,17 @@ const TOOL_DEFINITIONS = [
       '  D(nodeId)                           — Delete node\n' +
       'Use null for root-level parent. Reference previous bindings by name. ' +
       'Path expressions support binding+"/ childId" for nested access. ' +
-      'Always set postProcess=true when generating designs for best visual quality.',
+      'Always set postProcess=true when generating designs for best visual quality.\n\n' +
+      'IMPORTANT — Add "role" to nodes for automatic smart defaults (alignItems, padding, cornerRadius, etc.):\n' +
+      '  Layout: section, row, column, centered-content, form-group, divider, spacer\n' +
+      '  Navigation: navbar, nav-links, nav-link\n' +
+      '  Interactive: button, icon-button, badge, tag, pill, input, form-input, search-bar\n' +
+      '  Display: card, stat-card, pricing-card, feature-card, image-card\n' +
+      '  Media: phone-mockup, screenshot-frame, avatar, icon\n' +
+      '  Typography: heading, subheading, body-text, caption, label\n' +
+      '  Content: hero, feature-grid, testimonial, cta-section, footer, stats-section\n' +
+      'Example: {"type":"frame","role":"tag","name":"Tag",...} → auto-adds alignItems:center, padding, cornerRadius.\n' +
+      'ALWAYS add role to frames. Your explicit props override role defaults.',
     inputSchema: {
       type: 'object' as const,
       properties: {

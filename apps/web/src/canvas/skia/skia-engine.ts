@@ -94,11 +94,14 @@ export class SkiaEngine {
 
     this.surface = this.ck.MakeWebGLCanvasSurface(canvasEl)
     if (!this.surface) {
-      // Fallback to software
+      console.warn('SkiaEngine: WebGL CanvasKit surface creation failed, falling back to software renderer.')
       this.surface = this.ck.MakeSWCanvasSurface(canvasEl)
     }
     if (!this.surface) {
-      console.error('SkiaEngine: Failed to create surface')
+      console.error(
+        'SkiaEngine: Failed to create CanvasKit surface (both WebGL and software failed). ' +
+        'If you have OPENPENCIL_CANVAS_RENDERER environment variable set, try unsetting it.'
+      )
       return
     }
 
@@ -137,7 +140,15 @@ export class SkiaEngine {
     this.surface?.delete()
     this.surface = this.ck.MakeWebGLCanvasSurface(this.canvasEl)
     if (!this.surface) {
+      console.warn('SkiaEngine: WebGL CanvasKit surface re-creation failed, falling back to software renderer.')
       this.surface = this.ck.MakeSWCanvasSurface(this.canvasEl)
+    }
+    if (!this.surface) {
+      console.error(
+        'SkiaEngine: Failed to re-create CanvasKit surface (both WebGL and software failed). ' +
+        'If you have OPENPENCIL_CANVAS_RENDERER environment variable set, try unsetting it.'
+      )
+      return
     }
     this.render()
   }

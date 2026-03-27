@@ -58,6 +58,8 @@ interface ChatBody {
   thinkingBudgetTokens?: number
   effort?: 'low' | 'medium' | 'high' | 'max'
   maxTurns?: number
+  /** Session ID for conversation continuity (Claude Agent SDK) */
+  sessionId?: string
 }
 
 async function readDebugTail(path?: string, maxLines = 40): Promise<string[] | undefined> {
@@ -272,7 +274,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         const lastUserMsg = [...body.messages].reverse().find((m) => m.role === 'user')
         let prompt = lastUserMsg?.content ?? ''
 
-        // Save attachments (images + text files) to temp files
+        // Save attachments to session-persistent directory (not temp)
+        // so images remain accessible across conversation turns
         const attachments = getLastUserAttachments(body)
         const imageAttachments = attachments.filter((a) => ALLOWED_MEDIA_TYPES.has(a.mediaType))
         const textAttachments = attachments.filter((a) => ALLOWED_TEXT_TYPES.has(a.mediaType))
@@ -280,7 +283,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
 
         if (hasAttachments) {
           const saved = await saveAttachmentsToTempFiles(attachments, true)
-          attachTempDir = saved.tempDir
+          // Don't set attachTempDir — keep files for session persistence
+          // Files live in .openpencil-tmp/ and survive across turns
 
           const refs: string[] = []
           let fileIdx = 0
@@ -305,11 +309,6 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // Always strip "NEVER use tools" restriction so the agent can use tools
         const effectiveSystemPrompt = stripNoToolsRestriction(body.system)
 
-        // Unified streaming path — works for both text-only and image queries
-        const agentTools = hasAttachments
-          ? ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
-          : ['Read', 'Bash', 'Grep', 'Glob', 'WebSearch', 'WebFetch']
-
         const runQuery = async () => {
           const q = query({
             prompt,
@@ -318,10 +317,9 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               ...(model ? { model } : {}),
               maxTurns: body.maxTurns ?? (hasAttachments ? 5 : 1),
               includePartialMessages: true,
-              tools: agentTools,
-              plugins: [],
               permissionMode: 'default',
-              persistSession: false,
+              persistSession: true,
+              ...(body.sessionId ? { resume: body.sessionId } : {}),
               ...(body.effort ? { effort: body.effort } : {}),
               ...(thinking ? { thinking } : {}),
               env,
@@ -333,9 +331,31 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
 
           try {
             for await (const message of q) {
-              if (message.type === 'stream_event') {
+              if (message.type === 'system') {
+                // Extract session_id from system message and send to client
+                const sid = (message as any).session_id
+                if (sid) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ type: 'session_id', content: sid })}\n\n`),
+                  )
+                }
+              } else if (message.type === 'stream_event') {
                 const ev = message.event
-                if (ev.type === 'content_block_delta') {
+                if (ev.type === 'content_block_start') {
+                  const block = (ev as any).content_block
+                  if (block?.type === 'tool_use' && block.name) {
+                    const data = JSON.stringify({ type: 'tool_use', content: block.name })
+                    controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                  }
+                } else if (ev.type === 'content_block_delta') {
+                  // Tool input JSON delta — accumulate and send
+                  if (ev.delta.type === 'input_json_delta') {
+                    const partial = (ev.delta as any).partial_json ?? ''
+                    if (partial) {
+                      const data = JSON.stringify({ type: 'tool_input', content: partial })
+                      controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                    }
+                  }
                   if (ev.delta.type === 'text_delta') {
                     clearInterval(pingTimer)
                     const data = JSON.stringify({ type: 'text', content: ev.delta.text })
@@ -378,9 +398,8 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         )
       } finally {
         clearInterval(pingTimer)
-        if (attachTempDir) {
-          rm(attachTempDir, { recursive: true, force: true }).catch(() => {})
-        }
+        // Attachment files are kept for session persistence (not deleted).
+        // They live in .openpencil-tmp/ and remain accessible across turns.
         controller.close()
       }
     },
