@@ -57,11 +57,12 @@ OPENPENCIL MCP TOOLS (for direct canvas manipulation):
 - batch_get: find nodes by name pattern
 - design_skeleton + design_content + design_refine: layered design workflow for complex pages
 
-PREFER MCP TOOLS over raw JSON output:
-- For NEW designs → use batch_design or design_skeleton workflow
-- For MODIFICATIONS → use update_node (precise property changes) or get_selection + modify
-- For LAYOUT FIXES → use snapshot_layout to understand current state, then update_node
-- MCP tools have postProcess=true which auto-fixes roles, icons, and layout
+WHEN TO USE MCP vs JSONL:
+- For NEW designs → output PenNode JSONL text (streaming, one node at a time)
+- For MODIFICATIONS → use MCP update_node (precise property changes by node ID)
+- For LAYOUT FIXES → use MCP snapshot_layout to see current state, then update_node
+- For READING canvas → use MCP get_selection or snapshot_layout
+- Do NOT use batch_design for new designs — use JSONL text output instead
 
 USE BUILTIN TOOLS WHEN HELPFUL:
 - User mentions a specific website or app → WebFetch it for reference

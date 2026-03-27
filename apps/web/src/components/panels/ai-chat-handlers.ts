@@ -18,6 +18,8 @@ import {
 import {
   insertStreamingNode,
   resetGenerationRemapping,
+  applyPostStreamingTreeHeuristics,
+  adjustRootFrameHeightToContent,
 } from '@/services/ai/design-canvas-ops'
 import { trimChatHistory } from '@/services/ai/context-optimizer'
 import type { ChatMessage as ChatMessageType } from '@/services/ai/ai-types'
@@ -267,6 +269,7 @@ export function useChatHandlers() {
       let appliedCount = 0
       let lastProcessedLength = 0
       let generationStarted = false
+      let rootNodeId: string | null = null
       let currentToolName = ''
       let currentToolInput = ''
 
@@ -372,11 +375,12 @@ export function useChatHandlers() {
             // Real-time JSONL extraction: scan accumulated text for complete lines
             // inside ```json blocks and insert nodes as they arrive
             const result = extractAndInsertStreamingNodes(
-              accumulated, lastProcessedLength, generationStarted, appliedCount,
+              accumulated, lastProcessedLength, generationStarted, appliedCount, rootNodeId,
             )
             lastProcessedLength = result.processedUpTo
             appliedCount = result.totalApplied
             generationStarted = result.generationStarted
+            rootNodeId = result.rootNodeId
 
             const thinkingPrefix = thinkingContent
               ? `<step title="Thinking">${thinkingContent}</step>\n`
@@ -411,14 +415,13 @@ export function useChatHandlers() {
         }
 
         // Apply any remaining design JSON not caught during streaming
-        console.log(`[Design] Stream done. accumulated=${accumulated.length}ch, applied=${appliedCount}, hasJson=${accumulated.includes('\`\`\`json')}`)
-        console.log(`[Design] First 300ch: ${accumulated.slice(0, 300)}`)
+        // Post-streaming heuristics: fix layout, roles, icons on the completed tree
+        if (appliedCount > 0 && rootNodeId) {
+          applyPostStreamingTreeHeuristics(rootNodeId)
+          adjustRootFrameHeightToContent(rootNodeId)
+        }
         if (appliedCount === 0) {
-          console.log(`[Design] No streaming inserts, trying fallback.`)
           appliedCount = tryApplyDesignFromResponse(accumulated)
-          console.log(`[Design] Fallback applied: ${appliedCount}`)
-        } else {
-          console.log(`[Design] Streaming inserted ${appliedCount} nodes`)
         }
 
       } catch (error) {
@@ -467,12 +470,13 @@ function extractAndInsertStreamingNodes(
   processedUpTo: number,
   generationStarted: boolean,
   totalApplied: number,
-): { processedUpTo: number; totalApplied: number; generationStarted: boolean } {
+  rootNodeId: string | null,
+): { processedUpTo: number; totalApplied: number; generationStarted: boolean; rootNodeId: string | null } {
   // Find ```json block boundaries in the accumulated text
   // Handle both ```json\n and ```json\r\n
   let jsonStart = accumulated.indexOf('```json\n')
   if (jsonStart < 0) jsonStart = accumulated.indexOf('```json\r\n')
-  if (jsonStart < 0) return { processedUpTo, totalApplied, generationStarted }
+  if (jsonStart < 0) return { processedUpTo, totalApplied, generationStarted, rootNodeId }
 
   const markerEnd = accumulated.indexOf('\n', jsonStart + 3)
   const contentStart = markerEnd >= 0 ? markerEnd + 1 : jsonStart + 8
@@ -483,7 +487,7 @@ function extractAndInsertStreamingNodes(
   const scanFrom = Math.max(contentStart, processedUpTo)
   const scanTo = jsonEnd > 0 ? jsonEnd : accumulated.length
 
-  if (scanFrom >= scanTo) return { processedUpTo: scanFrom, totalApplied, generationStarted }
+  if (scanFrom >= scanTo) return { processedUpTo: scanFrom, totalApplied, generationStarted, rootNodeId }
 
   const newContent = accumulated.slice(scanFrom, scanTo)
   const lines = newContent.split('\n')
@@ -503,9 +507,12 @@ function extractAndInsertStreamingNodes(
         }
         const parentId = node._parent ?? null
         delete node._parent
-        console.log(`[StreamInsert] ${node.type}:${node.name ?? node.id} parent=${parentId}`)
         insertStreamingNode(node, parentId)
         totalApplied++
+        // Track root node ID (first node with null parent)
+        if (parentId === null && !rootNodeId) {
+          rootNodeId = node.id
+        }
       }
     } catch {
       // Incomplete JSON line — will be retried next chunk
@@ -516,7 +523,7 @@ function extractAndInsertStreamingNodes(
   const lastNewline = accumulated.lastIndexOf('\n', scanTo - 1)
   const newProcessedUpTo = jsonEnd > 0 ? jsonEnd : (lastNewline > scanFrom ? lastNewline + 1 : scanFrom)
 
-  return { processedUpTo: newProcessedUpTo, totalApplied, generationStarted }
+  return { processedUpTo: newProcessedUpTo, totalApplied, generationStarted, rootNodeId }
 }
 
 function tryApplyDesignFromResponse(response: string): number {
