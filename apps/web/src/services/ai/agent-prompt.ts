@@ -44,26 +44,8 @@ const AGENT_TOOLS = `TOOLS YOU HAVE:
 - WebSearch: search the web for design inspiration, references, trends
 - WebFetch: fetch a URL to analyze an existing design or website
 - Read: read files for context
-- Bash: run commands if needed
-- Grep/Glob: search the codebase
 
-OPENPENCIL MCP TOOLS (for direct canvas manipulation):
-- batch_design: generate a complete multi-node design with DSL — use for new designs
-- insert_node: insert a single node tree — use for adding components
-- update_node: update specific properties of an existing node by ID — use for modifications
-- delete_node: remove a node by ID
-- snapshot_layout: see the current layout structure of the canvas
-- get_selection: get currently selected nodes with full properties
-- batch_get: find nodes by name pattern
-- design_skeleton + design_content + design_refine: layered design workflow for complex pages
-
-WHEN TO USE EACH:
-- For NEW designs → JSONL text output (streaming) or batch_design MCP (all at once with postProcess)
-- For MODIFICATIONS → use MCP update_node (precise property changes by node ID)
-- For LAYOUT FIXES → use MCP snapshot_layout to see current state, then update_node
-- For READING canvas → use MCP get_selection or snapshot_layout
-
-USE BUILTIN TOOLS WHEN HELPFUL:
+USE TOOLS WHEN HELPFUL:
 - User mentions a specific website or app → WebFetch it for reference
 - User wants a design "like Airbnb" → WebSearch for Airbnb UI patterns
 - User provides a URL → WebFetch and analyze

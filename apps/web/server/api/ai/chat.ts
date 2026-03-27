@@ -309,10 +309,6 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
         // Always strip "NEVER use tools" restriction so the agent can use tools
         const effectiveSystemPrompt = stripNoToolsRestriction(body.system)
 
-        // Full tool access + MCP tools (openpencil design tools)
-        // Agent can use built-in tools + MCP tools (batch_design, update_node, etc.)
-        const agentPermission = 'default'
-
         const runQuery = async () => {
           const q = query({
             prompt,
@@ -321,33 +317,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               ...(model ? { model } : {}),
               maxTurns: body.maxTurns ?? (hasAttachments ? 5 : 1),
               includePartialMessages: true,
-              permissionMode: agentPermission,
-              allowedTools: [
-                'mcp__openpencil__snapshot_layout',
-                'mcp__openpencil__batch_design',
-                'mcp__openpencil__insert_node',
-                'mcp__openpencil__update_node',
-                'mcp__openpencil__delete_node',
-                'mcp__openpencil__move_node',
-                'mcp__openpencil__batch_get',
-                'mcp__openpencil__get_selection',
-                'mcp__openpencil__design_skeleton',
-                'mcp__openpencil__design_content',
-                'mcp__openpencil__design_refine',
-                'mcp__openpencil__get_design_prompt',
-                'mcp__openpencil__find_empty_space',
-                'mcp__openpencil__import_svg',
-                'mcp__openpencil__get_variables',
-                'mcp__openpencil__set_variables',
-                'mcp__openpencil__add_page',
-                'mcp__openpencil__get_design_md',
-              ],
-              mcpServers: {
-                openpencil: {
-                  command: 'node',
-                  args: [join(process.cwd(), '..', '..', 'out', 'mcp-server.cjs')],
-                },
-              },
+              permissionMode: 'default',
               persistSession: true,
               ...(body.sessionId ? { resume: body.sessionId } : {}),
               ...(body.effort ? { effort: body.effort } : {}),
