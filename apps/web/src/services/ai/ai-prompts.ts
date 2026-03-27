@@ -1,11 +1,10 @@
-import { AVAILABLE_FEATHER_ICONS } from './icon-resolver'
 import type { PromptSectionKey } from './ai-prompt-sections'
 import { assembleSections, buildDesignMdStylePolicy } from './ai-prompt-sections'
 import type { DesignMdSpec } from '@/types/design-md'
 
-// Comma-separated list of all bundled Feather icons — guaranteed to resolve
-// instantly from the local icon map without any network request.
-const FEATHER_ICON_NAMES = AVAILABLE_FEATHER_ICONS.join(', ')
+// Common icon names only — the full list is resolved by icon-resolver at runtime.
+// Listing all 635 icons in the prompt wastes ~22K chars of context.
+const FEATHER_ICON_NAMES = 'search, bell, user, heart, star, plus, x, check, chevron-right, chevron-down, chevron-up, chevron-left, settings, home, menu, mail, lock, eye, eye-off, arrow-right, arrow-left, phone, map-pin, clock, shopping-cart, trash, edit, copy, download, upload, image, camera, mic, play, pause, volume-2, wifi, bluetooth, battery, sun, moon, cloud, zap, shield, gift, tag, bookmark, share, send, log-in, log-out, external-link, filter, sliders, grid, list, layout, layers, globe, flag, alert-triangle, info, help-circle, refresh-cw, rotate-cw, maximize, minimize, move, crop, scissors, paperclip, file, folder, database, server, code, terminal, git-branch, github, twitter, facebook, instagram, linkedin, youtube, figma, chrome, more-horizontal, more-vertical, thumbs-up, thumbs-down, message-circle, message-square, at-sign, hash, percent, dollar-sign, credit-card, truck, package, box, coffee, utensils, pizza, salad, soup, cake, wine, beer, apple, carrot, egg'
 
 export const PEN_NODE_SCHEMA = `
 PenNode types (the ONLY format you output for designs):
