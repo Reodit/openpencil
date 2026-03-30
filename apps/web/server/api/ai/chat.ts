@@ -366,6 +366,31 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
                     controller.enqueue(encoder.encode(`data: ${data}\n\n`))
                   }
                 }
+              } else if (message.type === 'user') {
+                // Sub-agent tool results come back as 'user' messages
+                const content = (message as any).message?.content
+                if (Array.isArray(content)) {
+                  for (const part of content) {
+                    if (part.type === 'tool_result' && part.content) {
+                      const toolResult = typeof part.content === 'string'
+                        ? part.content
+                        : Array.isArray(part.content)
+                          ? part.content.map((c: any) => c.text ?? '').join('')
+                          : ''
+                      if (toolResult) {
+                        const data = JSON.stringify({ type: 'tool_input', content: toolResult.slice(0, 2000) })
+                        controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                      }
+                    } else if (part.type === 'text' && part.text) {
+                      // Sub-agent prompt — show as thinking
+                      const parentToolId = (message as any).parent_tool_use_id
+                      if (parentToolId) {
+                        const data = JSON.stringify({ type: 'thinking', content: `[Sub-agent] ${part.text.slice(0, 500)}` })
+                        controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                      }
+                    }
+                  }
+                }
               } else if (message.type === 'result') {
                 const isErrorResult = 'is_error' in message && Boolean((message as { is_error?: boolean }).is_error)
                 if (message.subtype !== 'success' || isErrorResult) {
