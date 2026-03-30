@@ -317,6 +317,7 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               ...(model ? { model } : {}),
               maxTurns: body.maxTurns ?? (hasAttachments ? 5 : 1),
               includePartialMessages: true,
+              allowedTools: ['WebSearch', 'WebFetch', 'Read'],
               permissionMode: 'default',
               persistSession: true,
               ...(body.sessionId ? { resume: body.sessionId } : {}),
