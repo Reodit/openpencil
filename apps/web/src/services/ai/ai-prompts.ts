@@ -293,8 +293,9 @@ CRITICAL RULES:
 - ONE JSON object per line — never split a node across lines.
 - Output parent before children (depth-first).
 - Root frame: "_parent": null, x:0, y:0.
+- MULTI-PAGE: When user requests multiple screens/pages (e.g. "login and profile pages", "3 screens for a music app"), create MULTIPLE root frames, each with "_parent": null. Offset each by x (e.g. first at x:0, second at x:400, third at x:800). Each root is an independent page.
 - NEVER set x/y on children inside layout frames — the layout engine positions them automatically.
-- ALL nodes must be descendants of the root frame — no floating/orphan elements.
+- ALL nodes must be descendants of a root frame — no floating/orphan elements.
 - Section frames must use width="fill_container" to span full page width.
 - WIDTH CONSISTENCY: siblings in a vertical layout must use the SAME width strategy. If one input uses "fill_container", ALL sibling inputs/buttons in that container must also use "fill_container". Never mix fixed-px and fill_container in form layouts.
 - NEVER use "fill_container" on children of "fit_content" parent — circular dependency breaks layout.

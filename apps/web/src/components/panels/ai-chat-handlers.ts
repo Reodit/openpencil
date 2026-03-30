@@ -269,6 +269,7 @@ export function useChatHandlers() {
       let lastProcessedLength = 0
       let generationStarted = false
       let rootNodeId: string | null = null
+      const rootNodeIds: string[] = []
       let currentToolName = ''
       let currentToolInput = ''
 
@@ -379,6 +380,9 @@ export function useChatHandlers() {
             lastProcessedLength = result.processedUpTo
             appliedCount = result.totalApplied
             generationStarted = result.generationStarted
+            if (result.rootNodeId && !rootNodeIds.includes(result.rootNodeId)) {
+              rootNodeIds.push(result.rootNodeId)
+            }
             rootNodeId = result.rootNodeId
 
             const thinkingPrefix = thinkingContent
@@ -414,10 +418,12 @@ export function useChatHandlers() {
         }
 
         // Apply any remaining design JSON not caught during streaming
-        // Post-streaming heuristics: fix layout, roles, icons on the completed tree
-        if (appliedCount > 0 && rootNodeId) {
-          applyPostStreamingTreeHeuristics(rootNodeId)
-          adjustRootFrameHeightToContent(rootNodeId)
+        // Post-streaming heuristics: fix layout, roles, icons on all generated pages
+        if (appliedCount > 0 && rootNodeIds.length > 0) {
+          for (const rid of rootNodeIds) {
+            applyPostStreamingTreeHeuristics(rid)
+            adjustRootFrameHeightToContent(rid)
+          }
         }
         if (appliedCount === 0) {
           appliedCount = tryApplyDesignFromResponse(accumulated)
@@ -435,7 +441,8 @@ export function useChatHandlers() {
       }
 
       // --- Diagnostic: save LLM output + node tree to server for inspection ---
-      if (appliedCount > 0 && rootNodeId) {
+      if (appliedCount > 0 && rootNodeIds.length > 0) {
+        const rootNodeId = rootNodeIds[0]
         const dumpNode = (id: string, depth = 0): string => {
           const n = useDocumentStore.getState().getNodeById(id)
           if (!n) return ''
@@ -466,8 +473,8 @@ export function useChatHandlers() {
           }
           return result
         }
-        const treeDump = dumpNode(rootNodeId)
-        const diagData = `${'='.repeat(80)}\nTIMESTAMP: ${new Date().toISOString()}\nMODEL: ${model}\nROOT: ${rootNodeId}\nNODES APPLIED: ${appliedCount}\n\n--- LLM RAW OUTPUT ---\n${accumulated}\n\n--- DOCUMENT TREE (post-heuristics) ---\n${treeDump}`
+        const treeDump = rootNodeIds.map(rid => dumpNode(rid)).join('\n')
+        const diagData = `${'='.repeat(80)}\nTIMESTAMP: ${new Date().toISOString()}\nMODEL: ${model}\nROOTS: ${rootNodeIds.join(', ')}\nNODES APPLIED: ${appliedCount}\n\n--- LLM RAW OUTPUT ---\n${accumulated}\n\n--- DOCUMENT TREE (post-heuristics) ---\n${treeDump}`
         // Save to server-side file via API
         fetch('/api/ai/diag', {
           method: 'POST',
@@ -550,9 +557,9 @@ function extractAndInsertStreamingNodes(
         delete node._parent
         insertStreamingNode(node, parentId)
         totalApplied++
-        // Track root node ID (first node with null parent)
-        if (parentId === null && !rootNodeId) {
-          rootNodeId = node.id
+        // Track root node IDs (all nodes with null parent = separate pages)
+        if (parentId === null) {
+          if (!rootNodeId) rootNodeId = node.id
         }
       }
     } catch {
