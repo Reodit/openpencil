@@ -10,6 +10,8 @@ import {
 import { useTranslation } from 'react-i18next'
 import PaddingSection from './layout-padding-section'
 import { RadioCircle } from './layout-padding-section'
+import { useDocumentStore } from '@/stores/document-store'
+import { computeLayoutPositions } from '@zseven-w/pen-core'
 
 interface LayoutSectionProps {
   node: PenNode & ContainerProps
@@ -434,9 +436,23 @@ export default function LayoutSection({
       <div className="flex jusfity-between gap-0.5">
         <ToggleButton
           active={layout === 'none'}
-          onClick={() =>
+          onClick={() => {
+            // Bake current layout positions into children before removing layout.
+            // Without this, children collapse to x=0, y=0 (Figma-style behavior).
+            if (layout !== 'none' && node.children?.length) {
+              const positioned = computeLayoutPositions(node as PenNode, node.children)
+              const { updateNode } = useDocumentStore.getState()
+              for (const child of positioned) {
+                if (typeof child.x === 'number' || typeof child.y === 'number') {
+                  updateNode(child.id, {
+                    x: child.x ?? 0,
+                    y: child.y ?? 0,
+                  } as Partial<PenNode>)
+                }
+              }
+            }
             onUpdate({ layout: 'none' } as Partial<PenNode>)
-          }
+          }}
           title={t('layout.freedom')}
         >
           <LayoutGrid className="w-3.5 h-3.5" />
