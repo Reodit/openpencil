@@ -80,7 +80,6 @@ cornerRadius is a number. fill is ALWAYS an array. Do NOT set x/y on children in
 
   layout: {
     content: `LAYOUT ENGINE (flexbox-based):
-- EVERY frame with children MUST have explicit layout: "vertical" or "horizontal". Without layout, children are NOT positioned and alignment/padding/gap are IGNORED.
 - Frames with layout: "vertical"/"horizontal" auto-position children via gap, padding, justifyContent, alignItems.
 - NEVER set x/y on children inside layout containers.
 - CHILD SIZE RULE: child width must be ≤ parent content area. Use "fill_container" when in doubt.
