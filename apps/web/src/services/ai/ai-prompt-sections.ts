@@ -120,10 +120,10 @@ cornerRadius is a number. fill is ALWAYS an array. Do NOT set x/y on children in
 
   icons: {
     content: `ICONS:
-- Use "path" nodes, size 16-24px. ONLY use Feather icon names — PascalCase + "Icon" suffix (e.g. "SearchIcon").
-- System auto-resolves names to SVG paths. "d" is replaced automatically.
+- ALWAYS use "icon_font" nodes with iconFontName (lowercase kebab-case lucide names: search, bell, user, heart, star, plus, x, check, chevron-right, settings, map-pin, shopping-cart, etc). Do NOT use "path" type for icons — the system auto-resolves icon_font names to correct SVG.
+- Sizes: 16/20/24px. fill is a single color string (e.g. "#FFFFFF"), NOT an array.
 - Available: ${FEATHER_ICON_NAMES}
-- NEVER use emoji as icons. Use icon_font nodes for lucide icons.
+- NEVER use emoji as icons.
 - ICON ALIGNMENT: When multiple icons appear as siblings in the same row (toolbars, tab bars, action groups), wrap EACH icon in an equal-sized container frame (e.g. 44x44 or 32x32) with layout="vertical", alignItems="center", justifyContent="center". This ensures consistent alignment regardless of individual icon visual size.`,
     always: true,
     priority: 20,
@@ -235,7 +235,7 @@ Your explicit props ALWAYS override role defaults.`,
 
   examples: {
     content: `EXAMPLES:
-Button: { "id":"btn-1","type":"frame","role":"button","width":180,"cornerRadius":8,"fill":[{"type":"solid","color":"#3B82F6"}],"children":[{"id":"btn-icon","type":"path","name":"ArrowRightIcon","role":"icon","d":"M5 12h14m-7-7 7 7-7 7","width":20,"height":20,"stroke":{"thickness":2,"fill":[{"type":"solid","color":"#FFF"}]}},{"id":"btn-text","type":"text","role":"label","content":"Continue","fontSize":16,"fontWeight":600,"fill":[{"type":"solid","color":"#FFF"}]}] }
+Button: { "id":"btn-1","type":"frame","role":"button","width":180,"cornerRadius":8,"fill":[{"type":"solid","color":"#3B82F6"}],"children":[{"id":"btn-icon","type":"icon_font","iconFontName":"arrow-right","width":20,"height":20,"fill":"#FFFFFF"},{"id":"btn-text","type":"text","role":"label","content":"Continue","fontSize":16,"fontWeight":600,"fill":[{"type":"solid","color":"#FFF"}]}] }
 Card: { "id":"card-1","type":"frame","role":"card","width":320,"height":340,"fill":[{"type":"solid","color":"#FFF"}],"effects":[{"type":"shadow","offsetX":0,"offsetY":4,"blur":12,"spread":0,"color":"rgba(0,0,0,0.1)"}],"children":[{"id":"card-img","type":"image","width":"fill_container","height":180},{"id":"card-body","type":"frame","width":"fill_container","height":"fit_content","layout":"vertical","padding":20,"gap":8,"children":[{"id":"card-title","type":"text","role":"heading","content":"Title","fontSize":20,"fontWeight":700,"fill":[{"type":"solid","color":"#111827"}]},{"id":"card-desc","type":"text","role":"body-text","content":"Description","fontSize":14,"fill":[{"type":"solid","color":"#6B7280"}]}]}] }`,
     triggers: [
       'example', 'sample', 'show me', 'how to',
