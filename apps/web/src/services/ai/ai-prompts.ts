@@ -66,6 +66,8 @@ RULES:
 - Use "fill_container" to stretch, "fit_content" to shrink-wrap
 - Use clipContent: true on cards/containers with cornerRadius + image children to prevent overflow
 - Use justifyContent="space_between" to spread items across full width (great for navbars, footers)
+- IMAGE OVERLAY PATTERN: When text overlays an image (destination cards, hero banners), the parent frame must NOT use vertical layout with image as a sibling. Instead: parent frame with clipContent=true, image as first child with width="fill_container" + height="fill_container" (fills entire parent), then overlay content frame on top. Never set image height equal to parent height in a vertical layout — this causes overflow.
+- BOTTOM NAV CONSISTENCY: All tab items in bottom navigation must use identical container sizes (e.g. all w=64, h=fit_content). Never make one tab larger than others.
 - INPUT ICON AFFORDANCE: for semantic inputs (search/password/email/login), include one icon_font icon when appropriate.
   For trailing icons (e.g. password visibility), use horizontal input layout with justifyContent="space_between".
   For leading icons (e.g. search/email), use justifyContent="start" with gap 8-12.
