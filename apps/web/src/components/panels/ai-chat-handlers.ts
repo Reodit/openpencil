@@ -435,6 +435,46 @@ export function useChatHandlers() {
         setStreaming(false)
       }
 
+      // --- Diagnostic: save LLM output + node tree to server for inspection ---
+      if (appliedCount > 0 && rootNodeId) {
+        const dumpNode = (id: string, depth = 0): string => {
+          const n = useDocumentStore.getState().getNodeById(id)
+          if (!n) return ''
+          const indent = '  '.repeat(depth)
+          const props: string[] = [`type=${n.type}`, `id=${n.id}`]
+          if (n.name) props.push(`name="${n.name}"`)
+          if ('layout' in n) props.push(`layout=${(n as any).layout}`)
+          if ('gap' in n) props.push(`gap=${(n as any).gap}`)
+          if ('padding' in n) props.push(`padding=${JSON.stringify((n as any).padding)}`)
+          if ('alignItems' in n) props.push(`alignItems=${(n as any).alignItems}`)
+          if ('justifyContent' in n) props.push(`justifyContent=${(n as any).justifyContent}`)
+          if (n.width !== undefined) props.push(`w=${typeof n.width === 'number' ? n.width : `"${n.width}"`}`)
+          if (n.height !== undefined) props.push(`h=${typeof n.height === 'number' ? n.height : `"${n.height}"`}`)
+          if (n.type === 'text') {
+            const t = n as any
+            props.push(`fontSize=${t.fontSize}`)
+            if (t.lineHeight) props.push(`lineH=${t.lineHeight}`)
+            if (t.fontFamily) props.push(`font="${t.fontFamily}"`)
+            if (t.content) props.push(`text="${String(t.content).slice(0, 40)}"`)
+            if (t.textGrowth) props.push(`growth=${t.textGrowth}`)
+          }
+          if ((n as any).role) props.push(`role=${(n as any).role}`)
+          let result = `${indent}${props.join(' ')}\n`
+          if ('children' in n && Array.isArray(n.children)) {
+            for (const child of n.children) result += dumpNode(child.id, depth + 1)
+          }
+          return result
+        }
+        const treeDump = dumpNode(rootNodeId)
+        const diagData = `${'='.repeat(80)}\nTIMESTAMP: ${new Date().toISOString()}\nMODEL: ${model}\nROOT: ${rootNodeId}\nNODES APPLIED: ${appliedCount}\n\n--- LLM RAW OUTPUT ---\n${accumulated}\n\n--- DOCUMENT TREE (post-heuristics) ---\n${treeDump}`
+        // Save to server-side file via API
+        fetch('/api/ai/diag', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: diagData }),
+        }).catch(() => {})
+      }
+
       // Mark as applied if design was generated
       if (appliedCount > 0) {
         accumulated += `\n\n<!-- APPLIED -->`
