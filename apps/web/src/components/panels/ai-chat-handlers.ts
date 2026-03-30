@@ -131,13 +131,12 @@ function tryFormatToolInput(raw: string): string {
     const parts: string[] = []
     for (const [k, v] of Object.entries(obj)) {
       if (typeof v === 'string' && v.length > 0) {
-        parts.push(`${k}: ${v.length > 80 ? v.slice(0, 80) + '...' : v}`)
+        parts.push(`${k}: ${v}`)
       }
     }
     return parts.join('\n')
   } catch {
-    // Partial JSON — show raw (truncated)
-    return raw.length > 100 ? raw.slice(0, 100) + '...' : raw
+    return raw
   }
 }
 
