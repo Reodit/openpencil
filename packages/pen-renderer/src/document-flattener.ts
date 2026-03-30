@@ -38,33 +38,44 @@ function getMeasureCtx(): CanvasRenderingContext2D {
  * strings (fill_container / fit_content). Changing widths breaks layout
  * resolution in computeLayoutPositions.
  */
-export function premeasureTextHeights(nodes: PenNode[]): PenNode[] {
+export function premeasureTextHeights(nodes: PenNode[], parentAvailWidth?: number): PenNode[] {
   return nodes.map((node) => {
     let result = node
 
     if (node.type === 'text') {
       const tNode = node as PenNode & { width?: number | string; height?: number | string; fontSize?: number; fontWeight?: string; fontFamily?: string; lineHeight?: number; textAlign?: string; textGrowth?: string; content?: string | { text?: string }[] }
-      const hasFixedWidth = typeof tNode.width === 'number' && tNode.width > 0
       const isContainerHeight = typeof tNode.height === 'string'
         && (tNode.height === 'fill_container' || tNode.height === 'fit_content')
-      const textGrowth = tNode.textGrowth
       const content = typeof tNode.content === 'string'
         ? tNode.content
         : Array.isArray(tNode.content)
           ? tNode.content.map((s) => s.text ?? '').join('')
           : ''
 
+      // Resolve effective text width for wrapping measurement:
+      // - Fixed pixel width: use directly
+      // - fill_container: use parent available width (passed from recursion)
+      let effectiveWidth = 0
+      if (typeof tNode.width === 'number' && tNode.width > 0) {
+        effectiveWidth = tNode.width
+      } else if (typeof tNode.width === 'string' && tNode.width === 'fill_container' && parentAvailWidth && parentAvailWidth > 0) {
+        effectiveWidth = parentAvailWidth
+      }
+
+      const textGrowth = tNode.textGrowth
       const textAlign = tNode.textAlign
       const isFixedWidthText = textGrowth === 'fixed-width' || textGrowth === 'fixed-width-height'
         || (textGrowth !== 'auto' && textAlign != null && textAlign !== 'left')
-      if (content && hasFixedWidth && isFixedWidthText && !isContainerHeight) {
+        || (tNode.width === 'fill_container' && effectiveWidth > 0)
+
+      if (content && effectiveWidth > 0 && isFixedWidthText && !isContainerHeight) {
         const fontSize = tNode.fontSize ?? 16
         const fontWeight = tNode.fontWeight ?? '400'
         const fontFamily = tNode.fontFamily ?? 'Inter, -apple-system, "Noto Sans SC", "PingFang SC", system-ui, sans-serif'
         const ctx = getMeasureCtx()
         ctx.font = `${fontWeight} ${fontSize}px ${cssFontFamily(fontFamily)}`
 
-        const wrapWidth = (tNode.width as number) + fontSize * 0.2
+        const wrapWidth = effectiveWidth + fontSize * 0.2
         const rawLines = content.split('\n')
         const wrappedLines: string[] = []
         for (const raw of rawLines) {
@@ -88,10 +99,21 @@ export function premeasureTextHeights(nodes: PenNode[]): PenNode[] {
       }
     }
 
-    // Recurse into children
+    // Recurse into children, passing available width context
     if ('children' in result && result.children) {
+      // Calculate available width for children based on this node's resolved width
+      let childAvailW = parentAvailWidth
+      if (result.type === 'frame') {
+        const frameW = typeof result.width === 'number' ? result.width
+          : (typeof result.width === 'string' && result.width === 'fill_container' && parentAvailWidth) ? parentAvailWidth
+          : undefined
+        if (frameW) {
+          const pad = resolvePadding('padding' in result ? (result as PenNode & ContainerProps).padding : undefined)
+          childAvailW = Math.max(0, frameW - pad.left - pad.right)
+        }
+      }
       const children = result.children
-      const measured = premeasureTextHeights(children)
+      const measured = premeasureTextHeights(children, childAvailW)
       if (measured !== children) {
         result = { ...result, children: measured } as unknown as PenNode
       }

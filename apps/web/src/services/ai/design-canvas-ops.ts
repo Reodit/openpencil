@@ -171,6 +171,18 @@ export function insertStreamingNode(
     ;(node as PenNode & { children: PenNode[] }).children = []
   }
 
+  // Ensure frames with alignment/padding/gap always have explicit layout.
+  // LLM often sets alignItems/justifyContent but forgets layout, causing
+  // the layout engine to skip positioning and alignment entirely.
+  if (node.type === 'frame') {
+    const f = node as PenNode & Record<string, unknown>
+    if (!f.layout || f.layout === 'none') {
+      if (f.alignItems || f.justifyContent || f.gap != null || f.padding != null) {
+        f.layout = f.layout || 'vertical'
+      }
+    }
+  }
+
   // Resolve remapped parent IDs (e.g., root frame -> DEFAULT_FRAME_ID)
   const resolvedParent = parentId
     ? (generationRemappedIds.get(parentId) ?? parentId)
