@@ -230,7 +230,7 @@ export function resolveTreePostPass(
     }
   }
 
-  // --- clipContent for frames with cornerRadius + image children ---
+  // --- clipContent: prevent overflow from breaking layout ---
   if (!root.clipContent) {
     const cr =
       typeof root.cornerRadius === 'number'
@@ -238,11 +238,34 @@ export function resolveTreePostPass(
         : Array.isArray(root.cornerRadius) && root.cornerRadius.length > 0
           ? root.cornerRadius[0]
           : 0
-    if (cr > 0 && children.some((c) => c.type === 'image')) {
+    const hasImage = children.some((c) => c.type === 'image')
+    // Force clipContent when:
+    // 1. cornerRadius + image (original rule)
+    // 2. ANY frame with image children (images can overflow and break adjacent layout)
+    // 3. Frame has fixed dimensions and children could exceed bounds
+    const needsClip = (cr > 0 && hasImage) || hasImage
+    if (needsClip) {
       if (updateNode) {
         updateNode(root.id, { clipContent: true } as Partial<PenNode>)
       } else {
         root.clipContent = true
+      }
+    }
+  }
+
+  // --- Clamp fixed-size children that exceed parent bounds ---
+  if (root.layout && root.layout !== 'none' && typeof root.width === 'number') {
+    const pad = parsePaddingValues(root.padding)
+    const contentW = root.width - pad.right - pad.left
+    for (const child of children) {
+      const childRec = child as unknown as Record<string, unknown>
+      if (typeof childRec.width === 'number' && childRec.width > contentW && contentW > 0) {
+        const clamped = contentW
+        if (updateNode) {
+          updateNode(child.id, { width: clamped } as Partial<PenNode>)
+        } else {
+          childRec.width = clamped
+        }
       }
     }
   }
