@@ -558,7 +558,15 @@ function extractAndInsertStreamingNodes(
         }
         const parentId = node._parent ?? null
         delete node._parent
-        insertStreamingNode(node, parentId)
+
+        // Check if this node already exists on canvas (modify mode)
+        const existing = useDocumentStore.getState().getNodeById(node.id)
+        if (existing) {
+          // Update existing node properties instead of inserting
+          useDocumentStore.getState().updateNode(node.id, node)
+        } else {
+          insertStreamingNode(node, parentId)
+        }
         totalApplied++
         // Track root node IDs (all nodes with null parent = separate pages)
         if (parentId === null) {
