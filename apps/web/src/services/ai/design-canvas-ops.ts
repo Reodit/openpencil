@@ -239,6 +239,17 @@ export function insertStreamingNode(
           })
           node.fontFamily = hasKorean ? 'Noto Sans KR' : hasJapanese ? 'Noto Sans JP' : 'Noto Sans SC'
         }
+        // CJK lineHeight compensation: CJK fonts have taller glyphs than Latin
+        // fonts at the same fontSize. Without role-based adjustment (which only
+        // applies to nodes WITH roles), text can overlap. Apply minimum CJK
+        // lineHeight when no role is set.
+        if (!(node as any).role && node.lineHeight) {
+          const fontSize = node.fontSize ?? 16
+          const minCjkLineHeight = fontSize >= 28 ? 1.3 : 1.4
+          if (node.lineHeight < minCjkLineHeight) {
+            node.lineHeight = minCjkLineHeight
+          }
+        }
       }
     }
   }

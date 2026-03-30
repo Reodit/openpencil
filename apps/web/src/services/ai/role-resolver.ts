@@ -470,9 +470,9 @@ function isCjkCompatibleFont(fontFamily: string): boolean {
 }
 
 /**
- * Fix font families on text nodes that contain CJK characters
- * but use a Latin-only font. This prevents font metric mismatches
- * between text height estimation and actual CanvasKit rendering.
+ * Fix font families and lineHeight on text nodes that contain CJK characters.
+ * - Replace Latin-only fonts with CJK-compatible fonts
+ * - Ensure minimum lineHeight for CJK glyphs (taller than Latin at same fontSize)
  */
 function fixCjkFontFamilies(
   children: PenNode[],
@@ -483,18 +483,32 @@ function fixCjkFontFamilies(
     const text = getTextContentForNode(child)
     if (!text || !hasCjkText(text)) continue
 
-    const currentFont = (child as unknown as Record<string, unknown>).fontFamily
-    if (typeof currentFont !== 'string') continue
-    if (isCjkCompatibleFont(currentFont)) continue
+    const rec = child as unknown as Record<string, unknown>
+    const updates: Record<string, unknown> = {}
 
-    // Current font is Latin-only or unknown — pick a CJK font
-    const cjkFont = pickCjkFont(text)
-    if (!cjkFont) continue
+    // Font family correction
+    const currentFont = rec.fontFamily
+    if (typeof currentFont === 'string' && !isCjkCompatibleFont(currentFont)) {
+      const cjkFont = pickCjkFont(text)
+      if (cjkFont) updates.fontFamily = cjkFont
+    }
 
-    if (updateNode) {
-      updateNode(child.id, { fontFamily: cjkFont } as Partial<PenNode>)
-    } else {
-      ;(child as unknown as Record<string, unknown>).fontFamily = cjkFont
+    // CJK lineHeight minimum — only for nodes without a role (role resolver handles those)
+    if (!rec.role) {
+      const fontSize = typeof rec.fontSize === 'number' ? rec.fontSize : 16
+      const lineHeight = typeof rec.lineHeight === 'number' ? rec.lineHeight : 1.5
+      const minCjkLineHeight = fontSize >= 28 ? 1.3 : 1.4
+      if (lineHeight < minCjkLineHeight) {
+        updates.lineHeight = minCjkLineHeight
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      if (updateNode) {
+        updateNode(child.id, updates as Partial<PenNode>)
+      } else {
+        Object.assign(rec, updates)
+      }
     }
   }
 }
