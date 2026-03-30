@@ -1,14 +1,9 @@
 /**
  * AI Design Generation Screenshot Test
  *
- * 1. Registers/logs in a test user
- * 2. Navigates to editor
- * 3. Generates a design via AI chat
- * 4. Takes canvas screenshot
- *
- * Usage: npx playwright test tests/ai-design-screenshot.ts
+ * Full flow: register → login → connect Claude → create workspace → enter editor → generate → screenshot
  */
-import { test, expect } from '@playwright/test'
+import { test } from '@playwright/test'
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { homedir } from 'node:os'
@@ -16,7 +11,6 @@ import { homedir } from 'node:os'
 const BASE_URL = process.env.TEST_URL ?? 'http://localhost:3000'
 const SCREENSHOT_DIR = resolve('tests/screenshots')
 const DIAG_DIR = join(homedir(), '.openpencil', 'diag')
-
 const TEST_USER = { username: 'test-bot', password: 'test1234' }
 const DEFAULT_PROMPT = process.env.TEST_PROMPT
   ?? '한국어 호텔 예약 앱 메인 화면을 디자인해줘. 상단바, 검색, 카테고리, 추천 호텔 카드, 하단 네비게이션 포함.'
@@ -27,121 +21,117 @@ test.describe('AI Design Generation', () => {
   })
 
   test('generate design and capture screenshot', async ({ page, request }) => {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    const shot = (name: string) => page.screenshot({ path: join(SCREENSHOT_DIR, `${name}-${ts}.png`) })
 
-    // 1. Register test user (ignore error if already exists)
+    // 1. Register (ignore if exists) & Login
     await request.post(`${BASE_URL}/api/auth/register`, {
-      data: { username: TEST_USER.username, password: TEST_USER.password },
+      data: TEST_USER,
     }).catch(() => {})
 
-    // 2. Navigate to login page and login via UI
     await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 15000 })
     await page.waitForTimeout(2000)
 
-    // Fill login form
-    const usernameInput = page.locator('input[placeholder*="username"], input[name="username"], input[type="text"]').first()
-    const passwordInput = page.locator('input[type="password"]').first()
-
-    if (await usernameInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await usernameInput.fill(TEST_USER.username)
-      await passwordInput.fill(TEST_USER.password)
-
-      // Click sign in button
-      const signInBtn = page.locator('button:has-text("Sign In"), button:has-text("Log in"), button[type="submit"]').first()
-      await signInBtn.click()
+    const loginForm = page.locator('input[type="text"]').first()
+    if (await loginForm.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await loginForm.fill(TEST_USER.username)
+      await page.locator('input[type="password"]').first().fill(TEST_USER.password)
+      await page.locator('button[type="submit"]').first().click()
       await page.waitForTimeout(3000)
     }
 
-    // 3. Navigate to editor (may redirect automatically after login)
-    if (!page.url().includes('/editor') && !page.url().includes('/workspace')) {
-      // Look for a workspace or create-new link
-      const editorLink = page.locator('a[href*="editor"], a[href*="workspace"], button:has-text("New"), button:has-text("Create")').first()
-      if (await editorLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await editorLink.click()
-        await page.waitForTimeout(3000)
-      } else {
-        await page.goto(`${BASE_URL}/editor`, { waitUntil: 'networkidle', timeout: 15000 })
-      }
-    }
+    // 2. Connect Claude via API & inject settings into localStorage BEFORE entering editor
+    const connectRes = await request.post(`${BASE_URL}/api/ai/connect-agent`, {
+      data: { agent: 'claude-code' },
+    })
+    const connectData = await connectRes.json().catch(() => ({ connected: false, models: [] }))
+    console.log(`[Test] Claude: connected=${connectData.connected}, models=${connectData.models?.length ?? 0}`)
 
-    await page.waitForTimeout(3000) // Wait for CanvasKit WASM
-
-    // Take a screenshot to see current state
-    await page.screenshot({ path: join(SCREENSHOT_DIR, `state-${timestamp}.png`) })
-    console.log(`[Test] Current state screenshot saved`)
-
-    // 4. Find chat input
-    let chatInput = page.locator('textarea').first()
-    if (!await chatInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      // Try to open AI panel by keyboard shortcut or button
-      await page.keyboard.press('Control+Shift+A')
-      await page.waitForTimeout(1000)
-      chatInput = page.locator('textarea').first()
-    }
-
-    if (!await chatInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      console.log('[Test] Cannot find chat input, saving state screenshot')
-      await page.screenshot({ path: join(SCREENSHOT_DIR, `no-chat-${timestamp}.png`) })
+    if (!connectData.connected) {
+      console.log('[Test] Claude not available — aborting')
+      await shot('no-claude')
       return
     }
 
-    // 5. Type prompt and send
-    await chatInput.fill(DEFAULT_PROMPT)
-    await page.waitForTimeout(500)
-    await chatInput.press('Enter')
-    console.log(`[Test] Sent prompt: ${DEFAULT_PROMPT}`)
-
-    // 6. Wait for generation to complete (up to 3 min)
-    await page.waitForTimeout(5000) // Initial wait for streaming to start
-
-    // Poll for completion: check if assistant message stops updating
-    let lastContent = ''
-    let stableCount = 0
-    for (let i = 0; i < 60; i++) { // Max 60 * 3s = 3min
-      await page.waitForTimeout(3000)
-      const currentContent = await page.locator('.ai-chat-panel, [class*="chat"]').innerText().catch(() => '')
-      if (currentContent === lastContent && currentContent.length > 100) {
-        stableCount++
-        if (stableCount >= 3) {
-          console.log(`[Test] Generation appears complete (stable for ${stableCount * 3}s)`)
-          break
-        }
-      } else {
-        stableCount = 0
+    // Inject agent settings
+    await page.evaluate(({ models }) => {
+      const settings = {
+        providers: {
+          anthropic: { type: 'anthropic', displayName: 'Claude Code', isConnected: true, connectionMethod: 'oauth', models },
+          openai: { type: 'openai', displayName: 'Codex CLI', isConnected: false, connectionMethod: null, models: [] },
+          opencode: { type: 'opencode', displayName: 'OpenCode', isConnected: false, connectionMethod: null, models: [] },
+          copilot: { type: 'copilot', displayName: 'GitHub Copilot', isConnected: false, connectionMethod: null, models: [] },
+          gemini: { type: 'gemini', displayName: 'Gemini CLI', isConnected: false, connectionMethod: null, models: [] },
+        },
       }
-      lastContent = currentContent
+      localStorage.setItem('openpencil-agent-settings', JSON.stringify(settings))
+      const firstModel = models?.[0]?.models?.[0]?.value ?? 'claude-sonnet-4-6'
+      localStorage.setItem('openpencil-ai-model-preference', firstModel)
+    }, { models: connectData.models })
+
+    // 3. Enter a workspace → editor (click first workspace card)
+    const wsCard = page.locator('a[href*="workspace"], [class*="workspace"]').first()
+    if (await wsCard.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await wsCard.click()
+      await page.waitForTimeout(3000)
     }
 
-    await page.waitForTimeout(3000) // Extra settle time
+    // Click "New Design" or "Create first design" to enter editor
+    const newDesignBtn = page.locator('button:has-text("New Design"), button:has-text("Create first design")').first()
+    if (await newDesignBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await newDesignBtn.click()
+      await page.waitForTimeout(5000)
+    }
 
-    // 7. Take screenshots
-    await page.screenshot({
-      path: join(SCREENSHOT_DIR, `full-${timestamp}.png`),
-      fullPage: true,
-    })
-    console.log(`[Test] Full screenshot saved: full-${timestamp}.png`)
+    await shot('editor-state')
+    console.log('[Test] Editor state captured')
 
+    // 4. Find chat input and send prompt
+    const chatInput = page.locator('textarea').first()
+    if (!await chatInput.isVisible({ timeout: 10000 }).catch(() => false)) {
+      console.log('[Test] No chat input found')
+      await shot('no-chat')
+      return
+    }
+
+    await chatInput.fill(DEFAULT_PROMPT)
+    await page.waitForTimeout(300)
+    await chatInput.press('Enter')
+    console.log(`[Test] Prompt sent: ${DEFAULT_PROMPT.slice(0, 50)}...`)
+
+    // 5. Wait for generation (poll until no more streaming indicators, max 5 min)
+    await page.waitForTimeout(10000)
+    for (let i = 0; i < 100; i++) {
+      await page.waitForTimeout(3000)
+      const isGenerating = await page.evaluate(() => {
+        const text = document.body.innerText
+        return text.includes('Generating...') || text.includes('Generating design')
+          || !!document.querySelector('[data-streaming="true"]')
+          || !!document.querySelector('.animate-spin')
+      }).catch(() => false)
+      if (!isGenerating) {
+        console.log(`[Test] Generation complete (poll ${i})`)
+        break
+      }
+      if (i % 10 === 0) console.log(`[Test] Still generating... (${i * 3}s)`)
+    }
+    await page.waitForTimeout(5000)
+
+    // 6. Screenshots
+    await shot('full')
     const canvas = page.locator('canvas').first()
     if (await canvas.isVisible().catch(() => false)) {
-      await canvas.screenshot({
-        path: join(SCREENSHOT_DIR, `canvas-${timestamp}.png`),
-      })
-      console.log(`[Test] Canvas screenshot saved: canvas-${timestamp}.png`)
+      await canvas.screenshot({ path: join(SCREENSHOT_DIR, `canvas-${ts}.png`) })
+      console.log('[Test] Canvas screenshot saved')
     }
 
-    // 8. Save diagnostic data
-    const diagDate = new Date().toISOString().slice(0, 10)
-    const diagPath = join(DIAG_DIR, `generation-${diagDate}.log`)
+    // 7. Save diagnostic
+    const diagPath = join(DIAG_DIR, `generation-${new Date().toISOString().slice(0, 10)}.log`)
     if (existsSync(diagPath)) {
-      const diagContent = readFileSync(diagPath, 'utf-8')
-      const entries = diagContent.split('='.repeat(80))
-      const lastEntry = entries[entries.length - 1]?.trim()
-      if (lastEntry) {
-        writeFileSync(join(SCREENSHOT_DIR, `diag-${timestamp}.txt`), lastEntry)
-        console.log(`[Test] Diagnostic data saved`)
-      }
+      const content = readFileSync(diagPath, 'utf-8')
+      const last = content.split('='.repeat(80)).pop()?.trim()
+      if (last) writeFileSync(join(SCREENSHOT_DIR, `diag-${ts}.txt`), last)
     }
-
-    console.log(`[Test] All artifacts saved to ${SCREENSHOT_DIR}`)
+    console.log(`[Test] Done. Artifacts in ${SCREENSHOT_DIR}`)
   })
 })

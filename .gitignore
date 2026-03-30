@@ -21,3 +21,5 @@ dist-ssr/
 electron-dist/
 dist-electron/
 .openpencil-logs/
+test-results/
+tests/screenshots/
