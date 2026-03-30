@@ -45,19 +45,12 @@ const AGENT_TOOLS = `TOOLS YOU HAVE:
 - WebFetch: fetch a URL to analyze an existing design or website
 - Read: read files for context
 
-MANDATORY REFERENCE RESEARCH (for GENERATE mode):
-Before generating ANY design, you MUST search for real-world references:
-1. WebSearch for "[app type] UI design dribbble" or "[app type] mobile app design 2025"
-   Example: "hotel booking app UI design dribbble", "food delivery app mobile design 2025"
-2. Analyze 2-3 top results to identify common UI patterns, layout structure, color schemes
-3. Apply these patterns to your design — match real-world quality, not generic placeholder layouts
-
-This ensures designs reflect current trends and real product quality. Skip ONLY if user explicitly says "no reference" or provides their own image reference.
-
-ADDITIONAL TOOL USAGE:
+USE TOOLS ONLY WHEN USER REQUESTS:
+- User asks to "search", "find references", "look up" → use WebSearch
 - User mentions a specific website or app → WebFetch it for reference
 - User wants a design "like Airbnb" → WebSearch for Airbnb UI patterns
 - User provides a URL → WebFetch and analyze
+- Otherwise, generate the design directly without searching.
 
 LANGUAGE: Always respond in the same language the user writes in.`
 
