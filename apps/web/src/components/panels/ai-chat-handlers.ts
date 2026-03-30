@@ -498,6 +498,9 @@ export function useChatHandlers() {
         }
         return { messages: msgs }
       })
+
+      // Auto-save messages to DB after each exchange
+      useAIStore.getState().saveMessages()
     },
     [input, isStreaming, isLoadingModels, model, availableModels, messages, addMessage, updateLastMessage, setStreaming],
   )

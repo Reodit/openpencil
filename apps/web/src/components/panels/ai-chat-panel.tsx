@@ -324,6 +324,12 @@ export default function AIChatPanel() {
     hydrateModelPreference()
   }, [hydrateModelPreference])
 
+  // Load saved chat sessions from DB on mount
+  const loadSessions = useAIStore((s) => s.loadSessions)
+  useEffect(() => {
+    loadSessions()
+  }, [loadSessions])
+
   // Build model list strictly from connected providers in agent-settings-store.
   // If none are connected, model list is empty.
   useEffect(() => {

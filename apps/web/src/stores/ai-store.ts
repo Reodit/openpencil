@@ -107,8 +107,10 @@ interface AIState {
   abortController: AbortController | null
   /** Agent SDK session ID for conversation continuity */
   sessionId: string | null
-  /** Saved chat sessions for history */
-  chatSessions: Array<{ id: string; title: string; timestamp: number; sessionId?: string }>
+  /** Saved chat sessions for history (loaded from DB) */
+  chatSessions: Array<{ id: string; title: string; timestamp: number; sessionId?: string; messageCount?: number }>
+  /** Current DB session ID (persistent across refreshes) */
+  dbSessionId: string | null
   panelWidth: number
   /** Selected design platform preset (e.g. 'iphone', 'web') */
   designPlatform: string | null
@@ -120,13 +122,20 @@ interface AIState {
   pendingPlan: import('@/services/ai/ai-types').PlanStep[] | null
 
   setSessionId: (id: string | null) => void
+  setDbSessionId: (id: string | null) => void
   setPanelWidth: (w: number) => void
-  /** Start a new chat session, saving the current one to history */
+  /** Start a new chat session, saving current to DB */
   newChat: () => void
-  /** Switch to a saved session */
+  /** Switch to a saved session (loads messages from DB) */
   switchSession: (sessionIdx: number) => void
-  /** Delete a saved session */
+  /** Delete a saved session from DB */
   deleteSession: (sessionIdx: number) => void
+  /** Load session list from DB */
+  loadSessions: () => Promise<void>
+  /** Save current messages to DB */
+  saveMessages: () => Promise<void>
+  /** Load a specific session's messages from DB */
+  loadSession: (dbId: string) => Promise<void>
   setPlanMode: (v: boolean) => void
   setPlanStatus: (s: import('@/services/ai/ai-types').PlanStatus) => void
   setPendingPlan: (plan: import('@/services/ai/ai-types').PlanStep[] | null) => void
@@ -179,6 +188,7 @@ export const useAIStore = create<AIState>((set, get) => ({
   pendingAttachments: [],
   abortController: null,
   sessionId: null,
+  dbSessionId: null,
   chatSessions: [],
   panelWidth: 380,
   designPlatform: null,
@@ -190,62 +200,113 @@ export const useAIStore = create<AIState>((set, get) => ({
   pendingPlan: null,
 
   setSessionId: (id) => set({ sessionId: id }),
+  setDbSessionId: (id) => set({ dbSessionId: id }),
   setPanelWidth: (w) => set({ panelWidth: Math.max(320, Math.min(800, w)) }),
+
+  // --- DB-backed session management ---
+
+  saveMessages: async () => {
+    const s = get()
+    if (s.messages.length === 0) return
+    let dbId = s.dbSessionId
+    // Create session in DB if not yet created
+    if (!dbId) {
+      try {
+        const res = await fetch('/api/ai/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: s.chatTitle, agentSessionId: s.sessionId }),
+        })
+        const data = await res.json()
+        if (data.id) {
+          dbId = data.id
+          set({ dbSessionId: dbId })
+        }
+      } catch { return }
+    }
+    if (!dbId) return
+    // Save messages
+    try {
+      await fetch(`/api/ai/sessions/${dbId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: s.messages, title: s.chatTitle }),
+      })
+    } catch { /* ignore */ }
+  },
+
+  loadSessions: async () => {
+    try {
+      const res = await fetch('/api/ai/sessions')
+      const data = await res.json()
+      if (data.sessions) {
+        set({
+          chatSessions: data.sessions.map((s: Record<string, unknown>) => ({
+            id: s.id as string,
+            title: s.title as string,
+            timestamp: new Date(s.updated_at as string).getTime(),
+            sessionId: s.agent_session_id as string | undefined,
+            messageCount: s.message_count as number,
+          })),
+        })
+      }
+    } catch { /* ignore */ }
+  },
+
+  loadSession: async (dbId: string) => {
+    try {
+      const res = await fetch(`/api/ai/sessions/${dbId}`)
+      const data = await res.json()
+      if (data.messages) {
+        set({
+          messages: data.messages,
+          chatTitle: data.title ?? 'Chat',
+          sessionId: data.agent_session_id ?? null,
+          dbSessionId: dbId,
+          pendingPlan: null,
+          planStatus: 'idle' as const,
+        })
+      }
+    } catch { /* ignore */ }
+  },
+
   newChat: () => {
     const s = get()
-    // Save current session if it has messages
+    // Save current messages to DB before starting new chat
     if (s.messages.length > 0) {
-      const session = {
-        id: s.sessionId || `local-${Date.now()}`,
-        title: s.chatTitle || 'Untitled',
-        timestamp: Date.now(),
-        sessionId: s.sessionId ?? undefined,
-      }
-      set({
-        chatSessions: [session, ...s.chatSessions].slice(0, 20), // Keep last 20
-        messages: [],
-        chatTitle: 'New Chat',
-        sessionId: null,
-        pendingPlan: null,
-        planStatus: 'idle' as const,
-      })
+      get().saveMessages()
     }
+    set({
+      messages: [],
+      chatTitle: 'New Chat',
+      sessionId: null,
+      dbSessionId: null,
+      pendingPlan: null,
+      planStatus: 'idle' as const,
+    })
+    // Reload session list from DB
+    get().loadSessions()
   },
+
   switchSession: (idx) => {
     const s = get()
     const target = s.chatSessions[idx]
     if (!target) return
-    // Save current session first
+    // Save current messages first
     if (s.messages.length > 0) {
-      const current = {
-        id: s.sessionId || `local-${Date.now()}`,
-        title: s.chatTitle || 'Untitled',
-        timestamp: Date.now(),
-        sessionId: s.sessionId ?? undefined,
-      }
-      const sessions = [current, ...s.chatSessions.filter((_, i) => i !== idx)].slice(0, 20)
-      set({
-        chatSessions: sessions,
-        messages: [],
-        chatTitle: target.title,
-        sessionId: target.sessionId ?? null,
-        pendingPlan: null,
-        planStatus: 'idle' as const,
-      })
-    } else {
-      set({
-        chatSessions: s.chatSessions.filter((_, i) => i !== idx),
-        messages: [],
-        chatTitle: target.title,
-        sessionId: target.sessionId ?? null,
-        pendingPlan: null,
-        planStatus: 'idle' as const,
-      })
+      get().saveMessages()
     }
+    // Load target session from DB
+    get().loadSession(target.id)
   },
-  deleteSession: (idx) => set((s) => ({
-    chatSessions: s.chatSessions.filter((_, i) => i !== idx),
-  })),
+
+  deleteSession: (idx) => {
+    const s = get()
+    const target = s.chatSessions[idx]
+    if (!target) return
+    fetch(`/api/ai/sessions/${target.id}`, { method: 'DELETE' }).catch(() => {})
+    set({ chatSessions: s.chatSessions.filter((_, i) => i !== idx) })
+  },
   setPlanMode: (v) => set({ planMode: v }),
   setPlanStatus: (s) => set({ planStatus: s }),
   setPendingPlan: (plan) => set({ pendingPlan: plan }),
@@ -320,7 +381,7 @@ export const useAIStore = create<AIState>((set, get) => ({
   setAvailableModels: (availableModels) => set({ availableModels }),
   setModelGroups: (modelGroups) => set({ modelGroups }),
   setLoadingModels: (isLoadingModels) => set({ isLoadingModels }),
-  clearMessages: () => set({ messages: [], chatTitle: 'New Chat', sessionId: null, pendingPlan: null, planStatus: 'idle' }),
+  clearMessages: () => set({ messages: [], chatTitle: 'New Chat', sessionId: null, dbSessionId: null, pendingPlan: null, planStatus: 'idle' }),
 
   setPanelCorner: (panelCorner) => {
     set({ panelCorner })

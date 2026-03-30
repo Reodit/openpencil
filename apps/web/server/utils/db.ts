@@ -72,4 +72,26 @@ function migrate(db: InstanceType<typeof Database>) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT REFERENCES workspaces(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      title TEXT NOT NULL DEFAULT 'New Chat',
+      agent_session_id TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      attachments TEXT,
+      timestamp INTEGER NOT NULL
+    )
+  `)
+  db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id, timestamp)`)
 }
