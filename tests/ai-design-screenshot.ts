@@ -94,6 +94,14 @@ test.describe('AI Design Generation', () => {
       return
     }
 
+    // Disable Think mode for faster generation
+    const thinkBtn = page.locator('button:has-text("Think")').first()
+    if (await thinkBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const isActive = await thinkBtn.evaluate(el => el.classList.contains('bg-primary/15') || el.textContent?.includes('Think'))
+      if (isActive) await thinkBtn.click()
+      await page.waitForTimeout(500)
+    }
+
     await chatInput.fill(DEFAULT_PROMPT)
     await page.waitForTimeout(300)
     await chatInput.press('Enter')
