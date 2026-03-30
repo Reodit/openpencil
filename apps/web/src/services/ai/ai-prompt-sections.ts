@@ -123,7 +123,8 @@ cornerRadius is a number. fill is ALWAYS an array. Do NOT set x/y on children in
 - Use "path" nodes, size 16-24px. ONLY use Feather icon names — PascalCase + "Icon" suffix (e.g. "SearchIcon").
 - System auto-resolves names to SVG paths. "d" is replaced automatically.
 - Available: ${FEATHER_ICON_NAMES}
-- NEVER use emoji as icons. Use icon_font nodes for lucide icons.`,
+- NEVER use emoji as icons. Use icon_font nodes for lucide icons.
+- ICON ALIGNMENT: When multiple icons appear as siblings in the same row (toolbars, tab bars, action groups), wrap EACH icon in an equal-sized container frame (e.g. 44x44 or 32x32) with layout="vertical", alignItems="center", justifyContent="center". This ensures consistent alignment regardless of individual icon visual size.`,
     always: true,
     priority: 20,
   },

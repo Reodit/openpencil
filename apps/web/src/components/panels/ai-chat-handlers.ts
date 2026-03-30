@@ -448,6 +448,8 @@ export function useChatHandlers() {
           if ('padding' in n) props.push(`padding=${JSON.stringify((n as any).padding)}`)
           if ('alignItems' in n) props.push(`alignItems=${(n as any).alignItems}`)
           if ('justifyContent' in n) props.push(`justifyContent=${(n as any).justifyContent}`)
+          if (n.x !== undefined) props.push(`x=${n.x}`)
+          if (n.y !== undefined) props.push(`y=${n.y}`)
           if (n.width !== undefined) props.push(`w=${typeof n.width === 'number' ? n.width : `"${n.width}"`}`)
           if (n.height !== undefined) props.push(`h=${typeof n.height === 'number' ? n.height : `"${n.height}"`}`)
           if (n.type === 'text') {
