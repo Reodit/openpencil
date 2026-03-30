@@ -481,7 +481,11 @@ export class SkiaNodeRenderer {
     const bounds = path.getBounds()
     const nativeW = bounds[2] - bounds[0], nativeH = bounds[3] - bounds[1]
     if (w > 0 && h > 0 && nativeW > 0.01 && nativeH > 0.01) {
+      // Use uniform scaling for icon-like paths to preserve aspect ratio.
+      // Detect icons by: explicit iconId, role=icon, or name ending with "Icon"
       const isIcon = !!pNode.iconId
+        || ('role' in pNode && (pNode as any).role === 'icon')
+        || /icon$/i.test(pNode.name ?? '')
       const sx = isIcon ? Math.min(w / nativeW, h / nativeH) : w / nativeW
       const sy = isIcon ? sx : h / nativeH
       path.transform(ck.Matrix.multiply(ck.Matrix.translated(x - bounds[0] * sx, y - bounds[1] * sy), ck.Matrix.scaled(sx, sy)))
