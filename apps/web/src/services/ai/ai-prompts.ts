@@ -12,7 +12,8 @@ PenNode types (the ONLY format you output for designs):
 - rectangle: Props: width, height, cornerRadius, fill, stroke, effects
 - ellipse: Props: width, height, fill, stroke, effects
 - text: Props: content (string), fontFamily, fontSize, fontWeight, fontStyle ('normal'|'italic'), fill, width, height, textAlign, textGrowth ('auto'|'fixed-width'|'fixed-width-height'), lineHeight (number, multiplier e.g. 1.2), letterSpacing (number, px), textAlignVertical ('top'|'middle'|'bottom')
-- path: SVG icon/shape. Props: d (SVG path string), width, height, fill, stroke, effects. IMPORTANT: width and height must match the natural aspect ratio of the SVG path — do NOT force 1:1 for non-square icons/logos
+- path: SVG custom shape (NOT for icons). Props: d (SVG path string), width, height, fill, stroke, effects
+- icon_font: Icon from Lucide library. Props: iconFontName (lowercase kebab-case, e.g. "bell", "search", "map-pin"), width, height, fill (single color string e.g. "#FFFFFF"). System auto-resolves to correct SVG. ALWAYS use icon_font for icons instead of path.
 - image: Raster image. Props: width, height, cornerRadius, effects, imageSearchQuery (2-3 English keywords for photo search, e.g. "burger fries", "office workspace"), imagePrompt (optional: longer descriptive phrase for AI image generation). Do NOT include src — images are auto-populated after generation.
   imagePrompt RULES:
   - Describe the subject, scene, style, and composition. Example: "a gourmet burger with golden fries on a rustic wooden table, warm natural lighting, top-down view"
@@ -65,7 +66,7 @@ RULES:
 - Use "fill_container" to stretch, "fit_content" to shrink-wrap
 - Use clipContent: true on cards/containers with cornerRadius + image children to prevent overflow
 - Use justifyContent="space_between" to spread items across full width (great for navbars, footers)
-- INPUT ICON AFFORDANCE: for semantic inputs (search/password/email/login), include one path icon when appropriate.
+- INPUT ICON AFFORDANCE: for semantic inputs (search/password/email/login), include one icon_font icon when appropriate.
   For trailing icons (e.g. password visibility), use horizontal input layout with justifyContent="space_between".
   For leading icons (e.g. search/email), use justifyContent="start" with gap 8-12.
 
@@ -82,16 +83,18 @@ export const DESIGN_EXAMPLES = `
 EXAMPLES:
 
 Button with icon (role="button" auto-adds padding, height, layout, alignItems if not set):
-{ "id": "btn-1", "type": "frame", "name": "Button", "role": "button", "x": 100, "y": 100, "width": 180, "cornerRadius": 8, "fill": [{ "type": "solid", "color": "#3B82F6" }], "children": [{ "id": "btn-icon", "type": "path", "name": "ArrowRightIcon", "role": "icon", "d": "M5 12h14m-7-7 7 7-7 7", "width": 20, "height": 20, "stroke": { "thickness": 2, "fill": [{ "type": "solid", "color": "#FFFFFF" }] } }, { "id": "btn-text", "type": "text", "name": "Label", "role": "label", "content": "Continue", "fontSize": 16, "fontWeight": 600, "fill": [{ "type": "solid", "color": "#FFFFFF" }] }] }
+{ "id": "btn-1", "type": "frame", "name": "Button", "role": "button", "x": 100, "y": 100, "width": 180, "cornerRadius": 8, "fill": [{ "type": "solid", "color": "#3B82F6" }], "children": [{ "id": "btn-icon", "type": "icon_font", "name": "ArrowRightIcon", "iconFontName": "arrow-right", "width": 20, "height": 20, "fill": "#FFFFFF" }, { "id": "btn-text", "type": "text", "name": "Label", "role": "label", "content": "Continue", "fontSize": 16, "fontWeight": 600, "fill": [{ "type": "solid", "color": "#FFFFFF" }] }] }
 
 Card with image (role="card" auto-adds layout, cornerRadius, clipContent):
 { "id": "card-1", "type": "frame", "name": "Card", "role": "card", "x": 50, "y": 50, "width": 320, "height": 340, "fill": [{ "type": "solid", "color": "#FFFFFF" }], "effects": [{ "type": "shadow", "offsetX": 0, "offsetY": 4, "blur": 12, "spread": 0, "color": "rgba(0,0,0,0.1)" }], "children": [{ "id": "card-img", "type": "image", "name": "Cover", "src": "https://picsum.photos/320/180", "width": "fill_container", "height": 180 }, { "id": "card-body", "type": "frame", "name": "Body", "width": "fill_container", "height": "fit_content", "layout": "vertical", "padding": 20, "gap": 8, "children": [{ "id": "card-title", "type": "text", "name": "Title", "role": "heading", "content": "Card Title", "fontSize": 20, "fontWeight": 700, "fill": [{ "type": "solid", "color": "#111827" }] }, { "id": "card-desc", "type": "text", "name": "Description", "role": "body-text", "content": "Some description text here", "fontSize": 14, "fill": [{ "type": "solid", "color": "#6B7280" }] }] }] }
 
 ICONS & IMAGES:
-- Icons: Use "path" nodes. Size 16-24px. CRITICAL: ONLY use names from the Feather icon library below — these are bundled locally and render instantly. Convert the icon name to PascalCase + "Icon" suffix (e.g. "search" → "SearchIcon", "arrow-right" → "ArrowRightIcon"). Do NOT invent names outside this list.
-  The system auto-resolves icon names to verified SVG paths — the "name" field is what matters; "d" is replaced automatically.
-  Available Feather icons: ${FEATHER_ICON_NAMES}
-- NEVER use emoji characters as icons (e.g. 🍕🍔⭐✅🔔). Always use icon_font nodes — emoji cannot render on canvas.
+- Icons: ALWAYS use "icon_font" nodes (NOT "path"). Props: iconFontName (lowercase kebab-case lucide name), width, height, fill (single color string). Size 16-24px.
+  Available icon names: ${FEATHER_ICON_NAMES}
+  The system auto-resolves iconFontName to correct SVG from the bundled Lucide library (1700+ icons, all 24x24 uniform).
+- NEVER use "path" type for icons — path is for custom shapes only.
+- NEVER use emoji characters as icons. Emoji cannot render on canvas.
+- ICON ALIGNMENT: When multiple icons are siblings in the same row, wrap EACH in an equal-sized container frame (e.g. 32x32 or 44x44) with layout="vertical", alignItems="center", justifyContent="center".
 - For app screenshot/mockup areas, use a phone placeholder frame with solid fill matching the page theme + 1px subtle stroke. cornerRadius ~32. Prefer no inner content; if a placeholder copy is needed (e.g. "APP截图占位"), keep exactly one centered text node INSIDE the phone frame (never as a sibling below it).
 - Do NOT use random real-world app screenshots or dense mini-app simulations for showcase sections.
 `
@@ -214,7 +217,7 @@ DESIGN GUIDELINES:
 - Max 3-4 levels of nesting
 - Text: titles 22-28px bold, body 14-16px, captions 12px
 - Buttons: height 44-52px, cornerRadius 8-12, padding [12, 24] (vertical, horizontal). With icon+text: layout="horizontal", gap=8, alignItems="center". Width: "fill_container" (stretch), "fit_content" (hug), or fixed px — choose per context.
-- Icon-only buttons (heart, bookmark, share, etc.): square frame 44x44px, justifyContent="center", alignItems="center", path icon 20-24px inside.
+- Icon-only buttons (heart, bookmark, share, etc.): square frame 44x44px, justifyContent="center", alignItems="center", icon_font 20-24px inside.
 - Badges/tags ("NEW", "SALE", "PRO"): only for short labels (CJK <=8 chars / Latin <=16 chars). For longer copy, use a normal text row/card instead of badge/chip style.
 - Button + icon-button row: horizontal, gap=8-12. Primary button width="fill_container"; icon-only button fixed square 44-48px.
 - Inputs: height 44px, light bg, subtle border. Use width="fill_container" in form contexts.
@@ -227,7 +230,7 @@ DESIGN GUIDELINES:
 - Default to light neutral styling unless user explicitly asks for dark/neon/terminal
 - Avoid repeating the exact same palette across unrelated designs
 - Navigation bars (when designing landing pages/websites): use justifyContent="space_between" with 3 child groups (logo-group | links-group | cta-button), padding=[0,80], alignItems="center". This auto-distributes them perfectly across the full width.
-- Icons: use "path" nodes with Feather icon names only (full list in the ICONS & IMAGES section above). Size 16-24px.
+- Icons: use "icon_font" nodes with iconFontName (lucide names). Size 16-24px.
 - NEVER use emoji glyphs as icon substitutes (🍕🍔⭐ etc). If an icon is needed, use an icon_font node with iconFontName (lucide name). Emoji cannot render on canvas.
 - Use image nodes for generic photos/illustrations only; for app preview areas prefer phone mockup placeholders
 - Phone mockup/screenshot placeholder: exactly ONE "frame" node, width 260-300, height 520-580, cornerRadius 32, solid fill matching theme + 1px subtle stroke. NEVER use ellipse or circle for mockups. If a placeholder label is used, keep exactly ONE centered text child inside the phone frame; otherwise no children. Never put the label as a sibling below the phone.
@@ -278,7 +281,7 @@ ${BLOCK}json
 {"_parent":null,"id":"page","type":"frame","name":"Page","x":0,"y":0,"width":375,"height":812,"layout":"vertical","gap":0,"fill":[{"type":"solid","color":"#F8FAFC"}]}
 {"_parent":"page","id":"nav","type":"frame","name":"Nav","role":"navbar","width":"fill_container","fill":[{"type":"solid","color":"#FFFFFF"}]}
 {"_parent":"nav","id":"logo","type":"text","name":"Logo","role":"label","content":"App","fontSize":18,"fontWeight":700,"fill":[{"type":"solid","color":"#0F172A"}]}
-{"_parent":"nav","id":"menu-icon","type":"path","name":"MenuIcon","role":"icon","d":"M4 6h16M4 12h16M4 18h16","width":24,"height":24,"stroke":{"thickness":2,"fill":[{"type":"solid","color":"#0F172A"}]}}
+{"_parent":"nav","id":"menu-icon","type":"icon_font","name":"MenuIcon","iconFontName":"menu","width":24,"height":24,"fill":"#0F172A"}
 {"_parent":"page","id":"hero","type":"frame","name":"Hero","role":"hero","width":"fill_container","padding":24,"gap":16,"justifyContent":"center"}
 {"_parent":"hero","id":"title","type":"text","name":"Title","role":"heading","content":"Welcome","fontSize":28,"fontWeight":700,"fill":[{"type":"solid","color":"#0F172A"}]}
 ${BLOCK}
@@ -323,7 +326,7 @@ COPYWRITING (keep all text content concise — verbose copy breaks layout and hu
 - NEVER output paragraphs with 3+ sentences in a design. Distill user-provided long copy to its essence.
 
 SIZING: Mobile root 375x812. Web root 1200x800 (single screen) or 1200x3000-5000 (landing page). "Mobile login/signup/settings" = 375x812 actual screen, NOT a desktop page with phone mockup.
-ICONS: "path" nodes, size 16-24px. ONLY use Feather icon names — PascalCase + "Icon" suffix (e.g. "SearchIcon", "ArrowRightIcon", "CheckIcon"). System auto-resolves name to verified SVG path; "d" is replaced automatically. Available Feather icons: ${FEATHER_ICON_NAMES}
+ICONS: ALWAYS use "icon_font" nodes with iconFontName (lowercase kebab-case lucide names, e.g. "search", "arrow-right", "check"). Size 16-24px. fill is a single color string. Available: ${FEATHER_ICON_NAMES}
 IMAGES: for app showcase sections, prefer phone mockup placeholders over real screenshots.
 STYLE: Default to light neutral palette unless user explicitly asks for dark/terminal/cyber. Avoid always reusing black+green.
 
