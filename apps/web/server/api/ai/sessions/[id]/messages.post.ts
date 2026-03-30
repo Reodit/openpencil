@@ -1,6 +1,6 @@
 import { defineEventHandler, readBody, createError, getRouterParam } from 'h3'
-import { getDB } from '../../../utils/db'
-import { getSessionUser } from '../../../utils/session'
+import { getDB } from '../../../../utils/db'
+import { getSessionUser } from '../../../../utils/session'
 
 /** POST /api/ai/sessions/:id/messages — Save messages to a session */
 export default defineEventHandler(async (event) => {
