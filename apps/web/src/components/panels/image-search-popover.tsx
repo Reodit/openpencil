@@ -18,7 +18,7 @@ export default function ImageSearchPopover({ initialQuery, onSelect, children }:
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [results, setResults] = useState<ImageSearchResult[]>([])
-  const [source, setSource] = useState<'openverse' | 'wikimedia' | null>(null)
+  const [source, setSource] = useState<'openverse' | 'wikimedia' | 'pexels' | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)

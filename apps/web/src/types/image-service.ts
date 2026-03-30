@@ -18,14 +18,14 @@ export interface ImageSearchResult {
   thumbUrl: string
   width: number
   height: number
-  source: 'openverse' | 'wikimedia'
+  source: 'openverse' | 'wikimedia' | 'pexels'
   license: string
   attribution?: string
 }
 
 export interface ImageSearchResponse {
   results: ImageSearchResult[]
-  source: 'openverse' | 'wikimedia'
+  source: 'openverse' | 'wikimedia' | 'pexels'
 }
 
 export const MODEL_PLACEHOLDERS: Record<ImageGenProvider, string> = {

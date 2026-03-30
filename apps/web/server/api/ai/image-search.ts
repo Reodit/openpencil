@@ -154,6 +154,63 @@ export function mapWikimediaPages(
 // Source fetchers
 // ---------------------------------------------------------------------------
 
+interface PexelsPhoto {
+  id: number
+  width: number
+  height: number
+  photographer: string
+  src: {
+    original: string
+    large: string
+    medium: string
+    small: string
+    landscape: string
+  }
+}
+
+interface PexelsSearchResponse {
+  photos: PexelsPhoto[]
+  total_results: number
+}
+
+function mapPexelsResult(p: PexelsPhoto): ImageSearchResult {
+  return {
+    id: String(p.id),
+    url: p.src.original,
+    thumbUrl: p.src.medium,
+    width: p.width,
+    height: p.height,
+    source: 'pexels' as const,
+    license: 'Pexels License (free)',
+    attribution: p.photographer,
+  }
+}
+
+async function fetchFromPexels(
+  query: string,
+  count: number,
+  aspectRatio: string | undefined,
+  apiKey: string,
+): Promise<ImageSearchResult[] | null> {
+  const url = new URL('https://api.pexels.com/v1/search')
+  url.searchParams.set('query', query)
+  url.searchParams.set('per_page', String(count))
+  if (aspectRatio === 'wide') url.searchParams.set('orientation', 'landscape')
+  else if (aspectRatio === 'tall') url.searchParams.set('orientation', 'portrait')
+  else if (aspectRatio === 'square') url.searchParams.set('orientation', 'square')
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: apiKey },
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as PexelsSearchResponse
+    return (data.photos ?? []).map(mapPexelsResult)
+  } catch {
+    return null
+  }
+}
+
 async function fetchFromOpenverse(
   query: string,
   count: number,
@@ -237,6 +294,7 @@ export default defineEventHandler(async (event) => {
     count?: number
     page?: number
     aspectRatio?: string
+    pexelsApiKey?: string
     openverseClientId?: string
     openverseClientSecret?: string
   }
@@ -252,10 +310,24 @@ export default defineEventHandler(async (event) => {
   const count = Math.min(Math.max(Number(body?.count ?? 10), 1), 50)
   const page = Math.max(Number(body?.page ?? 1), 1)
   const aspectRatio = body?.aspectRatio
+
+  // Priority: Pexels (highest quality) → Openverse → Wikimedia (fallback)
+
+  // 1. Try Pexels first (if API key available)
+  const pexelsKey = body?.pexelsApiKey || process.env.PEXELS_API_KEY
+  if (pexelsKey) {
+    const pexelsResults = await fetchFromPexels(query, count, aspectRatio, pexelsKey)
+    if (pexelsResults && pexelsResults.length > 0) {
+      return {
+        results: pexelsResults,
+        source: 'pexels',
+      } satisfies ImageSearchResponse
+    }
+  }
+
+  // 2. Try Openverse
   const clientId = body?.openverseClientId
   const clientSecret = body?.openverseClientSecret
-
-  // Try Openverse first
   const openverseResults = await fetchFromOpenverse(
     query,
     count,
@@ -265,14 +337,14 @@ export default defineEventHandler(async (event) => {
     page,
   )
 
-  if (openverseResults !== null) {
+  if (openverseResults !== null && openverseResults.length > 0) {
     return {
       results: openverseResults,
       source: 'openverse',
     } satisfies ImageSearchResponse
   }
 
-  // Openverse returned 429 or failed — fall back to Wikimedia
+  // 3. Wikimedia fallback
   const wikimediaResults = await fetchFromWikimedia(query, count)
   return {
     results: wikimediaResults,

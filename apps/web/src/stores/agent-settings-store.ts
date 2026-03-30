@@ -22,6 +22,7 @@ interface PersistedState {
   imageGenProfiles: ImageGenProfile[]
   activeImageGenProfileId: string | null
   openverseOAuth: { clientId: string; clientSecret: string } | null
+  pexelsApiKey: string | null
 }
 
 interface AgentSettingsState extends PersistedState {
@@ -49,6 +50,7 @@ interface AgentSettingsState extends PersistedState {
   setActiveImageGenProfile: (id: string | null) => void
   getActiveImageGenProfile: () => ImageGenProfile | null
   setOpenverseOAuth: (oauth: { clientId: string; clientSecret: string } | null) => void
+  setPexelsApiKey: (key: string | null) => void
   persist: () => void
   hydrate: () => void
 }
@@ -109,6 +111,7 @@ export const useAgentSettingsStore = create<AgentSettingsState>((set, get) => ({
   imageGenProfiles: [],
   activeImageGenProfileId: null,
   openverseOAuth: null,
+  pexelsApiKey: null,
   dialogOpen: false,
   isHydrated: false,
   mcpServerRunning: false,
@@ -200,13 +203,14 @@ export const useAgentSettingsStore = create<AgentSettingsState>((set, get) => ({
   },
 
   setOpenverseOAuth: (oauth) => set({ openverseOAuth: oauth }),
+  setPexelsApiKey: (key) => set({ pexelsApiKey: key }),
 
   persist: () => {
     try {
-      const { providers, mcpIntegrations, mcpTransportMode, mcpHttpPort, imageGenConfig, imageGenProfiles, activeImageGenProfileId, openverseOAuth } = get()
+      const { providers, mcpIntegrations, mcpTransportMode, mcpHttpPort, imageGenConfig, imageGenProfiles, activeImageGenProfileId, openverseOAuth, pexelsApiKey } = get()
       appStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ providers, mcpIntegrations, mcpTransportMode, mcpHttpPort, imageGenConfig, imageGenProfiles, activeImageGenProfileId, openverseOAuth }),
+        JSON.stringify({ providers, mcpIntegrations, mcpTransportMode, mcpHttpPort, imageGenConfig, imageGenProfiles, activeImageGenProfileId, openverseOAuth, pexelsApiKey }),
       )
     } catch {
       // ignore
@@ -257,6 +261,7 @@ export const useAgentSettingsStore = create<AgentSettingsState>((set, get) => ({
         set({ imageGenProfiles: [migrated], activeImageGenProfileId: migrated.id })
       }
       if (data.openverseOAuth !== undefined) set({ openverseOAuth: data.openverseOAuth })
+      if ((data as Record<string, unknown>).pexelsApiKey !== undefined) set({ pexelsApiKey: (data as Record<string, unknown>).pexelsApiKey as string | null })
     } catch {
       // ignore
     } finally {

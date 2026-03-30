@@ -118,6 +118,9 @@ async function processQueue(): Promise<void> {
           query: item.query,
           count: 1,
           aspectRatio: item.aspect,
+          ...(useAgentSettingsStore.getState().pexelsApiKey && {
+            pexelsApiKey: useAgentSettingsStore.getState().pexelsApiKey,
+          }),
           ...(openverseOAuth && {
             openverseClientId: openverseOAuth.clientId,
             openverseClientSecret: openverseOAuth.clientSecret,
