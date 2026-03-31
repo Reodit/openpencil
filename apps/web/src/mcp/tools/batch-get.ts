@@ -30,7 +30,8 @@ export async function handleBatchGet(
   const doc = await openDocument(filePath)
   const pageId = params.pageId
 
-  const readDepth = params.readDepth ?? 1
+  // Cap readDepth to prevent massive responses that exceed token limits
+  const readDepth = Math.min(params.readDepth ?? 1, 1)
   const searchDepth = params.searchDepth ?? Infinity
 
   // If no patterns or nodeIds, return top-level children

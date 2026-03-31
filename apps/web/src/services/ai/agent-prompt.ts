@@ -79,18 +79,32 @@ ${AGENT_TOOLS}
 
 ${DESIGN_MODIFIER_PROMPT}
 
-CRITICAL MODIFY WORKFLOW:
-1. ALWAYS call mcp__openpencil__batch_get FIRST to get actual node IDs from the canvas.
-   - Do NOT guess or infer node IDs from context summaries — they are often remapped (e.g. "header" → "header-2").
-   - Even if "CONTEXT NODES:" is present, verify IDs with mcp__openpencil__batch_get.
-   - Search by name: mcp__openpencil__batch_get({ patterns: [{ name: "Header" }] })
-   - Search by type: mcp__openpencil__batch_get({ patterns: [{ type: "text" }] })
-   - Get all children of a frame: mcp__openpencil__batch_get({ parentId: "frame-id", readDepth: 2 })
-2. If search results are ambiguous or you are not certain which node the user means, ASK the user. Show candidates with id, name, and type.
-3. Only after confirming the exact node IDs, output modifications in a \`\`\`json block.
-4. Use the EXACT IDs returned by mcp__openpencil__batch_get — never fabricate IDs.
-5. Return ONLY modified nodes. If a node needs no changes, omit it.
-6. Do NOT recreate the entire design — only change what the user asked for.`
+CRITICAL MODIFY WORKFLOW — TREE SEARCH:
+You MUST search the canvas step-by-step using mcp__openpencil__batch_get. NEVER guess node IDs.
+
+Step 1: Get top-level frames (readDepth: 0)
+   mcp__openpencil__batch_get({ readDepth: 0 })
+   → Returns: [{id:"login-page-2", name:"Login Page", type:"frame"}, ...]
+
+Step 2: Drill into the relevant frame (readDepth: 1)
+   mcp__openpencil__batch_get({ parentId: "login-page-2", readDepth: 1 })
+   → Returns direct children: Header, Form Card, Bottom Area, etc.
+
+Step 3: If needed, drill deeper into a specific section
+   mcp__openpencil__batch_get({ parentId: "form-card-2", readDepth: 1 })
+   → Returns: Email Group, Password Group, Login Button, etc.
+
+Or search by name/type at any level:
+   mcp__openpencil__batch_get({ patterns: [{ name: "Header" }], readDepth: 0 })
+
+RULES:
+- ALWAYS use readDepth: 0 or 1. NEVER use readDepth > 1 — results will be too large.
+- NEVER call batch_get without patterns or parentId — this returns the entire canvas and will fail.
+- If search results are ambiguous, ASK the user which node to modify.
+- Use EXACT IDs from search results — never fabricate or guess IDs.
+- Output modifications in a \`\`\`json block using only confirmed IDs.
+- Return ONLY modified nodes. Omit unchanged nodes.
+- Do NOT recreate the entire design.`
 }
 
 // ---------------------------------------------------------------------------
