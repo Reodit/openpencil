@@ -319,6 +319,13 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               includePartialMessages: true,
               allowedTools: ['WebSearch', 'WebFetch', 'Read'],
               permissionMode: 'acceptEdits',
+              mcpServers: {
+                openpencil: {
+                  command: 'bun',
+                  args: ['run', 'apps/web/src/mcp/server.ts', '--stdio'],
+                  cwd: process.cwd().replace(/\/apps\/web$/, ''),
+                },
+              },
               persistSession: true,
               ...(body.sessionId ? { resume: body.sessionId } : {}),
               ...(body.effort ? { effort: body.effort } : {}),

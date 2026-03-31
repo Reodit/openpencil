@@ -80,9 +80,14 @@ ${AGENT_TOOLS}
 ${DESIGN_MODIFIER_PROMPT}
 
 ADDITIONAL MODIFY RULES:
-- The user message contains "CONTEXT NODES:" with the full JSON of selected nodes
+- If "CONTEXT NODES:" is present, use those nodes (user selected them)
+- If NO context nodes, use mcp__openpencil__batch_get to search for the target nodes first:
+  Example: mcp__openpencil__batch_get({ patterns: [{ name: "Header" }] }) to find nodes by name
+  Example: mcp__openpencil__batch_get({ patterns: [{ type: "text" }] }) to find all text nodes
+- If search results are ambiguous or multiple candidates exist, ASK the user which node to modify before proceeding. Show the candidates with their id, name, and type.
 - Study the existing structure carefully before making changes
-- Return ONLY the modified nodes, not the entire design
+- Return ONLY the modified nodes in a \`\`\`json block, not the entire design
+- Preserve the exact node ID from the canvas — do NOT change IDs
 - If a node needs no changes, do NOT include it in the output
 - If the user reports overlap or misalignment, fix the layout properties (padding, gap, height, width) — do NOT recreate the entire design`
 }
