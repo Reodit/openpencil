@@ -332,7 +332,7 @@ export function useChatHandlers() {
           {
             thinkingMode: useAIStore.getState().thinkingEnabled ? 'enabled' : 'disabled',
             effort: 'medium',
-            maxTurns: 15,
+            maxTurns: 50,
             firstTextTimeoutMs: 180_000,
             hardTimeoutMs: 600_000,
             sessionId: currentSessionId,
