@@ -562,8 +562,12 @@ function extractAndInsertStreamingNodes(
         // Check if this node already exists on canvas (modify mode)
         const existing = useDocumentStore.getState().getNodeById(node.id)
         if (existing) {
-          // Update existing node properties instead of inserting
-          useDocumentStore.getState().updateNode(node.id, node)
+          // Update existing node properties — strip children and structural
+          // fields to avoid overwriting the existing subtree
+          const { children: _c, id: _id, type: _t, ...safeUpdates } = node
+          if (Object.keys(safeUpdates).length > 0) {
+            useDocumentStore.getState().updateNode(node.id, safeUpdates)
+          }
         } else {
           insertStreamingNode(node, parentId)
         }
