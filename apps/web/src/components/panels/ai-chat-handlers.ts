@@ -441,8 +441,8 @@ export function useChatHandlers() {
       }
 
       // --- Diagnostic: save LLM output + node tree to server for inspection ---
-      if (appliedCount > 0 && rootNodeIds.length > 0) {
-        const rootNodeId = rootNodeIds[0]
+      if (accumulated.length > 50) {
+        const rootNodeId = rootNodeIds.length > 0 ? rootNodeIds[0] : null
         const dumpNode = (id: string, depth = 0): string => {
           const n = useDocumentStore.getState().getNodeById(id)
           if (!n) return ''
@@ -473,8 +473,8 @@ export function useChatHandlers() {
           }
           return result
         }
-        const treeDump = rootNodeIds.map(rid => dumpNode(rid)).join('\n')
-        const diagData = `${'='.repeat(80)}\nTIMESTAMP: ${new Date().toISOString()}\nMODEL: ${model}\nROOTS: ${rootNodeIds.join(', ')}\nNODES APPLIED: ${appliedCount}\n\n--- LLM RAW OUTPUT ---\n${accumulated}\n\n--- DOCUMENT TREE (post-heuristics) ---\n${treeDump}`
+        const treeDump = rootNodeIds.length > 0 ? rootNodeIds.map(rid => dumpNode(rid)).join('\n') : '(no root nodes — modify mode or failed generation)'
+        const diagData = `${'='.repeat(80)}\nTIMESTAMP: ${new Date().toISOString()}\nMODEL: ${model}\nROOTS: ${rootNodeIds.length > 0 ? rootNodeIds.join(', ') : 'none'}\nNODES APPLIED: ${appliedCount}\nMODE: ${rootNodeIds.length > 0 ? 'generate' : 'modify/chat'}\n\n--- LLM RAW OUTPUT ---\n${accumulated}\n\n--- DOCUMENT TREE (post-heuristics) ---\n${treeDump}`
         // Save to server-side file via API
         fetch('/api/ai/diag', {
           method: 'POST',
