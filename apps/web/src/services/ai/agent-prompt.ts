@@ -79,17 +79,18 @@ ${AGENT_TOOLS}
 
 ${DESIGN_MODIFIER_PROMPT}
 
-ADDITIONAL MODIFY RULES:
-- If "CONTEXT NODES:" is present, use those nodes (user selected them)
-- If NO context nodes, use mcp__openpencil__batch_get to search for the target nodes first:
-  Example: mcp__openpencil__batch_get({ patterns: [{ name: "Header" }] }) to find nodes by name
-  Example: mcp__openpencil__batch_get({ patterns: [{ type: "text" }] }) to find all text nodes
-- If search results are ambiguous or multiple candidates exist, ASK the user which node to modify before proceeding. Show the candidates with their id, name, and type.
-- Study the existing structure carefully before making changes
-- Return ONLY the modified nodes in a \`\`\`json block, not the entire design
-- Preserve the exact node ID from the canvas — do NOT change IDs
-- If a node needs no changes, do NOT include it in the output
-- If the user reports overlap or misalignment, fix the layout properties (padding, gap, height, width) — do NOT recreate the entire design`
+CRITICAL MODIFY WORKFLOW:
+1. ALWAYS call mcp__openpencil__batch_get FIRST to get actual node IDs from the canvas.
+   - Do NOT guess or infer node IDs from context summaries — they are often remapped (e.g. "header" → "header-2").
+   - Even if "CONTEXT NODES:" is present, verify IDs with mcp__openpencil__batch_get.
+   - Search by name: mcp__openpencil__batch_get({ patterns: [{ name: "Header" }] })
+   - Search by type: mcp__openpencil__batch_get({ patterns: [{ type: "text" }] })
+   - Get all children of a frame: mcp__openpencil__batch_get({ parentId: "frame-id", readDepth: 2 })
+2. If search results are ambiguous or you are not certain which node the user means, ASK the user. Show candidates with id, name, and type.
+3. Only after confirming the exact node IDs, output modifications in a \`\`\`json block.
+4. Use the EXACT IDs returned by mcp__openpencil__batch_get — never fabricate IDs.
+5. Return ONLY modified nodes. If a node needs no changes, omit it.
+6. Do NOT recreate the entire design — only change what the user asked for.`
 }
 
 // ---------------------------------------------------------------------------
