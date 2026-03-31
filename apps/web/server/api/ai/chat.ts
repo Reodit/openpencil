@@ -317,13 +317,12 @@ function streamViaAgentSDK(body: ChatBody, model?: string) {
               ...(model ? { model } : {}),
               maxTurns: body.maxTurns ?? (hasAttachments ? 5 : 1),
               includePartialMessages: true,
-              allowedTools: ['WebSearch', 'WebFetch', 'Read'],
+              allowedTools: ['WebSearch', 'WebFetch', 'Read', 'mcp__openpencil__batch_get', 'mcp__openpencil__get_selection', 'mcp__openpencil__update_node', 'mcp__openpencil__batch_design'],
               permissionMode: 'acceptEdits',
               mcpServers: {
                 openpencil: {
                   command: 'bun',
-                  args: ['run', 'apps/web/src/mcp/server.ts', '--stdio'],
-                  cwd: process.cwd().replace(/\/apps\/web$/, ''),
+                  args: ['run', join(process.cwd(), 'src/mcp/server.ts'), '--stdio'],
                 },
               },
               persistSession: true,
