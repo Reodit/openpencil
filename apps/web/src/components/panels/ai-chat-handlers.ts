@@ -36,11 +36,9 @@ export function buildContextString(): string {
   const parts: string[] = []
 
   if (flatNodes.length > 0) {
-    const summary = flatNodes
-      .slice(0, 20)
-      .map((n) => `${n.type}:${n.name ?? n.id}`)
-      .join(', ')
-    parts.push(`Document has ${flatNodes.length} nodes: ${summary}`)
+    // Only send node count for decision routing (generate vs modify vs chat).
+    // Do NOT send node names or IDs — LLM must use MCP batch_get to search.
+    parts.push(`Canvas has ${flatNodes.length} nodes`)
   }
 
   if (selectedIds.length > 0) {
