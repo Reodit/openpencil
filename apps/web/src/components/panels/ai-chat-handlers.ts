@@ -31,14 +31,13 @@ import type { ChatMessage as ChatMessageType } from '@/services/ai/ai-types'
 export function buildContextString(): string {
   const selectedIds = useCanvasStore.getState().selection.selectedIds
   const { getFlatNodes, document: doc } = useDocumentStore.getState()
-  const flatNodes = getFlatNodes()
 
   const parts: string[] = []
 
-  if (flatNodes.length > 0) {
-    // Only send node count for decision routing (generate vs modify vs chat).
-    // Do NOT send node names or IDs — LLM must use MCP batch_get to search.
-    parts.push(`Canvas has ${flatNodes.length} nodes`)
+  // Only tell LLM whether canvas has content (for generate vs modify decision).
+  // No node details — LLM must use MCP batch_get to search.
+  if (getFlatNodes().length > 0) {
+    parts.push('Canvas has existing content')
   }
 
   if (selectedIds.length > 0) {
